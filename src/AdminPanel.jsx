@@ -9,6 +9,15 @@ const categories = [
   "Bath & Body",
 ];
 
+const orderStatuses = [
+  "placed",
+  "confirmed",
+  "packed",
+  "shipped",
+  "delivered",
+  "cancelled",
+];
+
 const initialForm = {
   brand: "",
   title: "",
@@ -30,32 +39,60 @@ const initialForm = {
 
 function AdminPanel({ apiUrl, onBack, showToast }) {
   const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [editingId, setEditingId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [search, setSearch] = useState("");
 
   const loadProducts = async () => {
     try {
       setLoading(true);
+
       const response = await fetch(`${apiUrl}/api/products`);
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message);
+        throw new Error(data.message || "Could not load products");
       }
 
       setProducts(data.products || []);
-    } catch {
-      showToast("Could not load products");
+    } catch (error) {
+      showToast(error.message || "Could not load products");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
+  const loadOrders = async () => {
+    try {
+      setOrdersLoading(true);
+
+      const response = await fetch(`${apiUrl}/api/orders`);
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Could not load orders");
+      }
+
+      setOrders(data.orders || []);
+    } catch (error) {
+      showToast(error.message || "Could not load orders");
+    } finally {
+      setOrdersLoading(false);
+    }
+  };
+
+  const refreshAdminData = () => {
     loadProducts();
+    loadOrders();
+  };
+
+  useEffect(() => {
+    refreshAdminData();
   }, []);
 
   const visibleProducts = useMemo(() => {
@@ -82,6 +119,7 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
 
   const startEdit = (product) => {
     setEditingId(product._id);
+
     setForm({
       brand: product.brand || "",
       title: product.title || "",
@@ -128,20 +166,21 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
 
     try {
       setSaving(true);
+
       const marketplaceLinks = [
-  form.amazonLink.trim() && {
-    platform: "Amazon",
-    url: form.amazonLink.trim(),
-  },
-  form.flipkartLink.trim() && {
-    platform: "Flipkart",
-    url: form.flipkartLink.trim(),
-  },
-  form.otherMarketplaceName.trim() &&
-    form.otherMarketplaceLink.trim() && {
-      platform: form.otherMarketplaceName.trim(),
-      url: form.otherMarketplaceLink.trim(),
-    },
+        form.amazonLink.trim() && {
+          platform: "Amazon",
+          url: form.amazonLink.trim(),
+        },
+        form.flipkartLink.trim() && {
+          platform: "Flipkart",
+          url: form.flipkartLink.trim(),
+        },
+        form.otherMarketplaceName.trim() &&
+          form.otherMarketplaceLink.trim() && {
+            platform: form.otherMarketplaceName.trim(),
+            url: form.otherMarketplaceLink.trim(),
+          },
       ].filter(Boolean);
 
       const productPayload = {
@@ -153,6 +192,7 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
       delete productPayload.flipkartLink;
       delete productPayload.otherMarketplaceName;
       delete productPayload.otherMarketplaceLink;
+
       const response = await fetch(
         editingId
           ? `${apiUrl}/api/products/${editingId}`
@@ -170,11 +210,14 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
         throw new Error(data.message || "Could not save product");
       }
 
-      showToast(editingId ? "Product updated successfully" : "Product added successfully");
+      showToast(
+        editingId ? "Product updated successfully" : "Product added successfully"
+      );
+
       cancelEdit();
       loadProducts();
     } catch (error) {
-      showToast(error.message);
+      showToast(error.message || "Could not save product");
     } finally {
       setSaving(false);
     }
@@ -199,7 +242,7 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
       showToast("Product deleted");
       loadProducts();
     } catch (error) {
-      showToast(error.message);
+      showToast(error.message || "Could not delete product");
     }
   };
 
@@ -212,11 +255,14 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
     }
 
     try {
-      const response = await fetch(`${apiUrl}/api/products/${product._id}/stock`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stock }),
-      });
+      const response = await fetch(
+        `${apiUrl}/api/products/${product._id}/stock`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ stock }),
+        }
+      );
 
       const data = await response.json();
 
@@ -227,8 +273,47 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
       showToast("Stock updated");
       loadProducts();
     } catch (error) {
-      showToast(error.message);
+      showToast(error.message || "Could not update stock");
     }
+  };
+
+  const updateOrderStatus = async (orderId, orderStatus) => {
+    try {
+      setUpdatingOrderId(orderId);
+
+      const response = await fetch(`${apiUrl}/api/orders/${orderId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderStatus }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Could not update order status");
+      }
+
+      setOrders((currentOrders) =>
+        currentOrders.map((order) =>
+          order._id === orderId ? data.order : order
+        )
+      );
+
+      showToast("Order status updated");
+    } catch (error) {
+      showToast(error.message || "Could not update order status");
+    } finally {
+      setUpdatingOrderId("");
+    }
+  };
+
+  const formatDate = (date) => {
+    if (!date) return "—";
+
+    return new Intl.DateTimeFormat("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    }).format(new Date(date));
   };
 
   const totalStock = products.reduce(
@@ -236,30 +321,52 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
     0
   );
 
+  const pendingOrders = orders.filter(
+    (order) => !["delivered", "cancelled"].includes(order.orderStatus)
+  ).length;
+
   return (
     <div className="admin-page">
       <header className="admin-header">
-        <button className="admin-back" onClick={onBack}>← Store</button>
+        <button className="admin-back" onClick={onBack}>
+          ← Store
+        </button>
 
         <div>
           <p>DEALROOT BEAUTY</p>
           <h1>Product Admin Panel</h1>
         </div>
 
-        <button className="admin-refresh" onClick={loadProducts}>↻ Refresh</button>
+        <button className="admin-refresh" onClick={refreshAdminData}>
+          ↻ Refresh
+        </button>
       </header>
 
       <main className="admin-content">
         <section className="admin-stats">
-          <article><span>Total products</span><strong>{products.length}</strong></article>
-          <article><span>Total stock</span><strong>{totalStock}</strong></article>
+          <article>
+            <span>Total products</span>
+            <strong>{products.length}</strong>
+          </article>
+
+          <article>
+            <span>Total stock</span>
+            <strong>{totalStock}</strong>
+          </article>
+
           <article>
             <span>Out of stock</span>
-            <strong>{products.filter((product) => Number(product.stock) === 0).length}</strong>
+            <strong>
+              {
+                products.filter((product) => Number(product.stock) === 0)
+                  .length
+              }
+            </strong>
           </article>
+
           <article>
-            <span>Featured products</span>
-            <strong>{products.filter((product) => product.isFeatured).length}</strong>
+            <span>Pending orders</span>
+            <strong>{pendingOrders}</strong>
           </article>
         </section>
 
@@ -267,99 +374,207 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
           <div className="admin-section-title">
             <div>
               <p>{editingId ? "EDIT PRODUCT" : "NEW PRODUCT"}</p>
-              <h2>{editingId ? "Update product details" : "Add a product to DEALROOT"}</h2>
+              <h2>
+                {editingId
+                  ? "Update product details"
+                  : "Add a product to DEALROOT"}
+              </h2>
             </div>
 
             {editingId && (
-              <button className="cancel-edit" onClick={cancelEdit}>Cancel edit</button>
+              <button className="cancel-edit" onClick={cancelEdit}>
+                Cancel edit
+              </button>
             )}
           </div>
 
           <form className="product-form" onSubmit={saveProduct}>
             <label>
               Brand *
-              <input name="brand" value={form.brand} onChange={updateForm} required placeholder="e.g. Minimalist" />
+              <input
+                name="brand"
+                value={form.brand}
+                onChange={updateForm}
+                required
+                placeholder="e.g. Minimalist"
+              />
             </label>
 
             <label>
               Product title *
-              <input name="title" value={form.title} onChange={updateForm} required placeholder="e.g. Vitamin C Face Serum" />
+              <input
+                name="title"
+                value={form.title}
+                onChange={updateForm}
+                required
+                placeholder="e.g. Vitamin C Face Serum"
+              />
             </label>
 
             <label>
               Category *
-              <select name="category" value={form.category} onChange={updateForm}>
-                {categories.map((category) => <option key={category}>{category}</option>)}
+              <select
+                name="category"
+                value={form.category}
+                onChange={updateForm}
+              >
+                {categories.map((category) => (
+                  <option key={category}>{category}</option>
+                ))}
               </select>
             </label>
 
             <label>
               Stock *
-              <input name="stock" type="number" min="0" value={form.stock} onChange={updateForm} required />
+              <input
+                name="stock"
+                type="number"
+                min="0"
+                value={form.stock}
+                onChange={updateForm}
+                required
+              />
             </label>
 
             <label>
               Selling price (₹) *
-              <input name="price" type="number" min="0" value={form.price} onChange={updateForm} required />
+              <input
+                name="price"
+                type="number"
+                min="0"
+                value={form.price}
+                onChange={updateForm}
+                required
+              />
             </label>
 
             <label>
               MRP (₹) *
-              <input name="mrp" type="number" min="0" value={form.mrp} onChange={updateForm} required />
+              <input
+                name="mrp"
+                type="number"
+                min="0"
+                value={form.mrp}
+                onChange={updateForm}
+                required
+              />
             </label>
 
             <label>
               Rating
-              <input name="rating" type="number" min="0" max="5" step="0.1" value={form.rating} onChange={updateForm} />
+              <input
+                name="rating"
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                value={form.rating}
+                onChange={updateForm}
+              />
             </label>
 
             <label>
               Number of reviews
-              <input name="reviews" type="number" min="0" value={form.reviews} onChange={updateForm} />
+              <input
+                name="reviews"
+                type="number"
+                min="0"
+                value={form.reviews}
+                onChange={updateForm}
+              />
             </label>
 
             <label className="full-field">
               Product image URL
-              <input name="image" type="url" value={form.image} onChange={updateForm} placeholder="https://..." />
+              <input
+                name="image"
+                type="url"
+                value={form.image}
+                onChange={updateForm}
+                placeholder="https://..."
+              />
             </label>
 
             <label>
               Amazon product link
-              <input name="amazonLink" type="url" value={form.amazonLink} onChange={updateForm} placeholder="https://www.amazon.in/..." />
+              <input
+                name="amazonLink"
+                type="url"
+                value={form.amazonLink}
+                onChange={updateForm}
+                placeholder="https://www.amazon.in/..."
+              />
             </label>
 
             <label>
               Flipkart product link
-              <input name="flipkartLink" type="url" value={form.flipkartLink} onChange={updateForm} placeholder="https://www.flipkart.com/..." />
+              <input
+                name="flipkartLink"
+                type="url"
+                value={form.flipkartLink}
+                onChange={updateForm}
+                placeholder="https://www.flipkart.com/..."
+              />
             </label>
 
             <label>
               Other platform name
-              <input name="otherMarketplaceName" value={form.otherMarketplaceName} onChange={updateForm} placeholder="e.g. Nykaa or Myntra" />
+              <input
+                name="otherMarketplaceName"
+                value={form.otherMarketplaceName}
+                onChange={updateForm}
+                placeholder="e.g. Nykaa or Myntra"
+              />
             </label>
 
             <label>
               Other platform link
-              <input name="otherMarketplaceLink" type="url" value={form.otherMarketplaceLink} onChange={updateForm} placeholder="https://..." />
+              <input
+                name="otherMarketplaceLink"
+                type="url"
+                value={form.otherMarketplaceLink}
+                onChange={updateForm}
+                placeholder="https://..."
+              />
             </label>
 
             <label>
               Product badge
-              <input name="badge" value={form.badge} onChange={updateForm} placeholder="Bestseller / Save 25%" />
+              <input
+                name="badge"
+                value={form.badge}
+                onChange={updateForm}
+                placeholder="Bestseller / Save 25%"
+              />
             </label>
 
             <label className="featured-check">
-              <input name="isFeatured" type="checkbox" checked={form.isFeatured} onChange={updateForm} />
+              <input
+                name="isFeatured"
+                type="checkbox"
+                checked={form.isFeatured}
+                onChange={updateForm}
+              />
               Show as a featured product
             </label>
 
             <label className="full-field">
               Description
-              <textarea name="description" value={form.description} onChange={updateForm} rows="3" placeholder="Short product description..." />
+              <textarea
+                name="description"
+                value={form.description}
+                onChange={updateForm}
+                rows="3"
+                placeholder="Short product description..."
+              />
             </label>
 
             <button className="save-product" disabled={saving}>
-              {saving ? "Saving..." : editingId ? "Save changes" : "Add product"}
+              {saving
+                ? "Saving..."
+                : editingId
+                  ? "Save changes"
+                  : "Add product"}
             </button>
           </form>
         </section>
@@ -396,23 +611,33 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                     <th>Actions</th>
                   </tr>
                 </thead>
+
                 <tbody>
                   {visibleProducts.map((product) => (
                     <tr key={product._id}>
                       <td>
                         <div className="admin-product-name">
-                          <img src={product.image || "https://placehold.co/80x80?text=Product"} alt="" />
+                          <img
+                            src={
+                              product.image ||
+                              "https://placehold.co/80x80?text=Product"
+                            }
+                            alt={product.title}
+                          />
                           <div>
                             <b>{product.title}</b>
                             <span>{product.brand}</span>
                           </div>
                         </div>
                       </td>
+
                       <td>{product.category}</td>
+
                       <td>
                         <b>₹{product.price}</b>
                         <small>MRP ₹{product.mrp}</small>
                       </td>
+
                       <td>
                         <div className="stock-editor">
                           <input
@@ -422,28 +647,145 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                             defaultValue={product.stock}
                             onKeyDown={(event) => {
                               if (event.key === "Enter") {
+                                event.preventDefault();
                                 updateStock(product, event.currentTarget.value);
                               }
                             }}
                           />
-                          <button onClick={(event) => {
-                            const input = event.currentTarget.previousElementSibling;
-                            updateStock(product, input.value);
-                          }}>
+
+                          <button
+                            onClick={(event) => {
+                              const input =
+                                event.currentTarget.previousElementSibling;
+                              updateStock(product, input.value);
+                            }}
+                          >
                             Save
                           </button>
                         </div>
                       </td>
+
                       <td>
-                        <span className={product.stock > 0 ? "stock-active" : "stock-empty"}>
+                        <span
+                          className={
+                            product.stock > 0 ? "stock-active" : "stock-empty"
+                          }
+                        >
                           {product.stock > 0 ? "In stock" : "Out of stock"}
                         </span>
                       </td>
+
                       <td>
                         <div className="admin-actions">
-                          <button onClick={() => startEdit(product)}>Edit</button>
-                          <button className="delete-button" onClick={() => deleteProduct(product)}>Delete</button>
+                          <button onClick={() => startEdit(product)}>
+                            Edit
+                          </button>
+                          <button
+                            className="delete-button"
+                            onClick={() => deleteProduct(product)}
+                          >
+                            Delete
+                          </button>
                         </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <section className="admin-products-card">
+          <div className="admin-section-title">
+            <div>
+              <p>CUSTOMER ORDERS</p>
+              <h2>Manage COD orders</h2>
+            </div>
+
+            <button className="admin-refresh" onClick={loadOrders}>
+              ↻ Refresh orders
+            </button>
+          </div>
+
+          {ordersLoading ? (
+            <div className="admin-empty">Loading orders...</div>
+          ) : orders.length === 0 ? (
+            <div className="admin-empty">No orders have been placed yet.</div>
+          ) : (
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Order</th>
+                    <th>Customer & Delivery</th>
+                    <th>Items</th>
+                    <th>Amount</th>
+                    <th>Payment</th>
+                    <th>Delivery status</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {orders.map((order) => (
+                    <tr key={order._id}>
+                      <td>
+                        <b>{order.orderNumber || order._id}</b>
+                        <small>{formatDate(order.createdAt)}</small>
+                      </td>
+
+                      <td>
+                        <b>{order.customer?.name}</b>
+                        <small>{order.customer?.phone}</small>
+                        <small>
+                          {order.customer?.address}, {order.customer?.city} -{" "}
+                          {order.customer?.pincode}
+                        </small>
+                      </td>
+
+                      <td>
+                        {(order.items || []).map((item) => (
+                          <small key={item._id || item.product}>
+                            {item.title} × {item.quantity} — ₹{item.subtotal}
+                          </small>
+                        ))}
+                      </td>
+
+                      <td>
+                        <b>₹{order.totalAmount}</b>
+                        {Number(order.deliveryFee) > 0 && (
+                          <small>Delivery: ₹{order.deliveryFee}</small>
+                        )}
+                      </td>
+
+                      <td>
+                        <b>
+                          {order.paymentMethod === "cod"
+                            ? "Cash on Delivery"
+                            : order.paymentMethod}
+                        </b>
+                        <small>
+                          {order.paymentStatus === "paid"
+                            ? "Paid"
+                            : "Payment pending"}
+                        </small>
+                      </td>
+
+                      <td>
+                        <select
+                          value={order.orderStatus || "placed"}
+                          disabled={updatingOrderId === order._id}
+                          onChange={(event) =>
+                            updateOrderStatus(order._id, event.target.value)
+                          }
+                        >
+                          {orderStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {status.charAt(0).toUpperCase() +
+                                status.slice(1)}
+                            </option>
+                          ))}
+                        </select>
                       </td>
                     </tr>
                   ))}

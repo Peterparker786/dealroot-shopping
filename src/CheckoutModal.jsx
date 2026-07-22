@@ -1,9 +1,19 @@
 import { useState } from "react";
 
-function CheckoutModal({ isOpen, onClose, cart, total, showToast }) {
+const API_URL = "https://dealroot-backend.onrender.com/api";
+
+function CheckoutModal({
+  isOpen,
+  onClose,
+  cart = [],
+  total = 0,
+  showToast,
+  onOrderPlaced,
+}) {
   const [deliveryType, setDeliveryType] = useState("courier");
   const [paymentMethod, setPaymentMethod] = useState("cod");
-  const [placed, setPlaced] = useState(false);
+  const [placedOrder, setPlacedOrder] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -15,40 +25,106 @@ function CheckoutModal({ isOpen, onClose, cart, total, showToast }) {
   if (!isOpen) return null;
 
   const updateForm = (event) => {
+    const { name, value } = event.target;
+
     setForm((current) => ({
       ...current,
-      [event.target.name]: event.target.value,
+      [name]: value,
     }));
   };
 
-  const placeOrder = (event) => {
+  const placeOrder = async (event) => {
     event.preventDefault();
 
-    if (!form.name || !form.phone || !form.address || !form.pincode) {
-      showToast("Please complete your delivery details");
+    const phone = form.phone.replace(/\D/g, "");
+    const pincode = form.pincode.replace(/\D/g, "");
+
+    if (!form.name.trim() || !phone || !form.address.trim() || !pincode) {
+      showToast?.("Please complete your delivery details");
       return;
     }
 
-    setPlaced(true);
+    if (phone.length !== 10) {
+      showToast?.("Please enter a valid 10-digit mobile number");
+      return;
+    }
+
+    if (pincode.length !== 6) {
+      showToast?.("Please enter a valid 6-digit pincode");
+      return;
+    }
+
+    if (!cart.length) {
+      showToast?.("Your cart is empty");
+      return;
+    }
+
+    if (paymentMethod === "online") {
+      showToast?.("Online payment will be available soon. Please choose Cash on Delivery.");
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+
+      const response = await fetch(`${API_URL}/orders`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          customer: {
+            name: form.name.trim(),
+            phone,
+            address: form.address.trim(),
+            city: form.city.trim() || "Kanpur",
+            pincode,
+          },
+          items: cart.map((item) => ({
+            productId: item._id || item.id,
+            quantity: item.quantity,
+          })),
+          deliveryType,
+          paymentMethod,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Could not place your order");
+      }
+
+      setPlacedOrder(data.order);
+      onOrderPlaced?.(data.order);
+    } catch (error) {
+      showToast?.(error.message || "Could not place your order. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const closeCheckout = () => {
-    setPlaced(false);
+    setPlacedOrder(null);
     onClose();
   };
 
-  if (placed) {
+  if (placedOrder) {
     return (
       <div className="checkout-overlay">
         <section className="order-success">
-          <span className="success-icon">OK</span>
+          <span className="success-icon">✓</span>
           <span className="eyebrow blue">ORDER CONFIRMED</span>
           <h2>Thank you, {form.name}!</h2>
           <p>
-            Your order has been placed successfully. We will send updates to
-            your mobile number.
+            Your Cash on Delivery order has been placed successfully. We will
+            send updates to your mobile number.
           </p>
-          <div className="success-order-id">Order ID: DRB-2026-1048</div>
+
+          <div className="success-order-id">
+            Order ID: {placedOrder.orderNumber || placedOrder._id}
+          </div>
+
           <button className="primary-button" onClick={closeCheckout}>
             Continue shopping
           </button>
@@ -65,7 +141,13 @@ function CheckoutModal({ isOpen, onClose, cart, total, showToast }) {
             <span className="eyebrow blue">SECURE CHECKOUT</span>
             <h2>Complete your order</h2>
           </div>
-          <button className="drawer-close" onClick={onClose}>
+
+          <button
+            className="drawer-close"
+            onClick={onClose}
+            type="button"
+            aria-label="Close checkout"
+          >
             &times;
           </button>
         </header>
@@ -83,6 +165,7 @@ function CheckoutModal({ isOpen, onClose, cart, total, showToast }) {
                     value={form.name}
                     onChange={updateForm}
                     placeholder="Your full name"
+                    required
                   />
                 </label>
 
@@ -95,6 +178,7 @@ function CheckoutModal({ isOpen, onClose, cart, total, showToast }) {
                     inputMode="numeric"
                     maxLength="10"
                     placeholder="10-digit mobile number"
+                    required
                   />
                 </label>
               </div>
@@ -107,6 +191,7 @@ function CheckoutModal({ isOpen, onClose, cart, total, showToast }) {
                   onChange={updateForm}
                   placeholder="House no., street, area and landmark"
                   rows="3"
+                  required
                 />
               </label>
 
@@ -118,6 +203,7 @@ function CheckoutModal({ isOpen, onClose, cart, total, showToast }) {
                     value={form.city}
                     onChange={updateForm}
                     placeholder="City"
+                    required
                   />
                 </label>
 
@@ -130,6 +216,7 @@ function CheckoutModal({ isOpen, onClose, cart, total, showToast }) {
                     inputMode="numeric"
                     maxLength="6"
                     placeholder="6-digit pincode"
+                    required
                   />
                 </label>
               </div>
@@ -178,11 +265,7 @@ function CheckoutModal({ isOpen, onClose, cart, total, showToast }) {
             <section className="checkout-card">
               <h3>3. Payment method</h3>
 
-              <label
-                className={`choice-card ${
-                  paymentMethod === "cod" ? "selected" : ""
-                }`}
-              >
+              <label className="choice-card selected">
                 <input
                   type="radio"
                   name="payment"
@@ -196,11 +279,7 @@ function CheckoutModal({ isOpen, onClose, cart, total, showToast }) {
                 <strong>COD</strong>
               </label>
 
-              <label
-                className={`choice-card ${
-                  paymentMethod === "online" ? "selected" : ""
-                }`}
-              >
+              <label className="choice-card">
                 <input
                   type="radio"
                   name="payment"
@@ -209,7 +288,7 @@ function CheckoutModal({ isOpen, onClose, cart, total, showToast }) {
                 />
                 <span>
                   <b>Pay online</b>
-                  <small>UPI, debit/credit card and net banking</small>
+                  <small>UPI, debit/credit card and net banking — coming soon</small>
                 </span>
                 <strong>UPI</strong>
               </label>
@@ -220,10 +299,10 @@ function CheckoutModal({ isOpen, onClose, cart, total, showToast }) {
             <h3>Order summary</h3>
 
             {cart.map((item) => (
-              <div className="checkout-item" key={item.id}>
-                <span>{item.name}</span>
+              <div className="checkout-item" key={item._id || item.id}>
+                <span>{item.name || item.title}</span>
                 <b>
-                  {item.quantity} x ₹{item.price}
+                  {item.quantity} × ₹{item.price}
                 </b>
               </div>
             ))}
@@ -233,10 +312,12 @@ function CheckoutModal({ isOpen, onClose, cart, total, showToast }) {
               <strong>₹{total}</strong>
             </div>
 
-            <button className="primary-button checkout-submit" type="submit">
-              {paymentMethod === "cod"
-                ? "Place COD order"
-                : "Continue to secure payment"}
+            <button
+              className="primary-button checkout-submit"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Placing order..." : "Place COD order"}
             </button>
 
             <small>

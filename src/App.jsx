@@ -188,13 +188,17 @@ function App() {
         }}
       />
 
-      <CheckoutModal
-        isOpen={checkoutOpen}
-        onClose={() => setCheckoutOpen(false)}
-        cart={cart}
-        total={cartTotal}
-        showToast={showToast}
-      />
+    <CheckoutModal
+  isOpen={checkoutOpen}
+  onClose={() => setCheckoutOpen(false)}
+  cart={cart}
+  total={cartTotal}
+  showToast={showToast}
+  onOrderPlaced={() => {
+    setCart([]);
+    loadProducts();
+  }}
+/>
 
       <div className="top-strip">
         <p>Free delivery on orders above ₹499</p>
