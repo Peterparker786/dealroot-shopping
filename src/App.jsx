@@ -3,7 +3,7 @@ import CartDrawer from "./CartDrawer";
 import CheckoutModal from "./CheckoutModal";
 import AdminPanel from "./AdminPanel";
 
-const API_URL = import.meta.env.VITE_API_URL || "const API_URL = "https://dealroot-backend.onrender.com/api";";
+const API_URL = import.meta.env.VITE_API_URL || "https://dealroot-backend.onrender.com";
 
 const categories = [
   { name: "Makeup", emoji: "💄", color: "#FFE4EC" },
