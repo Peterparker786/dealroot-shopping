@@ -15,10 +15,9 @@ const orderStatuses = [
   "packed",
   "shipped",
   "delivered",
-  "cancelled",
 ];
 
-const initialForm = {
+const emptyForm = {
   brand: "",
   title: "",
   description: "",
@@ -38,30 +37,77 @@ const initialForm = {
 };
 
 function AdminPanel({ apiUrl, onBack, showToast }) {
+  const [token, setToken] = useState(
+    () => sessionStorage.getItem("dealroot_admin_token") || ""
+  );
+
+  const [credentials, setCredentials] = useState({
+    email: "",
+    password: "",
+  });
+
+  const [loggingIn, setLoggingIn] = useState(false);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [form, setForm] = useState(initialForm);
+  const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [ordersLoading, setOrdersLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [search, setSearch] = useState("");
+
+  const logOut = (message = "Logged out successfully") => {
+    sessionStorage.removeItem("dealroot_admin_token");
+    setToken("");
+    setProducts([]);
+    setOrders([]);
+    setCredentials({ email: "", password: "" });
+
+    if (message) {
+      showToast(message);
+    }
+  };
+
+  const request = async (url, options = {}) => {
+    const headers = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...options.headers,
+    };
+
+    let response;
+    let data;
+
+    try {
+      response = await fetch(url, {
+        ...options,
+        headers,
+      });
+
+      data = await response.json();
+    } catch {
+      throw new Error("Could not connect to the backend. Please try again.");
+    }
+
+    if (!response.ok || !data.success) {
+      if (response.status === 401 && token) {
+        logOut("Your admin session has expired. Please log in again.");
+      }
+
+      throw new Error(data.message || "Request failed");
+    }
+
+    return data;
+  };
 
   const loadProducts = async () => {
     try {
       setLoading(true);
 
-      const response = await fetch(`${apiUrl}/api/products`);
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Could not load products");
-      }
-
+      const data = await request(`${apiUrl}/api/products`);
       setProducts(data.products || []);
     } catch (error) {
-      showToast(error.message || "Could not load products");
+      showToast(error.message);
     } finally {
       setLoading(false);
     }
@@ -71,34 +117,72 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
     try {
       setOrdersLoading(true);
 
-      const response = await fetch(`${apiUrl}/api/orders`);
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Could not load orders");
-      }
-
+      const data = await request(`${apiUrl}/api/orders`);
       setOrders(data.orders || []);
     } catch (error) {
-      showToast(error.message || "Could not load orders");
+      showToast(error.message);
     } finally {
       setOrdersLoading(false);
     }
   };
 
-  const refreshAdminData = () => {
+  useEffect(() => {
+    if (token) {
+      loadProducts();
+      loadOrders();
+    }
+  }, [token]);
+
+  const refresh = () => {
     loadProducts();
     loadOrders();
   };
 
-  useEffect(() => {
-    refreshAdminData();
-  }, []);
+  const logIn = async (event) => {
+    event.preventDefault();
+
+    try {
+      setLoggingIn(true);
+
+      const response = await fetch(`${apiUrl}/api/admin/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(credentials),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      sessionStorage.setItem("dealroot_admin_token", data.token);
+      setToken(data.token);
+      setCredentials({ email: "", password: "" });
+      showToast("Admin login successful");
+    } catch (error) {
+      showToast(error.message || "Could not log in");
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
+  const updateForm = ({ target }) => {
+    setForm((current) => ({
+      ...current,
+      [target.name]:
+        target.type === "checkbox" ? target.checked : target.value,
+    }));
+  };
 
   const visibleProducts = useMemo(() => {
     const text = search.trim().toLowerCase();
 
-    if (!text) return products;
+    if (!text) {
+      return products;
+    }
 
     return products.filter((product) =>
       [product.brand, product.title, product.category]
@@ -108,16 +192,12 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
     );
   }, [products, search]);
 
-  const updateForm = (event) => {
-    const { name, value, type, checked } = event.target;
-
-    setForm((current) => ({
-      ...current,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
-
   const startEdit = (product) => {
+    const otherMarketplace = product.marketplaceLinks?.find(
+      (link) =>
+        !["amazon", "flipkart"].includes(link.platform?.toLowerCase())
+    );
+
     setEditingId(product._id);
 
     setForm({
@@ -141,24 +221,19 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
         product.marketplaceLinks?.find(
           (link) => link.platform?.toLowerCase() === "flipkart"
         )?.url || "",
-      otherMarketplaceName:
-        product.marketplaceLinks?.find(
-          (link) =>
-            !["amazon", "flipkart"].includes(link.platform?.toLowerCase())
-        )?.platform || "",
-      otherMarketplaceLink:
-        product.marketplaceLinks?.find(
-          (link) =>
-            !["amazon", "flipkart"].includes(link.platform?.toLowerCase())
-        )?.url || "",
+      otherMarketplaceName: otherMarketplace?.platform || "",
+      otherMarketplaceLink: otherMarketplace?.url || "",
     });
 
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   const cancelEdit = () => {
     setEditingId("");
-    setForm(initialForm);
+    setForm(emptyForm);
   };
 
   const saveProduct = async (event) => {
@@ -168,112 +243,95 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
       setSaving(true);
 
       const marketplaceLinks = [
-        form.amazonLink.trim() && {
+        {
           platform: "Amazon",
           url: form.amazonLink.trim(),
         },
-        form.flipkartLink.trim() && {
+        {
           platform: "Flipkart",
           url: form.flipkartLink.trim(),
         },
-        form.otherMarketplaceName.trim() &&
-          form.otherMarketplaceLink.trim() && {
-            platform: form.otherMarketplaceName.trim(),
-            url: form.otherMarketplaceLink.trim(),
-          },
-      ].filter(Boolean);
+        {
+          platform: form.otherMarketplaceName.trim(),
+          url: form.otherMarketplaceLink.trim(),
+        },
+      ].filter((link) => link.platform && link.url);
 
-      const productPayload = {
+      const payload = {
         ...form,
         marketplaceLinks,
       };
 
-      delete productPayload.amazonLink;
-      delete productPayload.flipkartLink;
-      delete productPayload.otherMarketplaceName;
-      delete productPayload.otherMarketplaceLink;
+      delete payload.amazonLink;
+      delete payload.flipkartLink;
+      delete payload.otherMarketplaceName;
+      delete payload.otherMarketplaceLink;
 
-      const response = await fetch(
+      await request(
         editingId
           ? `${apiUrl}/api/products/${editingId}`
           : `${apiUrl}/api/products`,
         {
           method: editingId ? "PUT" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(productPayload),
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
         }
       );
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Could not save product");
-      }
-
-      showToast(
-        editingId ? "Product updated successfully" : "Product added successfully"
-      );
-
+      showToast(editingId ? "Product updated successfully" : "Product added successfully");
       cancelEdit();
       loadProducts();
     } catch (error) {
-      showToast(error.message || "Could not save product");
+      showToast(error.message);
     } finally {
       setSaving(false);
     }
   };
 
   const deleteProduct = async (product) => {
-    const confirmed = window.confirm(`Delete "${product.title}"?`);
+    const confirmDelete = window.confirm(
+      `Delete "${product.title}" permanently?`
+    );
 
-    if (!confirmed) return;
+    if (!confirmDelete) {
+      return;
+    }
 
     try {
-      const response = await fetch(`${apiUrl}/api/products/${product._id}`, {
+      await request(`${apiUrl}/api/products/${product._id}`, {
         method: "DELETE",
       });
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Could not delete product");
-      }
-
-      showToast("Product deleted");
+      showToast("Product deleted successfully");
       loadProducts();
     } catch (error) {
-      showToast(error.message || "Could not delete product");
+      showToast(error.message);
     }
   };
 
   const updateStock = async (product, value) => {
     const stock = Number(value);
 
-    if (!Number.isFinite(stock) || stock < 0) {
-      showToast("Enter a valid stock quantity");
+    if (!Number.isInteger(stock) || stock < 0) {
+      showToast("Stock must be a whole number greater than or equal to 0");
       return;
     }
 
     try {
-      const response = await fetch(
-        `${apiUrl}/api/products/${product._id}/stock`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ stock }),
-        }
-      );
+      await request(`${apiUrl}/api/products/${product._id}/stock`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ stock }),
+      });
 
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Could not update stock");
-      }
-
-      showToast("Stock updated");
+      showToast("Stock updated successfully");
       loadProducts();
     } catch (error) {
-      showToast(error.message || "Could not update stock");
+      showToast(error.message);
     }
   };
 
@@ -281,17 +339,16 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
     try {
       setUpdatingOrderId(orderId);
 
-      const response = await fetch(`${apiUrl}/api/orders/${orderId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderStatus }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Could not update order status");
-      }
+      const data = await request(
+        `${apiUrl}/api/orders/${orderId}/status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ orderStatus }),
+        }
+      );
 
       setOrders((currentOrders) =>
         currentOrders.map((order) =>
@@ -301,20 +358,99 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
 
       showToast("Order status updated");
     } catch (error) {
-      showToast(error.message || "Could not update order status");
+      showToast(error.message);
     } finally {
       setUpdatingOrderId("");
     }
   };
 
-  const formatDate = (date) => {
-    if (!date) return "—";
+  const cancelOrder = async (order) => {
+    const confirmCancel = window.confirm(
+      `Cancel ${order.orderNumber}? Product stock will be restored.`
+    );
 
-    return new Intl.DateTimeFormat("en-IN", {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(date));
+    if (!confirmCancel) {
+      return;
+    }
+
+    try {
+      setUpdatingOrderId(order._id);
+
+      const data = await request(
+        `${apiUrl}/api/orders/${order._id}/cancel`,
+        {
+          method: "POST",
+        }
+      );
+
+      setOrders((currentOrders) =>
+        currentOrders.map((currentOrder) =>
+          currentOrder._id === order._id ? data.order : currentOrder
+        )
+      );
+
+      loadProducts();
+      showToast("Order cancelled and stock restored");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setUpdatingOrderId("");
+    }
   };
+
+  if (!token) {
+    return (
+      <div className="admin-login-page">
+        <form className="admin-login-card" onSubmit={logIn}>
+          <button type="button" className="admin-back" onClick={onBack}>
+            ← Store
+          </button>
+
+          <p>DEALROOT BEAUTY</p>
+          <h1>Admin sign in</h1>
+          <span>
+            Only authorized store administrators can manage products and orders.
+          </span>
+
+          <label>
+            Email
+            <input
+              type="email"
+              required
+              value={credentials.email}
+              onChange={(event) =>
+                setCredentials((current) => ({
+                  ...current,
+                  email: event.target.value,
+                }))
+              }
+              placeholder="Admin email"
+            />
+          </label>
+
+          <label>
+            Password
+            <input
+              type="password"
+              required
+              value={credentials.password}
+              onChange={(event) =>
+                setCredentials((current) => ({
+                  ...current,
+                  password: event.target.value,
+                }))
+              }
+              placeholder="Admin password"
+            />
+          </label>
+
+          <button className="save-product" disabled={loggingIn}>
+            {loggingIn ? "Signing in..." : "Secure sign in"}
+          </button>
+        </form>
+      </div>
+    );
+  }
 
   const totalStock = products.reduce(
     (total, product) => total + Number(product.stock || 0),
@@ -337,9 +473,15 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
           <h1>Product Admin Panel</h1>
         </div>
 
-        <button className="admin-refresh" onClick={refreshAdminData}>
-          ↻ Refresh
-        </button>
+        <div className="admin-header-actions">
+          <button className="admin-refresh" onClick={refresh}>
+            ↻ Refresh
+          </button>
+
+          <button className="admin-back" onClick={() => logOut()}>
+            Logout
+          </button>
+        </div>
       </header>
 
       <main className="admin-content">
@@ -357,10 +499,7 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
           <article>
             <span>Out of stock</span>
             <strong>
-              {
-                products.filter((product) => Number(product.stock) === 0)
-                  .length
-              }
+              {products.filter((product) => Number(product.stock) === 0).length}
             </strong>
           </article>
 
@@ -382,34 +521,47 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
             </div>
 
             {editingId && (
-              <button className="cancel-edit" onClick={cancelEdit}>
+              <button className="cancel-edit" type="button" onClick={cancelEdit}>
                 Cancel edit
               </button>
             )}
           </div>
 
           <form className="product-form" onSubmit={saveProduct}>
-            <label>
-              Brand *
-              <input
-                name="brand"
-                value={form.brand}
-                onChange={updateForm}
-                required
-                placeholder="e.g. Minimalist"
-              />
-            </label>
+            {[
+              ["brand", "Brand *", "text"],
+              ["title", "Product title *", "text"],
+              ["stock", "Stock *", "number"],
+              ["price", "Selling price (₹) *", "number"],
+              ["mrp", "MRP (₹) *", "number"],
+              ["rating", "Rating", "number"],
+              ["reviews", "Number of reviews", "number"],
+              ["image", "Product image URL", "url"],
+              ["amazonLink", "Amazon product link", "url"],
+              ["flipkartLink", "Flipkart product link", "url"],
+              ["otherMarketplaceName", "Other platform name", "text"],
+              ["otherMarketplaceLink", "Other platform link", "url"],
+              ["badge", "Product badge", "text"],
+            ].map(([name, label, type]) => (
+              <label
+                key={name}
+                className={name === "image" ? "full-field" : ""}
+              >
+                {label}
 
-            <label>
-              Product title *
-              <input
-                name="title"
-                value={form.title}
-                onChange={updateForm}
-                required
-                placeholder="e.g. Vitamin C Face Serum"
-              />
-            </label>
+                <input
+                  name={name}
+                  type={type}
+                  min={type === "number" ? "0" : undefined}
+                  step={name === "rating" ? "0.1" : undefined}
+                  value={form[name]}
+                  onChange={updateForm}
+                  required={["brand", "title", "stock", "price", "mrp"].includes(
+                    name
+                  )}
+                />
+              </label>
+            ))}
 
             <label>
               Category *
@@ -424,130 +576,6 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
               </select>
             </label>
 
-            <label>
-              Stock *
-              <input
-                name="stock"
-                type="number"
-                min="0"
-                value={form.stock}
-                onChange={updateForm}
-                required
-              />
-            </label>
-
-            <label>
-              Selling price (₹) *
-              <input
-                name="price"
-                type="number"
-                min="0"
-                value={form.price}
-                onChange={updateForm}
-                required
-              />
-            </label>
-
-            <label>
-              MRP (₹) *
-              <input
-                name="mrp"
-                type="number"
-                min="0"
-                value={form.mrp}
-                onChange={updateForm}
-                required
-              />
-            </label>
-
-            <label>
-              Rating
-              <input
-                name="rating"
-                type="number"
-                min="0"
-                max="5"
-                step="0.1"
-                value={form.rating}
-                onChange={updateForm}
-              />
-            </label>
-
-            <label>
-              Number of reviews
-              <input
-                name="reviews"
-                type="number"
-                min="0"
-                value={form.reviews}
-                onChange={updateForm}
-              />
-            </label>
-
-            <label className="full-field">
-              Product image URL
-              <input
-                name="image"
-                type="url"
-                value={form.image}
-                onChange={updateForm}
-                placeholder="https://..."
-              />
-            </label>
-
-            <label>
-              Amazon product link
-              <input
-                name="amazonLink"
-                type="url"
-                value={form.amazonLink}
-                onChange={updateForm}
-                placeholder="https://www.amazon.in/..."
-              />
-            </label>
-
-            <label>
-              Flipkart product link
-              <input
-                name="flipkartLink"
-                type="url"
-                value={form.flipkartLink}
-                onChange={updateForm}
-                placeholder="https://www.flipkart.com/..."
-              />
-            </label>
-
-            <label>
-              Other platform name
-              <input
-                name="otherMarketplaceName"
-                value={form.otherMarketplaceName}
-                onChange={updateForm}
-                placeholder="e.g. Nykaa or Myntra"
-              />
-            </label>
-
-            <label>
-              Other platform link
-              <input
-                name="otherMarketplaceLink"
-                type="url"
-                value={form.otherMarketplaceLink}
-                onChange={updateForm}
-                placeholder="https://..."
-              />
-            </label>
-
-            <label>
-              Product badge
-              <input
-                name="badge"
-                value={form.badge}
-                onChange={updateForm}
-                placeholder="Bestseller / Save 25%"
-              />
-            </label>
-
             <label className="featured-check">
               <input
                 name="isFeatured"
@@ -555,7 +583,7 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                 checked={form.isFeatured}
                 onChange={updateForm}
               />
-              Show as a featured product
+              Show as featured product
             </label>
 
             <label className="full-field">
@@ -565,7 +593,6 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                 value={form.description}
                 onChange={updateForm}
                 rows="3"
-                placeholder="Short product description..."
               />
             </label>
 
@@ -597,7 +624,7 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
           {loading ? (
             <div className="admin-empty">Loading products...</div>
           ) : visibleProducts.length === 0 ? (
-            <div className="admin-empty">No product found.</div>
+            <div className="admin-empty">No products found.</div>
           ) : (
             <div className="admin-table-wrap">
               <table className="admin-table">
@@ -624,6 +651,7 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                             }
                             alt={product.title}
                           />
+
                           <div>
                             <b>{product.title}</b>
                             <span>{product.brand}</span>
@@ -654,11 +682,13 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                           />
 
                           <button
-                            onClick={(event) => {
-                              const input =
-                                event.currentTarget.previousElementSibling;
-                              updateStock(product, input.value);
-                            }}
+                            type="button"
+                            onClick={(event) =>
+                              updateStock(
+                                product,
+                                event.currentTarget.previousElementSibling.value
+                              )
+                            }
                           >
                             Save
                           </button>
@@ -668,19 +698,25 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                       <td>
                         <span
                           className={
-                            product.stock > 0 ? "stock-active" : "stock-empty"
+                            Number(product.stock) > 0
+                              ? "stock-active"
+                              : "stock-empty"
                           }
                         >
-                          {product.stock > 0 ? "In stock" : "Out of stock"}
+                          {Number(product.stock) > 0
+                            ? "In stock"
+                            : "Out of stock"}
                         </span>
                       </td>
 
                       <td>
                         <div className="admin-actions">
-                          <button onClick={() => startEdit(product)}>
+                          <button type="button" onClick={() => startEdit(product)}>
                             Edit
                           </button>
+
                           <button
+                            type="button"
                             className="delete-button"
                             onClick={() => deleteProduct(product)}
                           >
@@ -718,11 +754,11 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                 <thead>
                   <tr>
                     <th>Order</th>
-                    <th>Customer & Delivery</th>
+                    <th>Customer & delivery</th>
                     <th>Items</th>
                     <th>Amount</th>
                     <th>Payment</th>
-                    <th>Delivery status</th>
+                    <th>Action</th>
                   </tr>
                 </thead>
 
@@ -730,8 +766,10 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                   {orders.map((order) => (
                     <tr key={order._id}>
                       <td>
-                        <b>{order.orderNumber || order._id}</b>
-                        <small>{formatDate(order.createdAt)}</small>
+                        <b>{order.orderNumber}</b>
+                        <small>
+                          {new Date(order.createdAt).toLocaleString("en-IN")}
+                        </small>
                       </td>
 
                       <td>
@@ -744,7 +782,7 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                       </td>
 
                       <td>
-                        {(order.items || []).map((item) => (
+                        {order.items?.map((item) => (
                           <small key={item._id || item.product}>
                             {item.title} × {item.quantity} — ₹{item.subtotal}
                           </small>
@@ -759,11 +797,7 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                       </td>
 
                       <td>
-                        <b>
-                          {order.paymentMethod === "cod"
-                            ? "Cash on Delivery"
-                            : order.paymentMethod}
-                        </b>
+                        <b>Cash on Delivery</b>
                         <small>
                           {order.paymentStatus === "paid"
                             ? "Paid"
@@ -772,20 +806,45 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                       </td>
 
                       <td>
-                        <select
-                          value={order.orderStatus || "placed"}
-                          disabled={updatingOrderId === order._id}
-                          onChange={(event) =>
-                            updateOrderStatus(order._id, event.target.value)
-                          }
-                        >
-                          {orderStatuses.map((status) => (
-                            <option key={status} value={status}>
-                              {status.charAt(0).toUpperCase() +
-                                status.slice(1)}
-                            </option>
-                          ))}
-                        </select>
+                        {order.orderStatus === "cancelled" ? (
+                          <span className="stock-empty">
+                            Cancelled · stock restored
+                          </span>
+                        ) : (
+                          <div className="order-actions">
+                            <select
+                              value={order.orderStatus}
+                              disabled={updatingOrderId === order._id}
+                              onChange={(event) =>
+                                updateOrderStatus(
+                                  order._id,
+                                  event.target.value
+                                )
+                              }
+                            >
+                              {orderStatuses.map((status) => (
+                                <option key={status} value={status}>
+                                  {status[0].toUpperCase() + status.slice(1)}
+                                </option>
+                              ))}
+                            </select>
+
+                            {!["shipped", "delivered"].includes(
+                              order.orderStatus
+                            ) && (
+                              <button
+                                type="button"
+                                className="cancel-order"
+                                disabled={updatingOrderId === order._id}
+                                onClick={() => cancelOrder(order)}
+                              >
+                                {updatingOrderId === order._id
+                                  ? "Updating..."
+                                  : "Cancel + restore stock"}
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}

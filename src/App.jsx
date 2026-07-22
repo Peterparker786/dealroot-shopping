@@ -3,7 +3,7 @@ import CartDrawer from "./CartDrawer";
 import CheckoutModal from "./CheckoutModal";
 import AdminPanel from "./AdminPanel";
 
-const API_URL = import.meta.env.VITE_API_URL || "https://dealroot-backend.onrender.com";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const categories = [
   { name: "Makeup", emoji: "💄", color: "#FFE4EC" },
@@ -188,17 +188,17 @@ function App() {
         }}
       />
 
-    <CheckoutModal
-  isOpen={checkoutOpen}
-  onClose={() => setCheckoutOpen(false)}
-  cart={cart}
-  total={cartTotal}
-  showToast={showToast}
-  onOrderPlaced={() => {
-    setCart([]);
-    loadProducts();
-  }}
-/>
+      <CheckoutModal
+        isOpen={checkoutOpen}
+        onClose={() => setCheckoutOpen(false)}
+        cart={cart}
+        total={cartTotal}
+        showToast={showToast}
+        onOrderPlaced={() => {
+          setCart([]);
+          loadProducts();
+        }}
+      />
 
       <div className="top-strip">
         <p>Free delivery on orders above ₹499</p>
