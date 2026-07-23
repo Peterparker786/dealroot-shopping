@@ -29,10 +29,12 @@ export default function AccountModal({
   const [mode, setMode] = useState("login");
   const [tab, setTab] = useState("profile");
   const [authForm, setAuthForm] = useState(emptyAuthForm);
+  const [authError, setAuthError] = useState("");
   const [profile, setProfile] = useState(emptyProfile);
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -50,7 +52,11 @@ export default function AccountModal({
   }, [user]);
 
   useEffect(() => {
-    if (!isOpen) return undefined;
+    if (!isOpen) {
+      setAuthError("");
+      setSaveSuccess(false);
+      return undefined;
+    }
 
     const closeWithEscape = (event) => {
       if (event.key === "Escape") {
@@ -66,46 +72,48 @@ export default function AccountModal({
   }, [isOpen, onClose]);
 
   useEffect(() => {
-    if (
-      !isOpen ||
-      !user ||
-      !token ||
-      tab !== "orders"
-    ) {
-      return;
+    if (!isOpen || !user || !token || tab !== "orders") {
+      return undefined;
     }
+
+    let requestCancelled = false;
 
     const loadOrders = async () => {
       try {
         setLoadingOrders(true);
 
-        const response = await fetch(
-          `${apiUrl}/api/auth/orders`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await fetch(`${apiUrl}/api/auth/orders`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.message || "Could not load orders"
-          );
+          throw new Error(data.message || "Could not load orders");
         }
 
-        setOrders(data.orders || []);
+        if (!requestCancelled) {
+          setOrders(data.orders || []);
+        }
       } catch (error) {
-        showToast?.(error.message);
+        if (!requestCancelled) {
+          showToast?.(error.message);
+        }
       } finally {
-        setLoadingOrders(false);
+        if (!requestCancelled) {
+          setLoadingOrders(false);
+        }
       }
     };
 
     loadOrders();
-  }, [apiUrl, isOpen, tab, token, user, showToast]);
+
+    return () => {
+      requestCancelled = true;
+    };
+  }, [apiUrl, isOpen, showToast, tab, token, user]);
 
   if (!isOpen) {
     return null;
@@ -114,6 +122,7 @@ export default function AccountModal({
   const changeMode = (nextMode) => {
     setMode(nextMode);
     setAuthForm(emptyAuthForm);
+    setAuthError("");
   };
 
   const updateAuthForm = (event) => {
@@ -123,11 +132,14 @@ export default function AccountModal({
       ...current,
       [name]: value,
     }));
+
+    if (authError) {
+      setAuthError("");
+    }
   };
 
   const updateProfile = (event) => {
     const { name, value } = event.target;
-
     let cleanValue = value;
 
     if (name === "phone") {
@@ -146,6 +158,7 @@ export default function AccountModal({
 
   const submitAuth = async (event) => {
     event.preventDefault();
+    setAuthError("");
 
     try {
       setSubmitting(true);
@@ -158,36 +171,59 @@ export default function AccountModal({
               password: authForm.password,
             };
 
-      const response = await fetch(
-        `${apiUrl}/api/auth/${mode}`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await fetch(`${apiUrl}/api/auth/${mode}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-      const data = await response.json();
+      let data = {};
 
-      if (!response.ok) {
-        throw new Error(
-          data.message || "Could not continue"
-        );
+      try {
+        data = await response.json();
+      } catch {
+        data = {};
       }
 
-      onAuth(data.token, data.user);
-      setAuthForm(emptyAuthForm);
-      setTab("profile");
+      if (!response.ok) {
+        let errorMessage =
+          data.message ||
+          (mode === "login"
+            ? "Could not log in. Please try again."
+            : "Could not create your account.");
 
-      showToast?.(
-        mode === "signup"
-          ? "Account created successfully"
-          : "Welcome back"
-      );
+        if (mode === "login" && response.status === 401) {
+          errorMessage = "Incorrect email or password.";
+        }
+
+        throw new Error(errorMessage);
+      }
+
+onAuth(data.token, data.user);
+setAuthForm(emptyAuthForm);
+setAuthError?.("");
+
+if (mode === "login") {
+  showToast?.("Login successful");
+
+  setTimeout(() => {
+    onClose();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, 800);
+} else {
+  setTab("profile");
+  showToast?.("Account created successfully");
+}
     } catch (error) {
-      showToast?.(error.message);
+      const errorMessage =
+        error instanceof TypeError
+          ? "Could not connect to the server. Please try again."
+          : error.message || "Could not continue. Please try again.";
+
+      setAuthError(errorMessage);
+      showToast?.(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -198,6 +234,7 @@ export default function AccountModal({
 
     try {
       setSubmitting(true);
+      setSaveSuccess(false);
 
       const response = await fetch(`${apiUrl}/api/auth/me`, {
         method: "PUT",
@@ -211,14 +248,19 @@ export default function AccountModal({
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Could not save profile"
-        );
+        throw new Error(data.message || "Could not save profile");
       }
 
       onUserUpdated(data.user);
-      showToast?.("Profile and delivery address saved");
+      setSaveSuccess(true);
+      showToast?.("Address saved successfully");
+
+      window.setTimeout(() => {
+        onClose();
+        window.location.assign("/");
+      }, 1800);
     } catch (error) {
+      setSaveSuccess(false);
       showToast?.(error.message);
     } finally {
       setSubmitting(false);
@@ -230,14 +272,12 @@ export default function AccountModal({
     setTab("profile");
     setOrders([]);
     setAuthForm(emptyAuthForm);
+    setAuthError("");
     showToast?.("Logged out successfully");
   };
 
-  const formatStatus = (status = "placed") => {
-    return (
-      status.charAt(0).toUpperCase() + status.slice(1)
-    );
-  };
+  const statusLabel = (status = "placed") =>
+    status.charAt(0).toUpperCase() + status.slice(1);
 
   return (
     <div
@@ -256,15 +296,10 @@ export default function AccountModal({
       >
         <header className="account-header">
           <div>
-            <span className="eyebrow blue">
-              DEALROOT ACCOUNT
-            </span>
-
+            <span className="eyebrow blue">DEALROOT ACCOUNT</span>
             <h2>
               {user
-                ? `Hello, ${
-                    user.name?.split(" ")[0] || "Customer"
-                  }`
+                ? `Hello, ${user.name?.split(" ")[0] || "Customer"}`
                 : "Welcome to DEALROOT"}
             </h2>
           </div>
@@ -283,33 +318,24 @@ export default function AccountModal({
           <div className="account-auth-wrap">
             <div className="account-auth-copy">
               <span className="account-avatar">D</span>
-
-              <h3>
-                Shopping gets easier with an account.
-              </h3>
-
+              <h3>Shopping gets easier with an account.</h3>
               <p>
-                Save your address, check your orders and
-                enjoy faster checkout.
+                Save your address, check every order, and enjoy a
+                faster checkout.
               </p>
 
               <ul>
                 <li>✓ Saved delivery details</li>
                 <li>✓ Personal order history</li>
-                <li>✓ Secure login session</li>
+                <li>✓ Secure 7-day login session</li>
               </ul>
             </div>
 
-            <form
-              className="account-auth-form"
-              onSubmit={submitAuth}
-            >
+            <form className="account-auth-form" onSubmit={submitAuth}>
               <div className="auth-switch">
                 <button
                   type="button"
-                  className={
-                    mode === "login" ? "active" : ""
-                  }
+                  className={mode === "login" ? "active" : ""}
                   onClick={() => changeMode("login")}
                 >
                   Log in
@@ -317,9 +343,7 @@ export default function AccountModal({
 
                 <button
                   type="button"
-                  className={
-                    mode === "signup" ? "active" : ""
-                  }
+                  className={mode === "signup" ? "active" : ""}
                   onClick={() => changeMode("signup")}
                 >
                   Sign up
@@ -335,10 +359,10 @@ export default function AccountModal({
                     type="text"
                     value={authForm.name}
                     onChange={updateAuthForm}
+                    required
+                    minLength="2"
                     placeholder="Your full name"
                     autoComplete="name"
-                    minLength="2"
-                    required
                   />
                 </label>
               )}
@@ -351,9 +375,9 @@ export default function AccountModal({
                   type="email"
                   value={authForm.email}
                   onChange={updateAuthForm}
+                  required
                   placeholder="you@example.com"
                   autoComplete="email"
-                  required
                 />
               </label>
 
@@ -363,18 +387,38 @@ export default function AccountModal({
                 <input
                   name="password"
                   type="password"
+                  minLength="8"
                   value={authForm.password}
                   onChange={updateAuthForm}
+                  required
                   placeholder="Minimum 8 characters"
                   autoComplete={
                     mode === "login"
                       ? "current-password"
                       : "new-password"
                   }
-                  minLength="8"
-                  required
+                  aria-describedby={authError ? "account-auth-error" : undefined}
                 />
               </label>
+
+              {authError && (
+                <div
+                  id="account-auth-error"
+                  role="alert"
+                  style={{
+                    padding: "12px 14px",
+                    border: "1px solid #fda29b",
+                    borderRadius: "10px",
+                    background: "#fef3f2",
+                    color: "#b42318",
+                    fontSize: "14px",
+                    fontWeight: 700,
+                    lineHeight: 1.45,
+                  }}
+                >
+                  {authError}
+                </div>
+              )}
 
               <button
                 className="primary-button account-submit"
@@ -405,9 +449,7 @@ export default function AccountModal({
 
               <button
                 type="button"
-                className={
-                  tab === "profile" ? "active" : ""
-                }
+                className={tab === "profile" ? "active" : ""}
                 onClick={() => setTab("profile")}
               >
                 Profile & address
@@ -415,9 +457,7 @@ export default function AccountModal({
 
               <button
                 type="button"
-                className={
-                  tab === "orders" ? "active" : ""
-                }
+                className={tab === "orders" ? "active" : ""}
                 onClick={() => setTab("orders")}
               >
                 My orders
@@ -434,20 +474,13 @@ export default function AccountModal({
 
             <div className="account-panel">
               {tab === "profile" ? (
-                <form
-                  className="profile-form"
-                  onSubmit={saveProfile}
-                >
+                <form className="profile-form" onSubmit={saveProfile}>
                   <div className="full-field">
-                    <span className="eyebrow blue">
-                      MY DETAILS
-                    </span>
-
+                    <span className="eyebrow blue">MY DETAILS</span>
                     <h3>Profile & delivery address</h3>
-
                     <p>
-                      These details will automatically appear
-                      during checkout.
+                      These details will automatically appear during
+                      checkout.
                     </p>
                   </div>
 
@@ -524,14 +557,29 @@ export default function AccountModal({
                     />
                   </label>
 
+                  {saveSuccess && (
+                    <div
+                      className="full-field"
+                      role="status"
+                      style={{
+                        padding: "12px 14px",
+                        border: "1px solid #a6f4c5",
+                        borderRadius: "10px",
+                        background: "#ecfdf3",
+                        color: "#067647",
+                        fontWeight: 700,
+                      }}
+                    >
+                      ✓ Address saved successfully
+                    </div>
+                  )}
+
                   <button
                     className="primary-button profile-save"
                     type="submit"
                     disabled={submitting}
                   >
-                    {submitting
-                      ? "Saving..."
-                      : "Save details"}
+                    {submitting ? "Saving..." : "Save details"}
                   </button>
                 </form>
               ) : (
@@ -540,12 +588,9 @@ export default function AccountModal({
                     <span className="eyebrow blue">
                       ORDER HISTORY
                     </span>
-
                     <h3>My orders</h3>
-
                     <p>
-                      Orders placed while logged in will
-                      appear here.
+                      Orders placed while logged in will appear here.
                     </p>
                   </div>
 
@@ -555,8 +600,7 @@ export default function AccountModal({
                     </div>
                   ) : orders.length === 0 ? (
                     <div className="account-empty">
-                      You have not placed an order from this
-                      account yet.
+                      You have not placed an order from this account yet.
                     </div>
                   ) : (
                     <div className="order-history-list">
@@ -568,7 +612,6 @@ export default function AccountModal({
                           <header>
                             <div>
                               <b>{order.orderNumber}</b>
-
                               <small>
                                 {new Date(
                                   order.createdAt
@@ -579,19 +622,13 @@ export default function AccountModal({
                             <span
                               className={`order-status status-${order.orderStatus}`}
                             >
-                              {formatStatus(
-                                order.orderStatus
-                              )}
+                              {statusLabel(order.orderStatus)}
                             </span>
                           </header>
 
                           <div className="history-items">
                             {order.items?.map((item) => (
-                              <div
-                                key={
-                                  item._id || item.product
-                                }
-                              >
+                              <div key={item._id || item.product}>
                                 <img
                                   src={
                                     item.image ||
@@ -602,10 +639,8 @@ export default function AccountModal({
 
                                 <span>
                                   {item.title}
-
                                   <small>
-                                    {item.quantity} × ₹
-                                    {item.price}
+                                    {item.quantity} × ₹{item.price}
                                   </small>
                                 </span>
                               </div>
@@ -614,9 +649,7 @@ export default function AccountModal({
 
                           <footer>
                             <span>Cash on Delivery</span>
-                            <b>
-                              Total ₹{order.totalAmount}
-                            </b>
+                            <b>Total ₹{order.totalAmount}</b>
                           </footer>
                         </article>
                       ))}
