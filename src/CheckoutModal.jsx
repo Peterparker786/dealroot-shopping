@@ -331,7 +331,15 @@ function CheckoutModal({
 
       let paymentHandled = false;
 
-      const razorpayCheckout = new window.Razorpay({
+      console.log({
+  key: createData.keyId,
+  amount: createData.amount,
+  currency: createData.currency,
+  order_id: createData.razorpayOrderId,
+  session: createData.paymentSessionId,
+  createData,
+});
+const razorpayCheckout = new window.Razorpay({
         key: createData.keyId,
         amount: createData.amount,
         currency: createData.currency,
