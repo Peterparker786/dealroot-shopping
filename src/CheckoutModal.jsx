@@ -9,6 +9,53 @@ const emptyDeliveryForm = {
   pincode: "",
 };
 
+let razorpayScriptPromise = null;
+
+const loadRazorpayCheckout = () => {
+  if (window.Razorpay) {
+    return Promise.resolve();
+  }
+
+  if (razorpayScriptPromise) {
+    return razorpayScriptPromise;
+  }
+
+  razorpayScriptPromise = new Promise((resolve, reject) => {
+    const existingScript = document.querySelector(
+      'script[src="https://checkout.razorpay.com/v1/checkout.js"]'
+    );
+
+    const handleLoad = () => {
+      if (window.Razorpay) {
+        resolve();
+      } else {
+        razorpayScriptPromise = null;
+        reject(new Error("Razorpay Checkout could not be loaded"));
+      }
+    };
+
+    const handleError = () => {
+      razorpayScriptPromise = null;
+      reject(new Error("Could not load secure payment. Please try again."));
+    };
+
+    if (existingScript) {
+      existingScript.addEventListener("load", handleLoad, { once: true });
+      existingScript.addEventListener("error", handleError, { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.addEventListener("load", handleLoad, { once: true });
+    script.addEventListener("error", handleError, { once: true });
+    document.body.appendChild(script);
+  });
+
+  return razorpayScriptPromise;
+};
+
 function CheckoutModal({
   isOpen,
   onClose,
@@ -30,10 +77,13 @@ function CheckoutModal({
     type: "",
     text: "",
   });
+  const userKey = user?.id || user?._id || user?.email || "";
 
   useEffect(() => {
     if (!isOpen) return;
 
+    setPaymentMethod("cod");
+    setIsSubmitting(false);
     setCouponInput("");
     setAppliedCoupon("");
     setCouponMessage({ type: "", text: "" });
@@ -52,7 +102,7 @@ function CheckoutModal({
       pincode: user.pincode || "",
     });
     setPlacedOrder(null);
-  }, [isOpen, user]);
+  }, [isOpen, userKey]);
 
   if (!isOpen) return null;
 
@@ -189,45 +239,30 @@ function CheckoutModal({
       return;
     }
 
-    if (paymentMethod === "online") {
-      showToast?.("Online payment will be available soon. Please choose Cash on Delivery.");
-      return;
-    }
+    const orderPayload = {
+      customer: {
+        name: form.name.trim(),
+        phone,
+        address: form.address.trim(),
+        city: form.city.trim(),
+        pincode,
+      },
+      items: cart.map((item) => ({
+        productId: item._id || item.id,
+        quantity: item.quantity,
+      })),
+      deliveryType,
+      couponCode: appliedCoupon,
+    };
 
-    try {
-      setIsSubmitting(true);
+    const requestHeaders = {
+      "Content-Type": "application/json",
+      ...(userToken ? { Authorization: `Bearer ${userToken}` } : {}),
+    };
 
-      const response = await fetch(`${apiUrl}/api/orders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(userToken ? { Authorization: `Bearer ${userToken}` } : {}),
-        },
-        body: JSON.stringify({
-          customer: {
-            name: form.name.trim(),
-            phone,
-            address: form.address.trim(),
-            city: form.city.trim(),
-            pincode,
-          },
-          items: cart.map((item) => ({
-            productId: item._id || item.id,
-            quantity: item.quantity,
-          })),
-          deliveryType,
-          paymentMethod,
-          couponCode: appliedCoupon,
-        }),
-      });
+    const completeOrder = (order) => {
+      setPlacedOrder(order);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Could not place your order");
-      }
-
-      setPlacedOrder(data.order);
       if (user) {
         onProfileUpdated?.({
           ...user,
@@ -238,11 +273,147 @@ function CheckoutModal({
           pincode,
         });
       }
-      onOrderPlaced?.(data.order);
+
+      onOrderPlaced?.(order);
+    };
+
+    if (paymentMethod === "cod") {
+      try {
+        setIsSubmitting(true);
+
+        const response = await fetch(`${apiUrl}/api/orders`, {
+          method: "POST",
+          headers: requestHeaders,
+          body: JSON.stringify({
+            ...orderPayload,
+            paymentMethod: "cod",
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.message || "Could not place your order");
+        }
+
+        completeOrder(data.order);
+      } catch (error) {
+        showToast?.(
+          error.message || "Could not place your order. Please try again."
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
+
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await loadRazorpayCheckout();
+
+      const createResponse = await fetch(
+        `${apiUrl}/api/payments/razorpay/create-order`,
+        {
+          method: "POST",
+          headers: requestHeaders,
+          body: JSON.stringify(orderPayload),
+        }
+      );
+
+      const createData = await createResponse.json();
+
+      if (!createResponse.ok) {
+        throw new Error(
+          createData.message || "Could not start secure payment"
+        );
+      }
+
+      let paymentHandled = false;
+
+      const razorpayCheckout = new window.Razorpay({
+        key: createData.keyId,
+        amount: createData.amount,
+        currency: createData.currency,
+        name: "DEALROOT",
+        description: `Payment for ${createData.orderNumber}`,
+        order_id: createData.razorpayOrderId,
+        prefill: {
+          name: form.name.trim(),
+          email: user?.email || "",
+          contact: `+91${phone}`,
+        },
+        notes: {
+          dealroot_order_number: createData.orderNumber,
+        },
+        theme: {
+          color: "#2563eb",
+        },
+        retry: {
+          enabled: true,
+        },
+        modal: {
+          confirm_close: true,
+          ondismiss: () => {
+            if (!paymentHandled) {
+              setIsSubmitting(false);
+              showToast?.("Payment cancelled. Your cart is still saved.");
+            }
+          },
+        },
+        handler: async (paymentResult) => {
+          paymentHandled = true;
+
+          try {
+            const verifyResponse = await fetch(
+              `${apiUrl}/api/payments/razorpay/verify`,
+              {
+                method: "POST",
+                headers: requestHeaders,
+                body: JSON.stringify({
+                  paymentSessionId: createData.paymentSessionId,
+                  razorpayOrderId: paymentResult.razorpay_order_id,
+                  razorpayPaymentId: paymentResult.razorpay_payment_id,
+                  razorpaySignature: paymentResult.razorpay_signature,
+                }),
+              }
+            );
+
+            const verifyData = await verifyResponse.json();
+
+            if (!verifyResponse.ok) {
+              throw new Error(
+                verifyData.message ||
+                  "Payment received, but verification is pending"
+              );
+            }
+
+            completeOrder(verifyData.order);
+            showToast?.("Payment successful. Your order is confirmed.");
+          } catch (error) {
+            showToast?.(
+              error.message ||
+                "Payment received. Please check My Orders before trying again."
+            );
+          } finally {
+            setIsSubmitting(false);
+          }
+        },
+      });
+
+      razorpayCheckout.on("payment.failed", (failure) => {
+        showToast?.(
+          failure?.error?.description ||
+            "Payment failed. You can retry or choose Cash on Delivery."
+        );
+      });
+
+      razorpayCheckout.open();
     } catch (error) {
-      showToast?.(error.message || "Could not place your order. Please try again.");
-    } finally {
       setIsSubmitting(false);
+      showToast?.(
+        error.message || "Could not start secure payment. Please try again."
+      );
     }
   };
 
@@ -252,15 +423,21 @@ function CheckoutModal({
   };
 
   if (placedOrder) {
+    const isOnlineOrder = placedOrder.paymentMethod === "razorpay";
+
     return (
       <div className="checkout-overlay">
         <section className="order-success">
           <span className="success-icon">✓</span>
-          <span className="eyebrow blue">ORDER CONFIRMED</span>
+          <span className="eyebrow blue">
+            {isOnlineOrder ? "PAYMENT SUCCESSFUL" : "ORDER CONFIRMED"}
+          </span>
           <h2>Thank you, {form.name}!</h2>
           <p>
-            Your Cash on Delivery order has been placed successfully. We will
-            send updates to your mobile number.
+            {isOnlineOrder
+              ? "Your online payment is verified and your order is confirmed."
+              : "Your Cash on Delivery order has been placed successfully."}{" "}
+            We will send updates to your mobile number.
           </p>
 
           <div className="success-order-id">
@@ -422,7 +599,11 @@ function CheckoutModal({
             <section className="checkout-card">
               <h3>3. Payment method</h3>
 
-              <label className="choice-card selected">
+              <label
+                className={`choice-card ${
+                  paymentMethod === "cod" ? "selected" : ""
+                }`}
+              >
                 <input
                   type="radio"
                   name="payment"
@@ -436,7 +617,11 @@ function CheckoutModal({
                 <strong>COD</strong>
               </label>
 
-              <label className="choice-card">
+              <label
+                className={`choice-card ${
+                  paymentMethod === "online" ? "selected" : ""
+                }`}
+              >
                 <input
                   type="radio"
                   name="payment"
@@ -445,9 +630,9 @@ function CheckoutModal({
                 />
                 <span>
                   <b>Pay online</b>
-                  <small>UPI, debit/credit card and net banking — coming soon</small>
+                  <small>UPI, debit/credit card and net banking</small>
                 </span>
-                <strong>UPI</strong>
+                <strong>SECURE</strong>
               </label>
             </section>
           </div>
@@ -544,7 +729,13 @@ function CheckoutModal({
               type="submit"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Placing order..." : "Place COD order"}
+              {isSubmitting
+                ? paymentMethod === "online"
+                  ? "Opening secure payment..."
+                  : "Placing order..."
+                : paymentMethod === "online"
+                ? `Pay ₹${totalPayable} securely`
+                : "Place COD order"}
             </button>
 
             <small>
