@@ -1,6 +1,4 @@
-import { useState } from "react";
-
-const API_URL = "https://dealroot-backend.onrender.com/api";
+import { useEffect, useState } from "react";
 
 function CheckoutModal({
   isOpen,
@@ -9,11 +7,16 @@ function CheckoutModal({
   total = 0,
   showToast,
   onOrderPlaced,
+  apiUrl,
+  user,
+  userToken,
+  onProfileUpdated,
 }) {
   const [deliveryType, setDeliveryType] = useState("courier");
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [placedOrder, setPlacedOrder] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -21,6 +24,18 @@ function CheckoutModal({
     city: "Kanpur",
     pincode: "",
   });
+
+  useEffect(() => {
+    if (!isOpen || !user) return;
+
+    setForm({
+      name: user.name || "",
+      phone: user.phone || "",
+      address: user.address || "",
+      city: user.city || "Kanpur",
+      pincode: user.pincode || "",
+    });
+  }, [isOpen, user]);
 
   if (!isOpen) return null;
 
@@ -39,7 +54,12 @@ function CheckoutModal({
     const phone = form.phone.replace(/\D/g, "");
     const pincode = form.pincode.replace(/\D/g, "");
 
-    if (!form.name.trim() || !phone || !form.address.trim() || !pincode) {
+    if (
+      !form.name.trim() ||
+      !phone ||
+      !form.address.trim() ||
+      !pincode
+    ) {
       showToast?.("Please complete your delivery details");
       return;
     }
@@ -60,17 +80,22 @@ function CheckoutModal({
     }
 
     if (paymentMethod === "online") {
-      showToast?.("Online payment will be available soon. Please choose Cash on Delivery.");
+      showToast?.(
+        "Online payment will be available soon. Please choose Cash on Delivery."
+      );
       return;
     }
 
     try {
       setIsSubmitting(true);
 
-      const response = await fetch(`${API_URL}/orders`, {
+      const response = await fetch(`${apiUrl}/api/orders`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...(userToken
+            ? { Authorization: `Bearer ${userToken}` }
+            : {}),
         },
         body: JSON.stringify({
           customer: {
@@ -96,9 +121,24 @@ function CheckoutModal({
       }
 
       setPlacedOrder(data.order);
+
+      if (user) {
+        onProfileUpdated?.({
+          ...user,
+          name: form.name.trim(),
+          phone,
+          address: form.address.trim(),
+          city: form.city.trim() || "Kanpur",
+          pincode,
+        });
+      }
+
       onOrderPlaced?.(data.order);
     } catch (error) {
-      showToast?.(error.message || "Could not place your order. Please try again.");
+      showToast?.(
+        error.message ||
+          "Could not place your order. Please try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -114,18 +154,29 @@ function CheckoutModal({
       <div className="checkout-overlay">
         <section className="order-success">
           <span className="success-icon">✓</span>
-          <span className="eyebrow blue">ORDER CONFIRMED</span>
+
+          <span className="eyebrow blue">
+            ORDER CONFIRMED
+          </span>
+
           <h2>Thank you, {form.name}!</h2>
+
           <p>
-            Your Cash on Delivery order has been placed successfully. We will
-            send updates to your mobile number.
+            Your Cash on Delivery order has been placed
+            successfully. We will send updates to your mobile
+            number.
           </p>
 
           <div className="success-order-id">
-            Order ID: {placedOrder.orderNumber || placedOrder._id}
+            Order ID:{" "}
+            {placedOrder.orderNumber || placedOrder._id}
           </div>
 
-          <button className="primary-button" onClick={closeCheckout}>
+          <button
+            className="primary-button"
+            type="button"
+            onClick={closeCheckout}
+          >
             Continue shopping
           </button>
         </section>
@@ -138,7 +189,10 @@ function CheckoutModal({
       <section className="checkout-modal">
         <header className="checkout-header">
           <div>
-            <span className="eyebrow blue">SECURE CHECKOUT</span>
+            <span className="eyebrow blue">
+              SECURE CHECKOUT
+            </span>
+
             <h2>Complete your order</h2>
           </div>
 
@@ -152,14 +206,25 @@ function CheckoutModal({
           </button>
         </header>
 
-        <form className="checkout-content" onSubmit={placeOrder}>
+        <form
+          className="checkout-content"
+          onSubmit={placeOrder}
+        >
           <div className="checkout-main">
             <section className="checkout-card">
               <h3>1. Delivery details</h3>
 
+              {user && (
+                <p className="checkout-account-note">
+                  Signed in as <b>{user.email}</b>. Your latest
+                  delivery details will be saved to your account.
+                </p>
+              )}
+
               <div className="form-grid">
                 <label>
                   Full name
+
                   <input
                     name="name"
                     value={form.name}
@@ -171,6 +236,7 @@ function CheckoutModal({
 
                 <label>
                   Mobile number
+
                   <input
                     name="phone"
                     value={form.phone}
@@ -185,6 +251,7 @@ function CheckoutModal({
 
               <label>
                 Complete address
+
                 <textarea
                   name="address"
                   value={form.address}
@@ -198,6 +265,7 @@ function CheckoutModal({
               <div className="form-grid">
                 <label>
                   City
+
                   <input
                     name="city"
                     value={form.city}
@@ -209,6 +277,7 @@ function CheckoutModal({
 
                 <label>
                   Pincode
+
                   <input
                     name="pincode"
                     value={form.pincode}
@@ -236,10 +305,14 @@ function CheckoutModal({
                   checked={deliveryType === "local"}
                   onChange={() => setDeliveryType("local")}
                 />
+
                 <span>
                   <b>Kanpur same-day delivery</b>
-                  <small>Available for eligible Kanpur pincodes</small>
+                  <small>
+                    Available for eligible Kanpur pincodes
+                  </small>
                 </span>
+
                 <strong>FREE</strong>
               </label>
 
@@ -254,10 +327,14 @@ function CheckoutModal({
                   checked={deliveryType === "courier"}
                   onChange={() => setDeliveryType("courier")}
                 />
+
                 <span>
                   <b>Courier delivery across India</b>
-                  <small>Usually delivered within 3–7 business days</small>
+                  <small>
+                    Usually delivered within 3–7 business days
+                  </small>
                 </span>
+
                 <strong>FREE</strong>
               </label>
             </section>
@@ -265,31 +342,46 @@ function CheckoutModal({
             <section className="checkout-card">
               <h3>3. Payment method</h3>
 
-              <label className="choice-card selected">
+              <label
+                className={`choice-card ${
+                  paymentMethod === "cod" ? "selected" : ""
+                }`}
+              >
                 <input
                   type="radio"
                   name="payment"
                   checked={paymentMethod === "cod"}
                   onChange={() => setPaymentMethod("cod")}
                 />
+
                 <span>
                   <b>Cash on Delivery</b>
                   <small>Pay when your order arrives</small>
                 </span>
+
                 <strong>COD</strong>
               </label>
 
-              <label className="choice-card">
+              <label
+                className={`choice-card ${
+                  paymentMethod === "online" ? "selected" : ""
+                }`}
+              >
                 <input
                   type="radio"
                   name="payment"
                   checked={paymentMethod === "online"}
                   onChange={() => setPaymentMethod("online")}
                 />
+
                 <span>
                   <b>Pay online</b>
-                  <small>UPI, debit/credit card and net banking — coming soon</small>
+                  <small>
+                    UPI, debit/credit card and net banking —
+                    coming soon
+                  </small>
                 </span>
+
                 <strong>UPI</strong>
               </label>
             </section>
@@ -299,8 +391,12 @@ function CheckoutModal({
             <h3>Order summary</h3>
 
             {cart.map((item) => (
-              <div className="checkout-item" key={item._id || item.id}>
+              <div
+                className="checkout-item"
+                key={item._id || item.id}
+              >
                 <span>{item.name || item.title}</span>
+
                 <b>
                   {item.quantity} × ₹{item.price}
                 </b>
@@ -317,12 +413,14 @@ function CheckoutModal({
               type="submit"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Placing order..." : "Place COD order"}
+              {isSubmitting
+                ? "Placing order..."
+                : "Place COD order"}
             </button>
 
             <small>
-              By placing this order, you agree to DEALROOT’s return and privacy
-              policies.
+              By placing this order, you agree to DEALROOT’s
+              return and privacy policies.
             </small>
           </aside>
         </form>
