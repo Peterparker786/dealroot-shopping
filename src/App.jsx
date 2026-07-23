@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import CartDrawer from "./CartDrawer";
 import CheckoutModal from "./CheckoutModal";
 import AdminPanel from "./AdminPanel";
-import AccountModal from "./AccountModal.jsx";
+import AccountModal from "./AccountModal";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -24,6 +24,7 @@ function App() {
   );
 
   const [activeCategory, setActiveCategory] = useState("All");
+  const [activeDeal, setActiveDeal] = useState("none");
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -57,8 +58,14 @@ function App() {
 
   const logOutCustomer = () => {
     localStorage.removeItem("dealroot_user_token");
+    localStorage.removeItem("dealroot_user");
+    localStorage.removeItem("dealroot_cart");
+    localStorage.removeItem("dealroot_checkout_details");
     setUserToken("");
     setUser(null);
+    setCart([]);
+    setCartOpen(false);
+    setCheckoutOpen(false);
     showToast("You have been logged out");
   };
 
@@ -81,8 +88,14 @@ function App() {
         setUser(data.user);
       } catch {
         localStorage.removeItem("dealroot_user_token");
+        localStorage.removeItem("dealroot_user");
+        localStorage.removeItem("dealroot_cart");
+        localStorage.removeItem("dealroot_checkout_details");
         setUserToken("");
         setUser(null);
+        setCart([]);
+        setCartOpen(false);
+        setCheckoutOpen(false);
       }
     };
 
@@ -98,6 +111,10 @@ function App() {
 
       if (activeCategory !== "All") {
         params.set("category", activeCategory);
+      }
+
+      if (activeDeal !== "none") {
+        params.set("dealType", activeDeal);
       }
 
       if (search.trim()) {
@@ -126,6 +143,7 @@ function App() {
           rating: product.rating,
           reviews: Number(product.reviews || 0).toLocaleString("en-IN"),
           badge: product.badge || "",
+          dealType: product.dealType || "none",
           image: product.image || fallbackImage,
           stock: product.stock,
           marketplaceLinks: Array.isArray(product.marketplaceLinks)
@@ -148,9 +166,30 @@ function App() {
   useEffect(() => {
     const timer = window.setTimeout(loadProducts, 300);
     return () => window.clearTimeout(timer);
-  }, [activeCategory, search]);
+  }, [activeCategory, activeDeal, search]);
 
   const filteredProducts = useMemo(() => products, [products]);
+
+  const showCategory = (category) => {
+    setActiveDeal("none");
+    setActiveCategory(category);
+  };
+
+  const showDeal = (dealType) => {
+    setActiveCategory("All");
+    setActiveDeal(dealType);
+
+    window.setTimeout(() => {
+      document
+        .getElementById("products")
+        ?.scrollIntoView({ behavior: "smooth" });
+    }, 80);
+  };
+
+  const showAllProducts = () => {
+    setActiveDeal("none");
+    setActiveCategory("All");
+  };
 
   const addToCart = (product) => {
     if (product.stock <= 0) {
@@ -323,7 +362,14 @@ function App() {
               >
                 Shop bestsellers <span>→</span>
               </button>
-              <button className="text-button" onClick={() => showToast("Offers opened")}>
+              <button
+                className="text-button"
+                onClick={() =>
+                  document
+                    .getElementById("price-deals")
+                    ?.scrollIntoView({ behavior: "smooth" })
+                }
+              >
                 View all offers
               </button>
             </div>
@@ -356,13 +402,15 @@ function App() {
               <span className="eyebrow blue">SHOP BY CATEGORY</span>
               <h2>Everything beauty, in one place</h2>
             </div>
-            <button onClick={() => setActiveCategory("All")}>View all →</button>
+            <button onClick={showAllProducts}>View all →</button>
           </div>
 
           <div className="categories">
             <button
-              className={`category-card ${activeCategory === "All" ? "active" : ""}`}
-              onClick={() => setActiveCategory("All")}
+              className={`category-card ${
+                activeCategory === "All" && activeDeal === "none" ? "active" : ""
+              }`}
+              onClick={showAllProducts}
             >
               <span style={{ background: "#E5EDFF" }}>★</span><b>All Deals</b>
             </button>
@@ -373,12 +421,59 @@ function App() {
                   activeCategory === category.name ? "active" : ""
                 }`}
                 key={category.name}
-                onClick={() => setActiveCategory(category.name)}
+                onClick={() => showCategory(category.name)}
               >
                 <span style={{ background: category.color }}>{category.emoji}</span>
                 <b>{category.label || category.name}</b>
               </button>
             ))}
+          </div>
+        </section>
+
+        <section className="section price-deals-section" id="price-deals">
+          <div className="section-heading">
+            <div>
+              <span className="eyebrow blue">SHOP BY PRICE</span>
+              <h2>Big beauty finds. Tiny prices.</h2>
+            </div>
+
+            {activeDeal !== "none" && (
+              <button onClick={showAllProducts}>Clear deal filter →</button>
+            )}
+          </div>
+
+          <div className="price-deal-grid">
+            <button
+              type="button"
+              className={`price-deal-banner deal-99 ${
+                activeDeal === "99" ? "active" : ""
+              }`}
+              onClick={() => showDeal("99")}
+            >
+              <span>DEALROOT PICKS</span>
+              <strong>₹99</strong>
+              <div>
+                <h3>Deals Store</h3>
+                <p>Beauty essentials at just ₹99</p>
+              </div>
+              <b>SHOP NOW →</b>
+            </button>
+
+            <button
+              type="button"
+              className={`price-deal-banner deal-199 ${
+                activeDeal === "199" ? "active" : ""
+              }`}
+              onClick={() => showDeal("199")}
+            >
+              <span>MORE VALUE</span>
+              <strong>₹199</strong>
+              <div>
+                <h3>Deals Store</h3>
+                <p>Premium favourites at just ₹199</p>
+              </div>
+              <b>SHOP NOW →</b>
+            </button>
           </div>
         </section>
 
@@ -396,10 +491,18 @@ function App() {
         <section className="section products-section" id="products">
           <div className="section-heading">
             <div>
-              <span className="eyebrow blue">TRENDING NOW</span>
-              <h2>Beauty favourites at better prices</h2>
+              <span className="eyebrow blue">
+                {activeDeal === "none" ? "TRENDING NOW" : "SPECIAL PRICE STORE"}
+              </span>
+              <h2>
+                {activeDeal === "99"
+                  ? "Everything in the ₹99 Deals Store"
+                  : activeDeal === "199"
+                    ? "Everything in the ₹199 Deals Store"
+                    : "Beauty favourites at better prices"}
+              </h2>
             </div>
-            <button onClick={() => setActiveCategory("All")}>See all products →</button>
+            <button onClick={showAllProducts}>See all products →</button>
           </div>
 
           {loadingProducts && <div className="empty-state">Loading beauty products...</div>}
@@ -422,7 +525,15 @@ function App() {
                 return (
                   <article className="product-card" key={product.id}>
                     <div className="product-image">
-                      {product.badge && <span className="product-badge">{product.badge}</span>}
+                      {(product.dealType !== "none" || product.badge) && (
+                        <span className="product-badge">
+                          {product.dealType === "99"
+                            ? "₹99 DEAL"
+                            : product.dealType === "199"
+                              ? "₹199 DEAL"
+                              : product.badge}
+                        </span>
+                      )}
                       <button
                         className={`wishlist ${isWishlisted ? "selected" : ""}`}
                         onClick={() => toggleWishlist(product)}

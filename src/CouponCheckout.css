@@ -67,20 +67,23 @@ function CheckoutModal({
     .replace(/\s+/g, " ");
   const isKanpurAddress = normalizedCity.includes("kanpur");
   const deliveryType = isKanpurAddress ? "local" : "courier";
-  const hasFreeDelivery =
-    orderSubtotal === 0 || orderSubtotal >= 499;
   const deliveryFee =
-    hasFreeDelivery
+    orderSubtotal === 0 || orderSubtotal >= 499
       ? 0
       : isKanpurAddress
       ? 29
       : 49;
   const deliveryLabel = deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`;
-  const kanpurDeliveryLabel = hasFreeDelivery ? "FREE" : "₹29";
-  const indiaDeliveryLabel = hasFreeDelivery ? "FREE" : "₹49";
+  const couponEligibleSubtotal = cart.reduce(
+    (sum, item) =>
+      Number(item.price || 0) > 499
+        ? sum + Number(item.price || 0) * Number(item.quantity || 0)
+        : sum,
+    0
+  );
   const couponDiscount =
-    appliedCoupon === "WELCOME10" && orderSubtotal > 499
-      ? Math.round(orderSubtotal * 0.1)
+    appliedCoupon === "WELCOME10"
+      ? Math.round(couponEligibleSubtotal * 0.1)
       : 0;
   const totalPayable = orderSubtotal - couponDiscount + deliveryFee;
 
@@ -105,11 +108,11 @@ function CheckoutModal({
       return;
     }
 
-    if (orderSubtotal <= 499) {
+    if (couponEligibleSubtotal <= 0) {
       setAppliedCoupon("");
       setCouponMessage({
         type: "error",
-        text: "WELCOME10 applies only when the cart subtotal is above ₹499.",
+        text: "WELCOME10 applies only to products priced above ₹499.",
       });
       return;
     }
@@ -118,7 +121,9 @@ function CheckoutModal({
     setAppliedCoupon("WELCOME10");
     setCouponMessage({
       type: "success",
-      text: `Coupon applied! You saved ₹${Math.round(orderSubtotal * 0.1)}.`,
+      text: `Coupon applied! You saved ₹${Math.round(
+        couponEligibleSubtotal * 0.1
+      )}.`,
     });
   };
 
@@ -137,39 +142,13 @@ function CheckoutModal({
     }));
   };
 
-  const selectDeliveryArea = (area) => {
-    setForm((current) => {
-      if (area === "kanpur") {
-        return {
-          ...current,
-          city: "Kanpur",
-        };
-      }
-
-      const currentCity = String(current.city || "")
-        .trim()
-        .toLowerCase();
-
-      return {
-        ...current,
-        city: currentCity.includes("kanpur") ? "" : current.city,
-      };
-    });
-  };
-
   const placeOrder = async (event) => {
     event.preventDefault();
 
     const phone = form.phone.replace(/\D/g, "");
     const pincode = form.pincode.replace(/\D/g, "");
 
-    if (
-      !form.name.trim() ||
-      !phone ||
-      !form.address.trim() ||
-      !form.city.trim() ||
-      !pincode
-    ) {
+    if (!form.name.trim() || !phone || !form.address.trim() || !pincode) {
       showToast?.("Please complete your delivery details");
       return;
     }
@@ -208,7 +187,7 @@ function CheckoutModal({
             name: form.name.trim(),
             phone,
             address: form.address.trim(),
-            city: form.city.trim(),
+            city: form.city.trim() || "Kanpur",
             pincode,
           },
           items: cart.map((item) => ({
@@ -234,7 +213,7 @@ function CheckoutModal({
           name: form.name.trim(),
           phone,
           address: form.address.trim(),
-          city: form.city.trim(),
+          city: form.city.trim() || "Kanpur",
           pincode,
         });
       }
@@ -351,7 +330,7 @@ function CheckoutModal({
                     name="city"
                     value={form.city}
                     onChange={updateForm}
-                    placeholder="Enter delivery city"
+                    placeholder="City"
                     required
                   />
                 </label>
@@ -374,48 +353,26 @@ function CheckoutModal({
             <section className="checkout-card">
               <h3>2. Delivery method</h3>
 
-              <label
-                className={`choice-card ${
-                  isKanpurAddress ? "selected" : ""
-                }`}
-              >
+              <label className="choice-card selected">
                 <input
                   type="radio"
                   name="delivery"
-                  checked={isKanpurAddress}
-                  onChange={() => selectDeliveryArea("kanpur")}
+                  checked
+                  readOnly
                 />
                 <span>
-                  <b>Kanpur local delivery</b>
+                  <b>
+                    {isKanpurAddress
+                      ? "Kanpur local delivery"
+                      : "Courier delivery across India"}
+                  </b>
                   <small>
-                    {hasFreeDelivery
-                      ? "Free delivery on this order"
-                      : "Delivery charge ₹29 for Kanpur addresses"}
-                  </small>
-                </span>
-                <strong>{kanpurDeliveryLabel}</strong>
-              </label>
-
-              <label
-                className={`choice-card ${
-                  !isKanpurAddress ? "selected" : ""
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="delivery"
-                  checked={!isKanpurAddress}
-                  onChange={() => selectDeliveryArea("india")}
-                />
-                <span>
-                  <b>Other city in India</b>
-                  <small>
-                    {hasFreeDelivery
-                      ? "Free delivery on this order"
+                    {isKanpurAddress
+                      ? "Delivery charge ₹29 for Kanpur addresses"
                       : "Delivery charge ₹49 outside Kanpur"}
                   </small>
                 </span>
-                <strong>{indiaDeliveryLabel}</strong>
+                <strong>{deliveryLabel}</strong>
               </label>
             </section>
 
@@ -514,7 +471,7 @@ function CheckoutModal({
               </div>
 
               <small className="coupon-help">
-                WELCOME10 gives 10% off when the cart subtotal is above ₹499.
+                WELCOME10 gives 10% off only on products priced above ₹499.
               </small>
 
               {couponMessage.text && (

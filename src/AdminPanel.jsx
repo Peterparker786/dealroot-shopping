@@ -30,6 +30,7 @@ const emptyForm = {
   badge: "",
   stock: "10",
   isFeatured: false,
+  dealType: "none",
   amazonLink: "",
   flipkartLink: "",
   otherMarketplaceName: "",
@@ -170,11 +171,23 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
   };
 
   const updateForm = ({ target }) => {
-    setForm((current) => ({
-      ...current,
-      [target.name]:
-        target.type === "checkbox" ? target.checked : target.value,
-    }));
+    const value =
+      target.type === "checkbox" ? target.checked : target.value;
+
+    setForm((current) => {
+      if (target.name === "dealType" && value !== "none") {
+        return {
+          ...current,
+          dealType: value,
+          price: value,
+        };
+      }
+
+      return {
+        ...current,
+        [target.name]: value,
+      };
+    });
   };
 
   const visibleProducts = useMemo(() => {
@@ -185,7 +198,16 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
     }
 
     return products.filter((product) =>
-      [product.brand, product.title, product.category]
+      [
+        product.brand,
+        product.title,
+        product.category,
+        product.dealType === "99"
+          ? "99 deals"
+          : product.dealType === "199"
+            ? "199 deals"
+            : "regular",
+      ]
         .join(" ")
         .toLowerCase()
         .includes(text)
@@ -213,6 +235,7 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
       badge: product.badge || "",
       stock: String(product.stock ?? 0),
       isFeatured: Boolean(product.isFeatured),
+      dealType: product.dealType || "none",
       amazonLink:
         product.marketplaceLinks?.find(
           (link) => link.platform?.toLowerCase() === "amazon"
@@ -576,6 +599,22 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
               </select>
             </label>
 
+            <label>
+              Deal section
+              <select
+                name="dealType"
+                value={form.dealType}
+                onChange={updateForm}
+              >
+                <option value="none">Regular product (No deal)</option>
+                <option value="99">₹99 Deals</option>
+                <option value="199">₹199 Deals</option>
+              </select>
+              <small>
+                Selecting a deal automatically sets the selling price.
+              </small>
+            </label>
+
             <label className="featured-check">
               <input
                 name="isFeatured"
@@ -632,6 +671,7 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                   <tr>
                     <th>Product</th>
                     <th>Category</th>
+                    <th>Deal</th>
                     <th>Price</th>
                     <th>Stock</th>
                     <th>Status</th>
@@ -660,6 +700,16 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                       </td>
 
                       <td>{product.category}</td>
+
+                      <td>
+                        {product.dealType === "99" ? (
+                          <span className="stock-active">₹99 Deals</span>
+                        ) : product.dealType === "199" ? (
+                          <span className="stock-active">₹199 Deals</span>
+                        ) : (
+                          <small>Regular</small>
+                        )}
+                      </td>
 
                       <td>
                         <b>₹{product.price}</b>
@@ -857,4 +907,5 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
     </div>
   );
 }
+
 export default AdminPanel;
