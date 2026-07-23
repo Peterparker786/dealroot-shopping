@@ -1,518 +1,115 @@
-import { useEffect, useState } from "react";
-import "./CouponCheckout.css";
-
-const emptyDeliveryForm = {
-  name: "",
-  phone: "",
-  address: "",
-  city: "Kanpur",
-  pincode: "",
-};
-
-function CheckoutModal({
-  isOpen,
-  onClose,
-  cart = [],
-  showToast,
-  onOrderPlaced,
-  apiUrl,
-  user,
-  userToken,
-  onProfileUpdated,
-}) {
-  const [paymentMethod, setPaymentMethod] = useState("cod");
-  const [placedOrder, setPlacedOrder] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [form, setForm] = useState(emptyDeliveryForm);
-  const [couponInput, setCouponInput] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState("");
-  const [couponMessage, setCouponMessage] = useState({
-    type: "",
-    text: "",
-  });
-
-  useEffect(() => {
-    if (!isOpen) return;
-
-    setCouponInput("");
-    setAppliedCoupon("");
-    setCouponMessage({ type: "", text: "" });
-
-    if (!user) {
-      setForm({ ...emptyDeliveryForm });
-      setPlacedOrder(null);
-      return;
-    }
-
-    setForm({
-      name: user.name || "",
-      phone: user.phone || "",
-      address: user.address || "",
-      city: user.city || "Kanpur",
-      pincode: user.pincode || "",
-    });
-    setPlacedOrder(null);
-  }, [isOpen, user]);
-
-  if (!isOpen) return null;
-
-  const orderSubtotal = cart.reduce(
-    (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
-    0
-  );
-
-  const normalizedCity = form.city
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
-  const isKanpurAddress = normalizedCity.includes("kanpur");
-  const deliveryType = isKanpurAddress ? "local" : "courier";
-  const deliveryFee =
-    orderSubtotal === 0 || orderSubtotal >= 499
-      ? 0
-      : isKanpurAddress
-      ? 29
-      : 49;
-  const deliveryLabel = deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`;
-  const couponEligibleSubtotal = cart.reduce(
-    (sum, item) =>
-      Number(item.price || 0) > 499
-        ? sum + Number(item.price || 0) * Number(item.quantity || 0)
-        : sum,
-    0
-  );
-  const couponDiscount =
-    appliedCoupon === "WELCOME10"
-      ? Math.round(couponEligibleSubtotal * 0.1)
-      : 0;
-  const totalPayable = orderSubtotal - couponDiscount + deliveryFee;
-
-  const applyCoupon = () => {
-    const normalizedCoupon = couponInput.trim().toUpperCase();
-
-    if (!normalizedCoupon) {
-      setAppliedCoupon("");
-      setCouponMessage({
-        type: "error",
-        text: "Please enter a coupon code.",
-      });
-      return;
-    }
-
-    if (normalizedCoupon !== "WELCOME10") {
-      setAppliedCoupon("");
-      setCouponMessage({
-        type: "error",
-        text: "Invalid coupon code.",
-      });
-      return;
-    }
-
-    if (couponEligibleSubtotal <= 0) {
-      setAppliedCoupon("");
-      setCouponMessage({
-        type: "error",
-        text: "WELCOME10 applies only to products priced above ₹499.",
-      });
-      return;
-    }
-
-    setCouponInput("WELCOME10");
-    setAppliedCoupon("WELCOME10");
-    setCouponMessage({
-      type: "success",
-      text: `Coupon applied! You saved ₹${Math.round(
-        couponEligibleSubtotal * 0.1
-      )}.`,
-    });
-  };
-
-  const removeCoupon = () => {
-    setCouponInput("");
-    setAppliedCoupon("");
-    setCouponMessage({ type: "", text: "" });
-  };
-
-  const updateForm = (event) => {
-    const { name, value } = event.target;
-
-    setForm((current) => ({
-      ...current,
-      [name]: value,
-    }));
-  };
-
-  const placeOrder = async (event) => {
-    event.preventDefault();
-
-    const phone = form.phone.replace(/\D/g, "");
-    const pincode = form.pincode.replace(/\D/g, "");
-
-    if (!form.name.trim() || !phone || !form.address.trim() || !pincode) {
-      showToast?.("Please complete your delivery details");
-      return;
-    }
-
-    if (phone.length !== 10) {
-      showToast?.("Please enter a valid 10-digit mobile number");
-      return;
-    }
-
-    if (pincode.length !== 6) {
-      showToast?.("Please enter a valid 6-digit pincode");
-      return;
-    }
-
-    if (!cart.length) {
-      showToast?.("Your cart is empty");
-      return;
-    }
-
-    if (paymentMethod === "online") {
-      showToast?.("Online payment will be available soon. Please choose Cash on Delivery.");
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-
-      const response = await fetch(`${apiUrl}/api/orders`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(userToken ? { Authorization: `Bearer ${userToken}` } : {}),
-        },
-        body: JSON.stringify({
-          customer: {
-            name: form.name.trim(),
-            phone,
-            address: form.address.trim(),
-            city: form.city.trim() || "Kanpur",
-            pincode,
-          },
-          items: cart.map((item) => ({
-            productId: item._id || item.id,
-            quantity: item.quantity,
-          })),
-          deliveryType,
-          paymentMethod,
-          couponCode: appliedCoupon,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Could not place your order");
-      }
-
-      setPlacedOrder(data.order);
-      if (user) {
-        onProfileUpdated?.({
-          ...user,
-          name: form.name.trim(),
-          phone,
-          address: form.address.trim(),
-          city: form.city.trim() || "Kanpur",
-          pincode,
-        });
-      }
-      onOrderPlaced?.(data.order);
-    } catch (error) {
-      showToast?.(error.message || "Could not place your order. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const closeCheckout = () => {
-    setPlacedOrder(null);
-    onClose();
-  };
-
-  if (placedOrder) {
-    return (
-      <div className="checkout-overlay">
-        <section className="order-success">
-          <span className="success-icon">✓</span>
-          <span className="eyebrow blue">ORDER CONFIRMED</span>
-          <h2>Thank you, {form.name}!</h2>
-          <p>
-            Your Cash on Delivery order has been placed successfully. We will
-            send updates to your mobile number.
-          </p>
-
-          <div className="success-order-id">
-            Order ID: {placedOrder.orderNumber || placedOrder._id}
-          </div>
-
-          <button className="primary-button" onClick={closeCheckout}>
-            Continue shopping
-          </button>
-        </section>
-      </div>
-    );
-  }
-
-  return (
-    <div className="checkout-overlay">
-      <section className="checkout-modal">
-        <header className="checkout-header">
-          <div>
-            <span className="eyebrow blue">SECURE CHECKOUT</span>
-            <h2>Complete your order</h2>
-          </div>
-
-          <button
-            className="drawer-close"
-            onClick={onClose}
-            type="button"
-            aria-label="Close checkout"
-          >
-            &times;
-          </button>
-        </header>
-
-        <form className="checkout-content" onSubmit={placeOrder}>
-          <div className="checkout-main">
-            <section className="checkout-card">
-              <h3>1. Delivery details</h3>
-
-              {user && (
-                <p className="checkout-account-note">
-                  Signed in as <b>{user.email}</b>. Your latest delivery details
-                  will be saved to your account.
-                </p>
-              )}
-
-              <div className="form-grid">
-                <label>
-                  Full name
-                  <input
-                    name="name"
-                    value={form.name}
-                    onChange={updateForm}
-                    placeholder="Your full name"
-                    required
-                  />
-                </label>
-
-                <label>
-                  Mobile number
-                  <input
-                    name="phone"
-                    value={form.phone}
-                    onChange={updateForm}
-                    inputMode="numeric"
-                    maxLength="10"
-                    placeholder="10-digit mobile number"
-                    required
-                  />
-                </label>
-              </div>
-
-              <label>
-                Complete address
-                <textarea
-                  name="address"
-                  value={form.address}
-                  onChange={updateForm}
-                  placeholder="House no., street, area and landmark"
-                  rows="3"
-                  required
-                />
-              </label>
-
-              <div className="form-grid">
-                <label>
-                  City
-                  <input
-                    name="city"
-                    value={form.city}
-                    onChange={updateForm}
-                    placeholder="City"
-                    required
-                  />
-                </label>
-
-                <label>
-                  Pincode
-                  <input
-                    name="pincode"
-                    value={form.pincode}
-                    onChange={updateForm}
-                    inputMode="numeric"
-                    maxLength="6"
-                    placeholder="6-digit pincode"
-                    required
-                  />
-                </label>
-              </div>
-            </section>
-
-            <section className="checkout-card">
-              <h3>2. Delivery method</h3>
-
-              <label className="choice-card selected">
-                <input
-                  type="radio"
-                  name="delivery"
-                  checked
-                  readOnly
-                />
-                <span>
-                  <b>
-                    {isKanpurAddress
-                      ? "Kanpur local delivery"
-                      : "Courier delivery across India"}
-                  </b>
-                  <small>
-                    {isKanpurAddress
-                      ? "Delivery charge ₹29 for Kanpur addresses"
-                      : "Delivery charge ₹49 outside Kanpur"}
-                  </small>
-                </span>
-                <strong>{deliveryLabel}</strong>
-              </label>
-            </section>
-
-            <section className="checkout-card">
-              <h3>3. Payment method</h3>
-
-              <label className="choice-card selected">
-                <input
-                  type="radio"
-                  name="payment"
-                  checked={paymentMethod === "cod"}
-                  onChange={() => setPaymentMethod("cod")}
-                />
-                <span>
-                  <b>Cash on Delivery</b>
-                  <small>Pay when your order arrives</small>
-                </span>
-                <strong>COD</strong>
-              </label>
-
-              <label className="choice-card">
-                <input
-                  type="radio"
-                  name="payment"
-                  checked={paymentMethod === "online"}
-                  onChange={() => setPaymentMethod("online")}
-                />
-                <span>
-                  <b>Pay online</b>
-                  <small>UPI, debit/credit card and net banking — coming soon</small>
-                </span>
-                <strong>UPI</strong>
-              </label>
-            </section>
-          </div>
-
-          <aside className="checkout-summary">
-            <h3>Order summary</h3>
-
-            {cart.map((item) => (
-              <div className="checkout-item" key={item._id || item.id}>
-                <span>{item.name || item.title}</span>
-                <b>
-                  {item.quantity} × ₹{item.price}
-                </b>
-              </div>
-            ))}
-
-            <div className="checkout-item">
-              <span>
-                Delivery charge {isKanpurAddress ? "(Kanpur)" : "(India)"}
-              </span>
-              <b>{deliveryLabel}</b>
-            </div>
-
-            <div className="checkout-coupon">
-              <label htmlFor="checkout-coupon-code">Have a coupon?</label>
-
-              <div className="checkout-coupon-row">
-                <input
-                  id="checkout-coupon-code"
-                  type="text"
-                  value={couponInput}
-                  onChange={(event) => {
-                    setCouponInput(event.target.value.toUpperCase());
-
-                    if (appliedCoupon) {
-                      setAppliedCoupon("");
-                      setCouponMessage({ type: "", text: "" });
-                    }
-                  }}
-                  placeholder="Enter coupon code"
-                  autoComplete="off"
-                  disabled={isSubmitting}
-                />
-
-                {appliedCoupon ? (
-                  <button
-                    type="button"
-                    className="coupon-remove-button"
-                    onClick={removeCoupon}
-                    disabled={isSubmitting}
-                  >
-                    Remove
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    className="coupon-apply-button"
-                    onClick={applyCoupon}
-                    disabled={isSubmitting}
-                  >
-                    Apply
-                  </button>
-                )}
-              </div>
-
-              <small className="coupon-help">
-                WELCOME10 gives 10% off only on products priced above ₹499.
-              </small>
-
-              {couponMessage.text && (
-                <p
-                  className={`coupon-message ${couponMessage.type}`}
-                  role="status"
-                >
-                  {couponMessage.text}
-                </p>
-              )}
-            </div>
-
-            {couponDiscount > 0 && (
-              <div className="checkout-item coupon-discount-row">
-                <span>WELCOME10 discount</span>
-                <b>−₹{couponDiscount}</b>
-              </div>
-            )}
-
-            <div className="checkout-total">
-              <span>Total payable</span>
-              <strong>₹{totalPayable}</strong>
-            </div>
-
-            <button
-              className="primary-button checkout-submit"
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Placing order..." : "Place COD order"}
-            </button>
-
-            <small>
-              By placing this order, you agree to DEALROOT’s return and privacy
-              policies.
-            </small>
-          </aside>
-        </form>
-      </section>
-    </div>
-  );
+.checkout-coupon {
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px dashed #b9c8dd;
+  border-radius: 14px;
+  background: #f8fbff;
 }
 
-export default CheckoutModal;
+.checkout-coupon > label {
+  display: block;
+  margin-bottom: 9px;
+  color: #1e3854;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.checkout-coupon-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.checkout-coupon-row input {
+  width: 100%;
+  min-width: 0;
+  height: 43px;
+  padding: 0 12px;
+  border: 1px solid #cbd7e6;
+  border-radius: 10px;
+  outline: none;
+  background: #ffffff;
+  color: #162c46;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.checkout-coupon-row input:focus {
+  border-color: #246bfd;
+  box-shadow: 0 0 0 3px rgba(36, 107, 253, 0.12);
+}
+
+.coupon-apply-button,
+.coupon-remove-button {
+  min-width: 76px;
+  height: 43px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.coupon-apply-button {
+  background: #246bfd;
+  color: #ffffff;
+}
+
+.coupon-remove-button {
+  background: #feecec;
+  color: #b42318;
+}
+
+.coupon-apply-button:disabled,
+.coupon-remove-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.checkout-coupon .coupon-help {
+  display: block;
+  margin-top: 8px;
+  color: #65758b;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.checkout-coupon .coupon-message {
+  margin: 9px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.checkout-coupon .coupon-message.success {
+  color: #087a49;
+}
+
+.checkout-coupon .coupon-message.error {
+  color: #c02626;
+}
+
+.coupon-discount-row,
+.coupon-discount-row b {
+  color: #087a49;
+}
+
+@media (max-width: 420px) {
+  .checkout-coupon {
+    padding: 13px;
+  }
+
+  .checkout-coupon-row {
+    grid-template-columns: 1fr;
+  }
+
+  .coupon-apply-button,
+  .coupon-remove-button {
+    width: 100%;
+  }
+}
