@@ -857,5 +857,4 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
     </div>
   );
 }
-
 export default AdminPanel;

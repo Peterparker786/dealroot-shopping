@@ -1,7 +1,9 @@
+// Verified customer account modal connection — 23 July 2026
 import { useEffect, useMemo, useState } from "react";
 import CartDrawer from "./CartDrawer";
 import CheckoutModal from "./CheckoutModal";
 import AdminPanel from "./AdminPanel";
+import AccountModal from "./AccountModal.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -32,6 +34,11 @@ function App() {
   const [toast, setToast] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [userToken, setUserToken] = useState(() =>
+    localStorage.getItem("dealroot_user_token") || ""
+  );
+  const [user, setUser] = useState(null);
 
   const showToast = (message) => {
     setToast(message);
@@ -47,6 +54,40 @@ function App() {
     window.location.hash = "";
     setIsAdminPage(false);
   };
+
+  const logOutCustomer = () => {
+    localStorage.removeItem("dealroot_user_token");
+    setUserToken("");
+    setUser(null);
+    showToast("You have been logged out");
+  };
+
+  const saveCustomerAuth = (token, nextUser) => {
+    localStorage.setItem("dealroot_user_token", token);
+    setUserToken(token);
+    setUser(nextUser);
+  };
+
+  useEffect(() => {
+    if (!userToken) return;
+
+    const restoreCustomer = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${userToken}` },
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error();
+        setUser(data.user);
+      } catch {
+        localStorage.removeItem("dealroot_user_token");
+        setUserToken("");
+        setUser(null);
+      }
+    };
+
+    restoreCustomer();
+  }, [userToken]);
 
   const loadProducts = async () => {
     try {
@@ -194,10 +235,26 @@ function App() {
         cart={cart}
         total={cartTotal}
         showToast={showToast}
+        apiUrl={API_URL}
+        user={user}
+        userToken={userToken}
+        onProfileUpdated={setUser}
         onOrderPlaced={() => {
           setCart([]);
           loadProducts();
         }}
+      />
+
+      <AccountModal
+        isOpen={accountOpen}
+        onClose={() => setAccountOpen(false)}
+        apiUrl={API_URL}
+        user={user}
+        token={userToken}
+        onAuth={saveCustomerAuth}
+        onLogout={logOutCustomer}
+        onUserUpdated={setUser}
+        showToast={showToast}
       />
 
       <div className="top-strip">
@@ -226,9 +283,9 @@ function App() {
             <b>Admin</b>
           </button>
 
-          <button onClick={() => showToast("Login feature is coming next")}>
+          <button onClick={() => setAccountOpen(true)}>
             <span>♙</span>
-            <b>Account</b>
+            <b>{user ? user.name.split(" ")[0] : "Account"}</b>
           </button>
 
           <button onClick={() => showToast("Wishlist feature is coming next")}>
