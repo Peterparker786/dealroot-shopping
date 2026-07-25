@@ -339,6 +339,7 @@ function CheckoutModal({
   session: createData.paymentSessionId,
   createData,
 });
+
 const razorpayCheckout = new window.Razorpay({
         key: createData.keyId,
         amount: createData.amount,
