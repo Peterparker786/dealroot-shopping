@@ -208,8 +208,12 @@ function CheckoutModal({
   };
 
   const placeOrder = async (event) => {
+    
     event.preventDefault();
-
+if (!user || !userToken) {
+  showToast?.("Please login to place your order.");
+  return;
+}
     const phone = form.phone.replace(/\D/g, "");
     const pincode = form.pincode.replace(/\D/g, "");
 
