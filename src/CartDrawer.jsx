@@ -11,9 +11,6 @@ function CartDrawer({
     0
   );
 
-  const delivery = subtotal === 0 || subtotal >= 499 ? 0 : 49;
-  const total = subtotal + delivery;
-
   const updateQuantity = (id, change) => {
     setCart((currentCart) =>
       currentCart
@@ -105,18 +102,20 @@ function CartDrawer({
                 <b>₹{subtotal}</b>
               </div>
               <div>
-                <span>Delivery</span>
-                <b>{delivery ? `₹${delivery}` : "FREE"}</b>
-              </div>
-              <p>
-                {subtotal < 499
-                  ? `Add ₹${499 - subtotal} more for free delivery`
-                  : "You unlocked free delivery"}
-              </p>
-              <div className="cart-total">
-                <span>Total</span>
-                <strong>₹{total}</strong>
-              </div>
+  <span>Delivery</span>
+  <b>Calculated at checkout</b>
+</div>
+
+<p>
+  {subtotal < 499
+    ? `Add ₹${499 - subtotal} more for free delivery`
+    : "You unlocked free delivery"}
+</p>
+
+<div className="cart-total">
+  <span>Estimated Total</span>
+  <strong>₹{subtotal}</strong>
+</div>
               <button className="primary-button checkout-button" onClick={checkout}>
                 Proceed to checkout
               </button>
