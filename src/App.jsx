@@ -1,14 +1,14 @@
 // Verified customer account modal connection — 23 July 2026
 import Navbar from "./components/Navbar";
 import { Routes, Route } from "react-router-dom";
-import ProductDetails from "./Pages/ProductDetails";
 import Home from "./pages/Home";
+import Contact from "./pages/Contact";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Terms from "./pages/Terms";
 import ShippingPolicy from "./pages/ShippingPolicy";
 import RefundPolicy from "./pages/RefundPolicy";
+import ProductDetails from "./pages/ProductDetails";
 import Footer from "./components/Footer";
-import Contact from "./pages/Contact";
 import { useEffect, useMemo, useState } from "react";
 import CartDrawer from "./CartDrawer";
 import CheckoutModal from "./CheckoutModal";
