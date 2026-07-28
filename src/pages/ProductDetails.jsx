@@ -7,15 +7,43 @@ export default function ProductDetails({
   wishlist,
   fallbackImage,
   showToast,
+  user,
 }) {
   const { id } = useParams();
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState([]);
+const [reviewsLoading, setReviewsLoading] = useState(true);
 
-  useEffect(() => {
-    loadProduct();
-  }, [id]);
+
+  function getEstimatedDelivery() {
+  const today = new Date();
+
+  const start = new Date(today);
+  start.setDate(today.getDate() + 2);
+
+  const end = new Date(today);
+  end.setDate(today.getDate() + 4);
+
+  const options = {
+    day: "numeric",
+    month: "short",
+  };
+
+  return `${start.toLocaleDateString(
+    "en-IN",
+    options
+  )} - ${end.toLocaleDateString(
+    "en-IN",
+    options
+  )}`;
+}
+
+ useEffect(() => {
+  loadProduct();
+  loadReviews();
+}, [id]);
 
   async function loadProduct() {
     try {
@@ -38,9 +66,12 @@ export default function ProductDetails({
         rating: data.product.rating,
         reviews: Number(data.product.reviews || 0).toLocaleString("en-IN"),
         badge: data.product.badge || "",
-        image: data.product.image || fallbackImage,
+        images: data.product.images || [],
+image:
+  data.product.images?.[0] || fallbackImage,
         stock: data.product.stock,
         description: data.product.description || "",
+        deliveryDate: getEstimatedDelivery(),
         marketplaceLinks: data.product.marketplaceLinks || [],
       });
     } catch {
@@ -49,6 +80,26 @@ export default function ProductDetails({
       setLoading(false);
     }
   }
+
+  async function loadReviews() {
+  try {
+    setReviewsLoading(true);
+
+    const response = await fetch(
+      `${apiUrl}/api/reviews/${id}`
+    );
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      setReviews(data.reviews);
+    }
+  } catch {
+    setReviews([]);
+  } finally {
+    setReviewsLoading(false);
+  }
+}
 
   if (loading) {
     return (
@@ -94,10 +145,27 @@ export default function ProductDetails({
       <h3>{product.brand}</h3>
 
       <p>
-        ⭐ {product.rating} ({product.reviews} Reviews)
+       ⭐ {Number(product.rating).toFixed(1)} ({product.reviews} Reviews)
       </p>
 
       <h2>₹{product.price}</h2>
+      <div
+  style={{
+    background: "#f8f9fa",
+    borderRadius: "12px",
+    padding: "15px",
+    margin: "20px 0",
+  }}
+>
+  <div style={{ fontWeight: "700" }}>
+    🚚 FREE Delivery
+  </div>
+
+  <div style={{ marginTop: "6px" }}>
+    Estimated Delivery:
+    <strong> {product.deliveryDate}</strong>
+  </div>
+</div>
 
       <p
         style={{
@@ -110,10 +178,31 @@ export default function ProductDetails({
 
       <p>{product.description}</p>
 
-      <p>
-        <strong>Stock:</strong>{" "}
-        {product.stock > 0 ? "✅ In Stock" : "❌ Out of Stock"}
-      </p>
+    <div style={{ margin: "18px 0", fontSize: "16px", fontWeight: "600" }}>
+  {product.stock === 0 && (
+    <span style={{ color: "#d32f2f" }}>
+      ❌ Out of Stock
+    </span>
+  )}
+
+  {product.stock > 0 && product.stock <= 5 && (
+    <span style={{ color: "#d32f2f" }}>
+      🔥 Only {product.stock} left in stock
+    </span>
+  )}
+
+  {product.stock > 5 && product.stock <= 10 && (
+    <span style={{ color: "#ff9800" }}>
+      ⚠ Limited Stock ({product.stock} left)
+    </span>
+  )}
+
+  {product.stock > 10 && (
+    <span style={{ color: "#2e7d32" }}>
+      ✅ In Stock
+    </span>
+  )}
+</div>
 
       <button onClick={() => addToCart(product)}>
         Add To Cart
@@ -137,13 +226,61 @@ export default function ProductDetails({
             rel="noreferrer"
             style={{ marginRight: "10px" }}
           >
-            <button>
-              Buy on {link.platform}
-            </button>
+            <button>Buy on {link.platform}</button>
           </a>
         ))}
       </div>
     </div>
+
+    {/* Customer Reviews */}
+
+    {/* Customer Reviews */}
+    <div
+      style={{
+        gridColumn: "1 / -1",
+        marginTop: "50px",
+      }}
+    >
+      <h2>Customer Reviews</h2>
+
+      {reviewsLoading ? (
+        <p>Loading reviews...</p>
+      ) : reviews.length === 0 ? (
+        <p>No reviews yet.</p>
+      ) : (
+        reviews.map((review) => (
+          <div
+            key={review._id}
+            style={{
+              border: "1px solid #ddd",
+              borderRadius: 12,
+              padding: 20,
+              marginTop: 15,
+            }}
+          >
+            <h4>{review.user?.name}</h4>
+
+            <div>
+              {"⭐".repeat(review.rating)}
+            </div>
+
+            <p>{review.review}</p>
+
+            {review.verifiedPurchase && (
+              <small
+                style={{
+                  color: "green",
+                  fontWeight: "bold",
+                }}
+              >
+                ✔ Verified Purchase
+              </small>
+            )}
+          </div>
+        ))
+      )}
+    </div>
+
   </section>
 );
 }

@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Select from "react-select";
+import { State, City } from "country-state-city";
 import "./CouponCheckout.css";
 
 const emptyDeliveryForm = {
   name: "",
   phone: "",
-  address: "",
+  state: "Uttar Pradesh",
   city: "Kanpur",
+  address: "",
   pincode: "",
 };
 
@@ -33,6 +36,7 @@ const loadRazorpayCheckout = () => {
         reject(new Error("Razorpay Checkout could not be loaded"));
       }
     };
+
 
     const handleError = () => {
       razorpayScriptPromise = null;
@@ -70,6 +74,8 @@ function CheckoutModal({
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [placedOrder, setPlacedOrder] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedState, setSelectedState] = useState(null);
+const [selectedCity, setSelectedCity] = useState(null);
   const [form, setForm] = useState(emptyDeliveryForm);
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState("");
@@ -78,6 +84,22 @@ function CheckoutModal({
     text: "",
   });
   const userKey = user?.id || user?._id || user?.email || "";
+
+const stateOptions = useMemo(() => {
+  return State.getStatesOfCountry("IN").map((state) => ({
+    value: state.isoCode,
+    label: state.name,
+  }));
+}, []);
+
+const cityOptions = useMemo(() => {
+  if (!selectedState) return [];
+
+  return City.getCitiesOfState("IN", selectedState.value).map((city) => ({
+    value: city.name,
+    label: city.name,
+  }));
+}, [selectedState]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -94,15 +116,41 @@ function CheckoutModal({
       return;
     }
 
-    setForm({
-      name: user.name || "",
-      phone: user.phone || "",
-      address: user.address || "",
-      city: user.city || "Kanpur",
-      pincode: user.pincode || "",
-    });
+setForm({
+  name: user.name || "",
+  phone: user.phone || "",
+  state: user.state || "Uttar Pradesh",
+  address: user.address || "",
+  city: user.city || "Kanpur",
+  pincode: user.pincode || "",
+});
     setPlacedOrder(null);
   }, [isOpen, userKey]);
+useEffect(() => {
+  if (!form.state) return;
+
+  const state = State.getStatesOfCountry("IN").find(
+    (s) => s.name === form.state
+  );
+
+  if (state) {
+    setSelectedState({
+      value: state.isoCode,
+      label: state.name,
+    });
+
+    const city = City.getCitiesOfState("IN", state.isoCode).find(
+      (c) => c.name === form.city
+    );
+
+    if (city) {
+      setSelectedCity({
+        value: city.name,
+        label: city.name,
+      });
+    }
+  }
+}, []);
 
   if (!isOpen) return null;
 
@@ -243,21 +291,22 @@ if (!user || !userToken) {
       return;
     }
 
-    const orderPayload = {
-      customer: {
-        name: form.name.trim(),
-        phone,
-        address: form.address.trim(),
-        city: form.city.trim(),
-        pincode,
-      },
-      items: cart.map((item) => ({
-        productId: item._id || item.id,
-        quantity: item.quantity,
-      })),
-      deliveryType,
-      couponCode: appliedCoupon,
-    };
+ const orderPayload = {
+  customer: {
+    name: form.name.trim(),
+    phone,
+    state: form.state,
+    address: form.address.trim(),
+    city: form.city.trim(),
+    pincode,
+  },
+  items: cart.map((item) => ({
+    productId: item._id || item.id,
+    quantity: item.quantity,
+  })),
+  deliveryType,
+  couponCode: appliedCoupon,
+};
 
     const requestHeaders = {
       "Content-Type": "application/json",
@@ -272,7 +321,8 @@ if (!user || !userToken) {
           ...user,
           name: form.name.trim(),
           phone,
-          address: form.address.trim(),
+  state: form.state,
+  address: form.address.trim(),
           city: form.city.trim(),
           pincode,
         });
@@ -536,15 +586,45 @@ const razorpayCheckout = new window.Razorpay({
 
               <div className="form-grid">
                 <label>
-                  City
-                  <input
-                    name="city"
-                    value={form.city}
-                    onChange={updateForm}
-                    placeholder="Enter delivery city"
-                    required
-                  />
-                </label>
+  State
+
+  <Select
+    options={stateOptions}
+    value={selectedState}
+    placeholder="Search State..."
+    isSearchable
+    onChange={(state) => {
+      setSelectedState(state);
+      setSelectedCity(null);
+
+      setForm((current) => ({
+        ...current,
+        state: state.label,
+        city: "",
+      }));
+    }}
+  />
+</label>
+<label>
+  City
+
+  <Select
+    options={cityOptions}
+    value={selectedCity}
+    placeholder="Search City..."
+    isSearchable
+    isDisabled={!selectedState}
+    onChange={(city) => {
+      setSelectedCity(city);
+
+      setForm((current) => ({
+        ...current,
+        city: city.label,
+      }));
+    }}
+  />
+</label>
+
 
                 <label>
                   Pincode

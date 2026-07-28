@@ -26,7 +26,9 @@ const emptyForm = {
   mrp: "",
   rating: "4.5",
   reviews: "0",
-  image: "",
+
+  images: [],
+
   badge: "",
   stock: "10",
   isFeatured: false,
@@ -55,6 +57,8 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
   const [loading, setLoading] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedImages, setSelectedImages] = useState([]);
+const [uploadingImages, setUploadingImages] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [search, setSearch] = useState("");
 
@@ -190,6 +194,50 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
     });
   };
 
+  const uploadImages = async (files) => {
+  try {
+    setUploadingImages(true);
+
+    const formData = new FormData();
+
+    [...files].forEach((file) => {
+      formData.append("images", file);
+    });
+
+    const response = await fetch(`${apiUrl}/api/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+    console.log("UPLOAD RESPONSE:", data);
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Upload failed");
+    }
+
+    setForm((current) => ({
+      ...current,
+      images: [...current.images, ...data.images],
+    }));
+
+    setSelectedImages((current) => {
+  const updated = [...current, ...data.images];
+  console.log("UPDATED IMAGES:", updated);
+  return updated;
+});
+
+    showToast("Images uploaded successfully");
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    setUploadingImages(false);
+  }
+};
+
   const visibleProducts = useMemo(() => {
     const text = search.trim().toLowerCase();
 
@@ -220,44 +268,53 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
         !["amazon", "flipkart"].includes(link.platform?.toLowerCase())
     );
 
-    setEditingId(product._id);
+  setEditingId(product._id);
 
-    setForm({
-      brand: product.brand || "",
-      title: product.title || "",
-      description: product.description || "",
-      category: product.category || "Skincare",
-      price: String(product.price ?? ""),
-      mrp: String(product.mrp ?? ""),
-      rating: String(product.rating ?? 4.5),
-      reviews: String(product.reviews ?? 0),
-      image: product.image || "",
-      badge: product.badge || "",
-      stock: String(product.stock ?? 0),
-      isFeatured: Boolean(product.isFeatured),
-      dealType: product.dealType || "none",
-      amazonLink:
-        product.marketplaceLinks?.find(
-          (link) => link.platform?.toLowerCase() === "amazon"
-        )?.url || "",
-      flipkartLink:
-        product.marketplaceLinks?.find(
-          (link) => link.platform?.toLowerCase() === "flipkart"
-        )?.url || "",
-      otherMarketplaceName: otherMarketplace?.platform || "",
-      otherMarketplaceLink: otherMarketplace?.url || "",
-    });
+setForm({
+  brand: product.brand || "",
+  title: product.title || "",
+  description: product.description || "",
+  category: product.category || "Skincare",
+  price: String(product.price ?? ""),
+  mrp: String(product.mrp ?? ""),
+  rating: String(product.rating ?? 4.5),
+  reviews: String(product.reviews ?? 0),
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+  images: product.images || [],
+
+  badge: product.badge || "",
+  stock: String(product.stock ?? 0),
+  isFeatured: Boolean(product.isFeatured),
+  dealType: product.dealType || "none",
+
+  amazonLink:
+    product.marketplaceLinks?.find(
+      (link) => link.platform?.toLowerCase() === "amazon"
+    )?.url || "",
+
+  flipkartLink:
+    product.marketplaceLinks?.find(
+      (link) => link.platform?.toLowerCase() === "flipkart"
+    )?.url || "",
+
+  otherMarketplaceName: otherMarketplace?.platform || "",
+  otherMarketplaceLink: otherMarketplace?.url || "",
+});
+
+// 👇 YE OBJECT KE BAHAR HONA CHAHIYE
+setSelectedImages(product.images || []);
+
+window.scrollTo({
+  top: 0,
+  behavior: "smooth",
+});
   };
 
-  const cancelEdit = () => {
-    setEditingId("");
-    setForm(emptyForm);
-  };
+ const cancelEdit = () => {
+  setEditingId("");
+  setForm(emptyForm);
+  setSelectedImages([]);
+};
 
   const saveProduct = async (event) => {
     event.preventDefault();
@@ -284,28 +341,39 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
         ...form,
         marketplaceLinks,
       };
+      console.log("FORM IMAGES:", form.images);
+      console.log("SELECTED IMAGES:", selectedImages);
+      payload.images = selectedImages;
 
       delete payload.amazonLink;
       delete payload.flipkartLink;
       delete payload.otherMarketplaceName;
       delete payload.otherMarketplaceLink;
 
-      await request(
-        editingId
-          ? `${apiUrl}/api/products/${editingId}`
-          : `${apiUrl}/api/products`,
-        {
-          method: editingId ? "PUT" : "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+await request(
+  editingId
+    ? `${apiUrl}/api/products/${editingId}`
+    : `${apiUrl}/api/products`,
+  {
+    method: editingId ? "PUT" : "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  }
+);
 
-      showToast(editingId ? "Product updated successfully" : "Product added successfully");
-      cancelEdit();
-      loadProducts();
+setSelectedImages([]);
+
+showToast(
+  editingId
+    ? "Product updated successfully"
+    : "Product added successfully"
+);
+
+cancelEdit();
+loadProducts();
+
     } catch (error) {
       showToast(error.message);
     } finally {
@@ -559,7 +627,6 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
               ["mrp", "MRP (₹) *", "number"],
               ["rating", "Rating", "number"],
               ["reviews", "Number of reviews", "number"],
-              ["image", "Product image URL", "url"],
               ["amazonLink", "Amazon product link", "url"],
               ["flipkartLink", "Flipkart product link", "url"],
               ["otherMarketplaceName", "Other platform name", "text"],
@@ -625,6 +692,76 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
               Show as featured product
             </label>
 
+<label className="full-field">
+  Product Images
+
+  <input
+    type="file"
+    multiple
+    accept="image/*"
+    onChange={(e) => uploadImages(e.target.files)}
+  />
+
+  {uploadingImages && (
+    <small>Uploading images...</small>
+  )}
+
+  <div
+    style={{
+      display: "flex",
+      gap: "10px",
+      flexWrap: "wrap",
+      marginTop: "10px",
+    }}
+  >
+    {selectedImages.map((img, index) => (
+      <div
+        key={index}
+        style={{ position: "relative" }}
+      >
+        <img
+          src={img}
+          alt=""
+          style={{
+            width: 90,
+            height: 90,
+            objectFit: "cover",
+            borderRadius: 8,
+          }}
+        />
+
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedImages((current) =>
+              current.filter((_, i) => i !== index)
+            );
+
+            setForm((current) => ({
+              ...current,
+              images: current.images.filter((_, i) => i !== index),
+            }));
+          }}
+          style={{
+            position: "absolute",
+            top: -6,
+            right: -6,
+            width: 22,
+            height: 22,
+            borderRadius: "50%",
+            border: "none",
+            cursor: "pointer",
+            background: "#f44336",
+            color: "#fff",
+          }}
+        >
+          ×
+        </button>
+      </div>
+    ))}
+  </div>
+</label>
+
             <label className="full-field">
               Description
               <textarea
@@ -684,13 +821,13 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
                     <tr key={product._id}>
                       <td>
                         <div className="admin-product-name">
-                          <img
-                            src={
-                              product.image ||
-                              "https://placehold.co/80x80?text=Product"
-                            }
-                            alt={product.title}
-                          />
+                         <img
+  src={
+    product.images?.[0] ||
+    "https://placehold.co/80x80?text=Product"
+  }
+  alt={product.title}
+/>
 
                           <div>
                             <b>{product.title}</b>

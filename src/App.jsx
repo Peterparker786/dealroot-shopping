@@ -357,6 +357,7 @@ function App() {
       wishlist={wishlist}
       fallbackImage={fallbackImage}
       showToast={showToast}
+      user={user}
     />
   }
 />  
