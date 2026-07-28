@@ -154,7 +154,7 @@ function App() {
           reviews: Number(product.reviews || 0).toLocaleString("en-IN"),
           badge: product.badge || "",
           dealType: product.dealType || "none",
-          image: product.image || fallbackImage,
+          image: product.images?.[0] || product.image || fallbackImage,
           stock: product.stock,
           marketplaceLinks: Array.isArray(product.marketplaceLinks)
             ? product.marketplaceLinks.filter(

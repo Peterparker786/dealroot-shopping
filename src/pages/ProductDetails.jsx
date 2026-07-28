@@ -10,12 +10,28 @@ export default function ProductDetails({
   user,
 }) {
   const { id } = useParams();
-
+  const [selectedImage, setSelectedImage] = useState("");
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState([]);
 const [reviewsLoading, setReviewsLoading] = useState(true);
 
+useEffect(() => {
+  if (!product?.images?.length) return;
+
+  const interval = setInterval(() => {
+    const currentIndex = product.images.indexOf(selectedImage);
+
+    const nextIndex =
+      currentIndex === product.images.length - 1
+        ? 0
+        : currentIndex + 1;
+
+    setSelectedImage(product.images[nextIndex]);
+  }, 3000);
+
+  return () => clearInterval(interval);
+}, [product, selectedImage]);
 
   function getEstimatedDelivery() {
   const today = new Date();
@@ -56,24 +72,30 @@ const [reviewsLoading, setReviewsLoading] = useState(true);
         throw new Error();
       }
 
-      setProduct({
-        id: data.product._id,
-        brand: data.product.brand,
-        name: data.product.title,
-        category: data.product.category,
-        price: data.product.price,
-        originalPrice: data.product.mrp,
-        rating: data.product.rating,
-        reviews: Number(data.product.reviews || 0).toLocaleString("en-IN"),
-        badge: data.product.badge || "",
-        images: data.product.images || [],
-image:
-  data.product.images?.[0] || fallbackImage,
-        stock: data.product.stock,
-        description: data.product.description || "",
-        deliveryDate: getEstimatedDelivery(),
-        marketplaceLinks: data.product.marketplaceLinks || [],
-      });
+setProduct({
+  id: data.product._id,
+  brand: data.product.brand,
+  name: data.product.title,
+  category: data.product.category,
+  price: data.product.price,
+  originalPrice: data.product.mrp,
+  rating: data.product.rating,
+  reviews: Number(data.product.reviews || 0).toLocaleString("en-IN"),
+  badge: data.product.badge || "",
+  images: data.product.images || [],
+  image: data.product.images?.[0] || fallbackImage,
+  stock: data.product.stock,
+  description: data.product.description || "",
+  deliveryDate: getEstimatedDelivery(),
+  marketplaceLinks: data.product.marketplaceLinks || [],
+});
+
+setSelectedImage(
+  data.product.images?.[0] ||
+  data.product.image ||
+  fallbackImage
+);
+
     } catch {
       showToast("Product not found");
     } finally {
@@ -127,16 +149,47 @@ image:
     }}
   >
     {/* Left Side */}
-    <div>
-      <img
-        src={product.image}
-        alt={product.name}
-        style={{
-          width: "100%",
-          borderRadius: "20px",
-        }}
-      />
+  <div>
+  <img
+    src={selectedImage}
+    alt={product.name}
+    style={{
+      width: "100%",
+      borderRadius: "20px",
+    }}
+  />
+
+  {product.images?.length > 1 && (
+    <div
+      style={{
+        display: "flex",
+        gap: "10px",
+        marginTop: "15px",
+        flexWrap: "wrap",
+      }}
+    >
+      {product.images.map((img, index) => (
+        <img
+          key={index}
+          src={img}
+          alt=""
+          onClick={() => setSelectedImage(img)}
+          style={{
+            width: 80,
+            height: 80,
+            objectFit: "cover",
+            borderRadius: 10,
+            cursor: "pointer",
+            border:
+              selectedImage === img
+                ? "3px solid #2563eb"
+                : "1px solid #ddd",
+          }}
+        />
+      ))}
     </div>
+  )}
+</div>
 
     {/* Right Side */}
     <div>

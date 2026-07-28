@@ -114,6 +114,21 @@ export default function AccountModal({
       requestCancelled = true;
     };
   }, [apiUrl, isOpen, showToast, tab, token, user]);
+  
+useEffect(() => {
+  const loadCoupons = async () => {
+    try {
+      const res = await fetch(`${apiUrl}/api/coupons`);
+      const data = await res.json();
+
+      setAvailableCoupons(data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  loadCoupons();
+}, []);
 
   if (!isOpen) {
     return null;

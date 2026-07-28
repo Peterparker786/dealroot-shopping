@@ -222,7 +222,7 @@ export default function Home({
   style={{ display: "block" }}
 >
   <img
-    src={product.image}
+    src={product.images?.[0] || product.image}
     alt={product.name}
     onError={(event) => {
       event.currentTarget.src = fallbackImage;

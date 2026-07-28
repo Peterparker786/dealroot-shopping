@@ -9,6 +9,7 @@ const categories = [
   "Bath & Body",
 ];
 
+
 const orderStatuses = [
   "placed",
   "confirmed",
@@ -52,6 +53,16 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
   const [loggingIn, setLoggingIn] = useState(false);
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [coupons, setCoupons] = useState([]);
+
+const [couponForm, setCouponForm] = useState({
+  code: "",
+  discountType: "percentage",
+  discountValue: "",
+  minimumOrder: "",
+  maximumDiscount: "",
+  expiryDate: "",
+});
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -131,17 +142,19 @@ const [uploadingImages, setUploadingImages] = useState(false);
     }
   };
 
-  useEffect(() => {
-    if (token) {
-      loadProducts();
-      loadOrders();
-    }
-  }, [token]);
-
-  const refresh = () => {
+useEffect(() => {
+  if (token) {
     loadProducts();
     loadOrders();
-  };
+    loadCoupons();
+  }
+}, [token]);
+
+  const refresh = () => {
+  loadProducts();
+  loadOrders();
+  loadCoupons();
+};
 
   const logIn = async (event) => {
     event.preventDefault();
@@ -173,6 +186,15 @@ const [uploadingImages, setUploadingImages] = useState(false);
       setLoggingIn(false);
     }
   };
+
+  const loadCoupons = async () => {
+  try {
+    const data = await request(`${apiUrl}/api/coupons`);
+    setCoupons(data.coupons || []);
+  } catch (error) {
+    showToast(error.message);
+  }
+};
 
   const updateForm = ({ target }) => {
     const value =
@@ -489,6 +511,51 @@ loadProducts();
     }
   };
 
+  const createCoupon = async (e) => {
+  e.preventDefault();
+
+  try {
+    const data = await request(`${apiUrl}/api/coupons`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(couponForm),
+    });
+
+    showToast(data.message);
+
+    setCouponForm({
+      code: "",
+      discountType: "percentage",
+      discountValue: "",
+      minimumOrder: "",
+      maximumDiscount: "",
+      expiryDate: "",
+    });
+
+    loadCoupons();
+  } catch (error) {
+    showToast(error.message);
+  }
+};
+
+const deleteCoupon = async (id) => {
+  if (!window.confirm("Delete this coupon?")) return;
+
+  try {
+    const data = await request(`${apiUrl}/api/coupons/${id}`, {
+      method: "DELETE",
+    });
+
+    showToast(data.message);
+    loadCoupons();
+  } catch (error) {
+    showToast(error.message);
+  }
+};
+
+
   if (!token) {
     return (
       <div className="admin-login-page">
@@ -599,6 +666,109 @@ loadProducts();
             <strong>{pendingOrders}</strong>
           </article>
         </section>
+
+        <section className="admin-form-card">
+  <div className="admin-section-title">
+    <div>
+      <p>COUPON MANAGEMENT</p>
+      <h2>Create Discount Coupon</h2>
+    </div>
+  </div>
+
+  <form className="product-form" onSubmit={createCoupon}>
+
+    <label>
+      Coupon Code
+      <input
+        value={couponForm.code}
+        onChange={(e)=>
+          setCouponForm({
+            ...couponForm,
+            code:e.target.value.toUpperCase()
+          })
+        }
+      />
+    </label>
+
+    <label>
+      Discount Type
+      <select
+        value={couponForm.discountType}
+        onChange={(e)=>
+          setCouponForm({
+            ...couponForm,
+            discountType:e.target.value
+          })
+        }
+      >
+        <option value="percentage">Percentage</option>
+        <option value="flat">Flat</option>
+      </select>
+    </label>
+
+    <label>
+      Discount Value
+      <input
+        type="number"
+        value={couponForm.discountValue}
+        onChange={(e)=>
+          setCouponForm({
+            ...couponForm,
+            discountValue:e.target.value
+          })
+        }
+      />
+    </label>
+
+    <label>
+      Minimum Order
+      <input
+        type="number"
+        value={couponForm.minimumOrder}
+        onChange={(e)=>
+          setCouponForm({
+            ...couponForm,
+            minimumOrder:e.target.value
+          })
+        }
+      />
+    </label>
+
+    <label>
+      Maximum Discount
+      <input
+        type="number"
+        value={couponForm.maximumDiscount}
+        onChange={(e)=>
+          setCouponForm({
+            ...couponForm,
+            maximumDiscount:e.target.value
+          })
+        }
+      />
+    </label>
+
+    <label>
+      Expiry Date
+      <input
+        type="date"
+        value={couponForm.expiryDate}
+        onChange={(e)=>
+          setCouponForm({
+            ...couponForm,
+            expiryDate:e.target.value
+          })
+        }
+      />
+    </label>
+
+    <button className="save-product">
+      Create Coupon
+    </button>
+
+  </form>
+</section>
+
 
         <section className="admin-form-card">
           <div className="admin-section-title">
@@ -781,6 +951,48 @@ loadProducts();
             </button>
           </form>
         </section>
+<section className="admin-products-card">
+  <div className="admin-section-title">
+    <h2>Coupons</h2>
+  </div>
+
+  <table className="admin-table">
+    <thead>
+      <tr>
+        <th>Code</th>
+        <th>Type</th>
+        <th>Discount</th>
+        <th>Min Order</th>
+        <th>Expiry</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {coupons.map((coupon) => (
+        <tr key={coupon._id}>
+          <td>{coupon.code}</td>
+          <td>{coupon.discountType}</td>
+          <td>{coupon.discountValue}</td>
+          <td>₹{coupon.minimumOrder}</td>
+          <td>
+            {coupon.expiryDate
+              ? new Date(coupon.expiryDate).toLocaleDateString()
+              : "-"}
+          </td>
+          <td>
+            <button
+              className="delete-product"
+              onClick={() => deleteCoupon(coupon._id)}
+            >
+              Delete
+            </button>
+          </td>
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</section>
 
         <section className="admin-products-card">
           <div className="admin-section-title">

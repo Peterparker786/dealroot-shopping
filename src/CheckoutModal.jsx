@@ -83,6 +83,8 @@ const [selectedCity, setSelectedCity] = useState(null);
     type: "",
     text: "",
   });
+  const [discountAmount, setDiscountAmount] = useState(0);
+  const [availableCoupons, setAvailableCoupons] = useState([]);
   const userKey = user?.id || user?._id || user?.email || "";
 
 const stateOptions = useMemo(() => {
@@ -176,49 +178,60 @@ useEffect(() => {
   const deliveryLabel = deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`;
   const kanpurDeliveryLabel = hasFreeDelivery ? "FREE" : "₹29";
   const indiaDeliveryLabel = hasFreeDelivery ? "FREE" : "₹49";
-  const couponDiscount =
-    appliedCoupon === "WELCOME10" && orderSubtotal > 499
-      ? Math.round(orderSubtotal * 0.1)
-      : 0;
+const couponDiscount = discountAmount;
   const totalPayable = orderSubtotal - couponDiscount + deliveryFee;
 
-  const applyCoupon = () => {
-    const normalizedCoupon = couponInput.trim().toUpperCase();
+  const applyCoupon = async () => {
+  const code = couponInput.trim().toUpperCase();
 
-    if (!normalizedCoupon) {
-      setAppliedCoupon("");
-      setCouponMessage({
-        type: "error",
-        text: "Please enter a coupon code.",
-      });
-      return;
+  if (!code) {
+    setAppliedCoupon("");
+    setDiscountAmount(0);
+
+    setCouponMessage({
+      type: "error",
+      text: "Please enter a coupon code.",
+    });
+
+    return;
+  }
+
+  try {
+    const response = await fetch(`${apiUrl}/api/coupons/apply`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        code,
+        subtotal: orderSubtotal,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message);
     }
 
-    if (normalizedCoupon !== "WELCOME10") {
-      setAppliedCoupon("");
-      setCouponMessage({
-        type: "error",
-        text: "Invalid coupon code.",
-      });
-      return;
-    }
+    setAppliedCoupon(code);
+    setDiscountAmount(data.discount);
 
-    if (orderSubtotal <= 499) {
-      setAppliedCoupon("");
-      setCouponMessage({
-        type: "error",
-        text: "WELCOME10 applies only when the cart subtotal is above ₹499.",
-      });
-      return;
-    }
-
-    setCouponInput("WELCOME10");
-    setAppliedCoupon("WELCOME10");
     setCouponMessage({
       type: "success",
-      text: `Coupon applied! You saved ₹${Math.round(orderSubtotal * 0.1)}.`,
+      text: `Coupon applied! You saved ₹${data.discount}`,
     });
-  };
+
+  } catch (err) {
+    setAppliedCoupon("");
+    setDiscountAmount(0);
+
+    setCouponMessage({
+      type: "error",
+      text: err.message,
+    });
+  }
+};
 
   const removeCoupon = () => {
     setCouponInput("");
@@ -749,6 +762,80 @@ const razorpayCheckout = new window.Razorpay({
               <b>{deliveryLabel}</b>
             </div>
 
+{availableCoupons.length > 0 && (
+  <div className="available-coupons">
+    <h4>🏷 Available Offers</h4>
+
+    {[...availableCoupons]
+  .sort((a, b) => {
+    const aValue =
+      a.discountType === "percentage"
+        ? a.discountValue * orderSubtotal
+        : a.discountValue;
+
+    const bValue =
+      b.discountType === "percentage"
+        ? b.discountValue * orderSubtotal
+        : b.discountValue;
+
+    return bValue - aValue;
+  })
+  .map((coupon, index) => {
+      const eligible = orderSubtotal >= coupon.minimumOrder;
+
+      return (
+        <div className="coupon-card" key={coupon._id}>
+          <div className="coupon-details">
+
+  {index === 0 && (
+    <span className="best-offer-badge">
+      ⭐ Best Offer
+    </span>
+  )}
+
+  <div className="coupon-code">
+    {coupon.code}
+  </div>
+
+            <div className="coupon-discount">
+              {coupon.discountType === "percentage"
+                ? `${coupon.discountValue}% OFF`
+                : `₹${coupon.discountValue} OFF`}
+            </div>
+
+            <small>
+              Min Order ₹{coupon.minimumOrder}
+            </small>
+
+            {coupon.maximumDiscount > 0 && (
+              <small>
+                Max Discount ₹{coupon.maximumDiscount}
+              </small>
+            )}
+          </div>
+
+          {appliedCoupon === coupon.code ? (
+            <button className="coupon-applied" disabled>
+              ✓ Applied
+            </button>
+          ) : (
+            <button
+              className="coupon-apply"
+              disabled={!eligible}
+              onClick={() => {
+                setCouponInput(coupon.code);
+                setTimeout(() => applyCoupon(), 100);
+              }}
+            >
+              {eligible ? "Apply" : "Not Eligible"}
+            </button>
+          )}
+        </div>
+      );
+    })}
+  </div>
+)}
+
             <div className="checkout-coupon">
               <label htmlFor="checkout-coupon-code">Have a coupon?</label>
 
@@ -792,7 +879,7 @@ const razorpayCheckout = new window.Razorpay({
               </div>
 
               <small className="coupon-help">
-                WELCOME10 gives 10% off when the cart subtotal is above ₹499.
+                WELCOME50 gives 50% off when the cart subtotal is above ₹200.
               </small>
 
               {couponMessage.text && (
@@ -807,7 +894,7 @@ const razorpayCheckout = new window.Razorpay({
 
             {couponDiscount > 0 && (
               <div className="checkout-item coupon-discount-row">
-                <span>WELCOME10 discount</span>
+                <span>{appliedCoupon} Discount</span>
                 <b>−₹{couponDiscount}</b>
               </div>
             )}
