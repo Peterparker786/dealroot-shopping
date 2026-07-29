@@ -1,3 +1,4 @@
+import "./ProductDetails.css";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 export default function ProductDetails({
@@ -139,99 +140,73 @@ setSelectedImage(
     );
   }
    return (
-  <section
-    style={{
-      padding: "50px 8%",
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: "50px",
-      alignItems: "start",
-    }}
-  >
+<section className="product-page">
     {/* Left Side */}
-  <div>
+  <div className="product-left">
   <img
     src={selectedImage}
     alt={product.name}
-    style={{
-      width: "100%",
-      borderRadius: "20px",
-    }}
+    className="product-image"
   />
 
   {product.images?.length > 1 && (
-    <div
-      style={{
-        display: "flex",
-        gap: "10px",
-        marginTop: "15px",
-        flexWrap: "wrap",
-      }}
-    >
+    <div className="thumbnail-gallery">
       {product.images.map((img, index) => (
         <img
-          key={index}
-          src={img}
-          alt=""
-          onClick={() => setSelectedImage(img)}
-          style={{
-            width: 80,
-            height: 80,
-            objectFit: "cover",
-            borderRadius: 10,
-            cursor: "pointer",
-            border:
-              selectedImage === img
-                ? "3px solid #2563eb"
-                : "1px solid #ddd",
-          }}
-        />
+  key={index}
+  src={img}
+  alt=""
+  onClick={() => setSelectedImage(img)}
+  className={`thumbnail ${
+    selectedImage === img ? "active-thumb" : ""
+  }`}
+/>
       ))}
     </div>
   )}
 </div>
 
     {/* Right Side */}
-    <div>
-      <h1>{product.name}</h1>
+    {/* Right Side */}
+<div className="product-right">
 
-      <h3>{product.brand}</h3>
+  <h1 className="product-title">
+    {product.name}
+  </h1>
 
-      <p>
-       ⭐ {Number(product.rating).toFixed(1)} ({product.reviews} Reviews)
-      </p>
-
-      <h2>₹{product.price}</h2>
-      <div
-  style={{
-    background: "#f8f9fa",
-    borderRadius: "12px",
-    padding: "15px",
-    margin: "20px 0",
-  }}
->
-  <div style={{ fontWeight: "700" }}>
-    🚚 FREE Delivery
+  <div className="brand-name">
+    {product.brand}
   </div>
 
-  <div style={{ marginTop: "6px" }}>
-    Estimated Delivery:
-    <strong> {product.deliveryDate}</strong>
+  <div className="rating-box">
+
+    <div className="stars">
+      ⭐ {Number(product.rating).toFixed(1)}
+    </div>
+
+    <div className="review-count">
+      ({product.reviews} Reviews)
+    </div>
+
   </div>
-</div>
 
-      <p
-        style={{
-          textDecoration: "line-through",
-          color: "#888",
-        }}
-      >
-        ₹{product.originalPrice}
-      </p>
+  <div className="price-box">
 
-      <p>{product.description}</p>
+    <div className="sale-price">
+      ₹{product.price}
+    </div>
 
-    <div style={{ margin: "18px 0", fontSize: "16px", fontWeight: "600" }}>
+    <div className="mrp-price">
+      ₹{product.originalPrice}
+    </div>
+
+    <div className="discount-badge">
+      50% OFF
+    </div>
+
+  </div>
+
+      <div style={{ margin: "18px 0", fontSize: "16px", fontWeight: "600" }}>
   {product.stock === 0 && (
     <span style={{ color: "#d32f2f" }}>
       ❌ Out of Stock
@@ -256,35 +231,101 @@ setSelectedImage(
     </span>
   )}
 </div>
+<div className="product-actions">
 
-      <button onClick={() => addToCart(product)}>
-        Add To Cart
-      </button>
+  <button
+    className="buy-now-btn"
+    onClick={() => addToCart(product)}
+  >
+    ⚡ BUY NOW
+    <span>Get it delivered to your doorstep</span>
+  </button>
 
+  <button
+    className="cart-btn"
+    onClick={() => addToCart(product)}
+  >
+    🛒 ADD TO CART
+    <span>Secure Checkout</span>
+  </button>
+
+  <button
+    className="wishlist-btn"
+    onClick={() => toggleWishlist(product)}
+  >
+    {wishlist.includes(product.id)
+      ? "❤️ Wishlisted"
+      : "🤍 Add To Wishlist"}
+  </button>
+
+</div>
+
+<div className="delivery-card">
+
+  <div style={{ fontWeight: "700" }}>
+    🚚 FREE Delivery
+  </div>
+
+  <div style={{ marginTop: "6px" }}>
+    Estimated Delivery:
+    <strong> {product.deliveryDate}</strong>
+  </div>
+
+</div>
+
+<div className="description-box">
+  <h3>About this Product</h3>
+  <p>{product.description}</p>
+</div>
+
+<div className="trust-badges">
+
+  <div className="trust-item">
+    🛡️ 100% Genuine Product
+  </div>
+
+  <div className="trust-item">
+    🚚 Fast Delivery
+  </div>
+
+  <div className="trust-item">
+    🔒 Secure Payment
+  </div>
+
+  <div className="trust-item">
+    ↩️ Easy Returns
+  </div>
+
+</div>
+
+<div style={{ marginTop: 20 }}>
+  {product.marketplaceLinks.map((link) => (
+    <a
+      key={link.platform}
+      href={link.url}
+      target="_blank"
+      rel="noreferrer"
+      style={{ marginRight: "10px" }}
+    >
       <button
-        style={{ marginLeft: "10px" }}
-        onClick={() => toggleWishlist(product)}
-      >
-        {wishlist.includes(product.id)
-          ? "♥ Wishlisted"
-          : "♡ Wishlist"}
-      </button>
+  style={{
+    padding: "12px 18px",
+    borderRadius: "10px",
+    border: "none",
+    background: "#6c2bd9",
+    color: "#fff",
+    fontWeight: "600",
+    cursor: "pointer",
+    marginBottom: "10px",
+  }}
+>
+  Market price on {link.platform}
+</button>
+    </a>
+  ))}
+</div>
 
-      <div style={{ marginTop: 20 }}>
-        {product.marketplaceLinks.map((link) => (
-          <a
-            key={link.platform}
-            href={link.url}
-            target="_blank"
-            rel="noreferrer"
-            style={{ marginRight: "10px" }}
-          >
-            <button>Buy on {link.platform}</button>
-          </a>
-        ))}
-      </div>
-    </div>
-
+</div> {/* product-right ends here */}
     {/* Customer Reviews */}
 
     {/* Customer Reviews */}

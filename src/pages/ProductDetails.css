@@ -1,0 +1,370 @@
+    .product-actions{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+    margin-top:30px;
+    }
+
+    .buy-now-btn{
+
+    width:100%;
+    padding:18px;
+
+    border:none;
+
+    border-radius:16px;
+
+    background:linear-gradient(90deg,#6D28D9,#8B5CF6);
+
+    color:white;
+
+    font-size:24px;
+
+    font-weight:700;
+
+    cursor:pointer;
+
+    box-shadow:0 12px 30px rgba(109,40,217,.35);
+
+    transition:.3s;
+    }
+
+    .buy-now-btn span{
+
+    display:block;
+
+    font-size:14px;
+
+    font-weight:400;
+
+    margin-top:6px;
+
+    opacity:.9;
+
+    }
+
+    .buy-now-btn:hover{
+
+    transform:translateY(-3px);
+
+    box-shadow:0 20px 35px rgba(109,40,217,.45);
+
+    }
+
+    .cart-btn{
+
+    width:100%;
+
+    padding:18px;
+
+    border:none;
+
+    border-radius:16px;
+
+    background:linear-gradient(90deg,#FFD54A,#F59E0B);
+
+    font-size:24px;
+
+    font-weight:700;
+
+    cursor:pointer;
+
+    transition:.3s;
+
+    box-shadow:0 12px 30px rgba(245,158,11,.35);
+
+    }
+
+    .cart-btn span{
+
+    display:block;
+
+    font-size:14px;
+
+    font-weight:400;
+
+    margin-top:6px;
+
+    }
+
+    .cart-btn:hover{
+
+    transform:translateY(-3px);
+
+    }
+
+    .wishlist-btn{
+
+    width:100%;
+
+    padding:15px;
+
+    border:2px solid #eee;
+
+    background:white;
+
+    border-radius:14px;
+
+    font-size:18px;
+
+    cursor:pointer;
+
+    transition:.3s;
+
+    }
+
+    .wishlist-btn:hover{
+
+    border-color:#8B5CF6;
+
+    color:#8B5CF6;
+
+    }
+
+    .product-page{
+    padding:50px 8%;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:50px;
+    align-items:start;
+    }
+
+    /* ===========================
+    PRODUCT PAGE
+    =========================== */
+
+    .product-page{
+        max-width:1400px;
+        margin:auto;
+        padding:50px 6%;
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:60px;
+        align-items:start;
+    }
+
+    /* ===========================
+    LEFT SIDE
+    =========================== */
+
+    .product-image{
+        width:100%;
+        background:#fff;
+        border-radius:22px;
+        padding:20px;
+        object-fit: cover;
+        box-shadow:0 15px 40px rgba(0,0,0,.08);
+        transition:.35s;
+    }
+
+    .product-image:hover{
+        transform:scale(1.02);
+    }
+
+    .thumbnail-gallery{
+        display:flex;
+        gap:12px;
+        margin-top:20px;
+        flex-wrap:wrap;
+    }
+
+    .thumbnail{
+        width:82px;
+        height:82px;
+        object-fit:cover;
+        border-radius:14px;
+        cursor:pointer;
+        border:2px solid #ececec;
+        transition:.3s;
+        background:white;
+    }
+
+    .thumbnail:hover{
+        transform:translateY(-4px);
+        box-shadow:0 8px 20px rgba(0,0,0,.15);
+    }
+
+    .active-thumb{
+        border:3px solid #6D28D9;
+    }
+
+    /* ===========================
+    RIGHT SIDE
+    =========================== */
+
+    .product-right{
+        display:flex;
+        flex-direction:column;
+    }
+
+    .product-title{
+        font-size:34px;
+        font-weight:700;
+        line-height:1.3;
+        color:#222;
+    }
+
+    .brand-name{
+        margin-top:8px;
+        color:#7b2cbf;
+        font-size:18px;
+        font-weight:600;
+    }
+
+    .rating-box{
+        display:flex;
+        align-items:center;
+        gap:12px;
+        margin:20px 0;
+    }
+
+    .stars{
+        background:#16a34a;
+        color:#fff;
+        padding:7px 14px;
+        border-radius:30px;
+        font-weight:700;
+    }
+
+    .review-count{
+        color:#666;
+    }
+
+    /* ===========================
+    PRICE
+    =========================== */
+
+    .price-box{
+        display:flex;
+        align-items:center;
+        gap:18px;
+        margin-bottom:20px;
+        flex-wrap:wrap;
+    }
+
+    .sale-price{
+        font-size:42px;
+        font-weight:800;
+        color:#111;
+    }
+
+    .mrp-price{
+        font-size:22px;
+        color:#888;
+        text-decoration:line-through;
+    }
+
+    .discount-badge{
+        background:linear-gradient(90deg,#ff416c,#ff4b2b);
+        color:white;
+        padding:8px 16px;
+        border-radius:40px;
+        font-weight:700;
+        box-shadow:0 8px 20px rgba(255,75,43,.25);
+    }
+
+    /* ===========================
+    DELIVERY CARD
+    =========================== */
+
+    .delivery-card{
+        background:#fafafa;
+        border:1px solid #ececec;
+        border-radius:18px;
+        padding:18px;
+        margin:20px 0;
+        box-shadow:0 8px 25px rgba(0,0,0,.05);
+    }
+
+    .product-left{
+        width:100%;
+    }
+
+    .product-right{
+        width:100%;
+    }
+    .description-box{
+    background:#fff;
+    border:1px solid #eee;
+    border-radius:16px;
+    padding:18px;
+    margin:20px 0;
+}
+
+.description-box h3{
+    margin:0 0 10px;
+    font-size:18px;
+}
+
+.description-box p{
+    color:#555;
+    line-height:1.7;
+}
+.description-box{
+    margin-top:25px;
+    background:#fff;
+    border:1px solid #ececec;
+    border-radius:16px;
+    padding:20px;
+    box-shadow:0 8px 25px rgba(0,0,0,.05);
+}
+
+.description-box h3{
+    margin-bottom:12px;
+    font-size:18px;
+    color:#222;
+}
+
+.description-box p{
+    color:#555;
+    line-height:1.8;
+}
+.trust-badges{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:12px;
+    margin-top:20px;
+}
+
+.trust-item{
+    background:#faf8ff;
+    border:1px solid #e8dcff;
+    border-radius:12px;
+    padding:14px;
+    text-align:center;
+    font-weight:600;
+    color:#5b21b6;
+}
+
+.product-image{
+    width:100%;
+    height:500px;
+    object-fit:contain;
+    border-radius:18px;
+    background:#fff;
+}
+.thumbnail-gallery{
+    display:flex;
+    gap:12px;
+    justify-content:center;
+    margin-top:20px;
+}
+
+.thumbnail{
+    width:70px;
+    height:70px;
+    object-fit:cover;
+    border-radius:10px;
+    cursor:pointer;
+    border:2px solid transparent;
+}
+
+.active-thumb{
+    border-color:#6c2bd9;
+}
+.product-title{
+    font-size:36px;
+    font-weight:700;
+    margin-bottom:10px;
+    line-height:1.2;
+}
