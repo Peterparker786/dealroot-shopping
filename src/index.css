@@ -516,20 +516,18 @@ button {
 }
 
 .product-image {
-  position: relative;
-  height: 250px;
-  background: #ffffff;
-  border-bottom: 1px solid #eef2f7;
-  overflow: hidden;
+  height: 280px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
 }
 
 .product-image img {
-  display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  padding: 12px;
-  transition: transform 0.35s ease;
+  padding: 18px;
 }
 
 .product-card:hover .product-image img {

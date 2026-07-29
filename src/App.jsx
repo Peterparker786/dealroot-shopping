@@ -39,6 +39,7 @@ function App() {
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [productsError, setProductsError] = useState("");
+  const [banner, setBanner] = useState(null);
 
   const [cart, setCart] = useState([]);
   const [wishlist, setWishlist] = useState([]);
@@ -112,6 +113,21 @@ function App() {
     restoreCustomer();
   }, [userToken]);
 
+  const loadBanner = async () => {
+  try {
+    const response = await fetch(`${API_URL}/api/banners/active`);
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      setBanner(data.banner || null);
+    } else {
+      setBanner(null);
+    }
+  } catch {
+    setBanner(null);
+  }
+};
+
   const loadProducts = async () => {
     try {
       setLoadingProducts(true);
@@ -177,6 +193,10 @@ function App() {
     const timer = window.setTimeout(loadProducts, 300);
     return () => window.clearTimeout(timer);
   }, [activeCategory, activeDeal, search]);
+
+  useEffect(() => {
+  loadBanner();
+}, []);
 
   const filteredProducts = useMemo(() => products, [products]);
 
@@ -338,6 +358,7 @@ function App() {
         wishlist={wishlist}
         toggleWishlist={toggleWishlist}
         addToCart={addToCart}
+        banner={banner}
       />
     }
   />

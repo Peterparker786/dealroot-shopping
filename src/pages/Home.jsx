@@ -15,6 +15,7 @@ export default function Home({
   wishlist,
   toggleWishlist,
   addToCart,
+  banner,
 }) {
   return (
     <>
@@ -65,6 +66,108 @@ export default function Home({
             />
           </div>
         </section>
+
+{banner && (
+  <section
+    style={{
+      position: "relative",
+      margin: "30px 0",
+      borderRadius: "24px",
+      overflow: "hidden",
+      height: "340px",
+    }}
+  >
+    <img
+      src={banner.image}
+      alt={banner.title}
+      style={{
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+      }}
+    />
+
+    <div
+      style={{
+        position: "absolute",
+        inset: 0,
+        background:
+          "linear-gradient(90deg, rgba(0,0,0,.65) 0%, rgba(0,0,0,.25) 45%, rgba(0,0,0,0) 100%)",
+        display: "flex",
+        alignItems: "center",
+        padding: "60px",
+      }}
+    >
+      <div
+        style={{
+          maxWidth: "480px",
+          color: "#fff",
+        }}
+      >
+        <p
+          style={{
+            fontSize: 14,
+            letterSpacing: 2,
+            textTransform: "uppercase",
+            opacity: 0.9,
+          }}
+        >
+          LIMITED TIME OFFER
+        </p>
+
+        <h2
+          style={{
+            fontSize: 48,
+            lineHeight: 1.1,
+            margin: "10px 0",
+            fontWeight: 700,
+          }}
+        >
+          {banner.title}
+        </h2>
+
+        <p
+          style={{
+            fontSize: 18,
+            marginBottom: 20,
+            opacity: 0.95,
+          }}
+        >
+          {banner.subtitle}
+        </p>
+
+        {banner.couponCode && (
+          <div
+            style={{
+              display: "inline-block",
+              background: "#fff",
+              color: "#111",
+              padding: "12px 18px",
+              borderRadius: 12,
+              fontWeight: 700,
+              marginBottom: 20,
+            }}
+          >
+            Coupon : {banner.couponCode}
+          </div>
+        )}
+
+        <br />
+
+        <button
+          className="primary-button"
+          onClick={() =>
+            document
+              .getElementById("products")
+              ?.scrollIntoView({ behavior: "smooth" })
+          }
+        >
+          {banner.buttonText || "Shop Now"} →
+        </button>
+      </div>
+    </div>
+  </section>
+)}
 
         <section className="benefits">
           <div><span>✓</span><p><b>100% Genuine</b>Verified products only</p></div>
@@ -152,17 +255,6 @@ export default function Home({
               <b>SHOP NOW →</b>
             </button>
           </div>
-        </section>
-
-        <section className="offer-banner">
-          <div>
-            <span>LIMITED TIME OFFER</span>
-            <h2>Glow more.<br />Spend less.</h2>
-            <p>Extra 10% off on your first order.</p>
-          </div>
-          <button onClick={() => showToast("Coupon copied: WELCOME10")}>
-            Use code <b>WELCOME10</b>
-          </button>
         </section>
 
         <section className="section products-section" id="products">

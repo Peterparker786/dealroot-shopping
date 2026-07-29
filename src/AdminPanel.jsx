@@ -54,6 +54,20 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [coupons, setCoupons] = useState([]);
+  const [banners, setBanners] = useState([]);
+
+const [bannerForm, setBannerForm] = useState({
+  title: "",
+  subtitle: "",
+  couponCode: "",
+  buttonText: "Shop Now",
+  buttonLink: "/products",
+  image: "",
+  active: true,
+});
+
+const [editingBannerId, setEditingBannerId] = useState("");
+const [uploadingBanner, setUploadingBanner] = useState(false);
 
 const [couponForm, setCouponForm] = useState({
   code: "",
@@ -147,13 +161,15 @@ useEffect(() => {
     loadProducts();
     loadOrders();
     loadCoupons();
+    loadBanners();
   }
 }, [token]);
 
-  const refresh = () => {
+const refresh = () => {
   loadProducts();
   loadOrders();
   loadCoupons();
+  loadBanners();
 };
 
   const logIn = async (event) => {
@@ -191,6 +207,15 @@ useEffect(() => {
   try {
     const data = await request(`${apiUrl}/api/coupons`);
     setCoupons(data.coupons || []);
+  } catch (error) {
+    showToast(error.message);
+  }
+};
+
+const loadBanners = async () => {
+  try {
+    const data = await request(`${apiUrl}/api/banners`);
+    setBanners(data.banners || []);
   } catch (error) {
     showToast(error.message);
   }
@@ -259,6 +284,113 @@ useEffect(() => {
     setUploadingImages(false);
   }
 };
+
+const uploadBannerImage = async (file) => {
+  try {
+    setUploadingBanner(true);
+
+    const formData = new FormData();
+    formData.append("images", file);
+
+    const response = await fetch(`${apiUrl}/api/upload`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message || "Upload failed");
+    }
+
+    setBannerForm((current) => ({
+      ...current,
+      image: data.images[0],
+    }));
+
+    showToast("Banner image uploaded");
+  } catch (error) {
+    showToast(error.message);
+  } finally {
+    setUploadingBanner(false);
+  }
+};
+
+const saveBanner = async (e) => {
+  e.preventDefault();
+
+  try {
+    const data = await request(
+      editingBannerId
+        ? `${apiUrl}/api/banners/${editingBannerId}`
+        : `${apiUrl}/api/banners`,
+      {
+        method: editingBannerId ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bannerForm),
+      }
+    );
+
+    showToast(data.message || "Banner saved");
+
+    setBannerForm({
+      title: "",
+      subtitle: "",
+      couponCode: "",
+      buttonText: "Shop Now",
+      buttonLink: "/products",
+      image: "",
+      active: true,
+    });
+
+    setEditingBannerId("");
+
+    loadBanners();
+  } catch (error) {
+    showToast(error.message);
+  }
+};
+
+const editBanner = (banner) => {
+  setEditingBannerId(banner._id);
+
+  setBannerForm({
+    title: banner.title || "",
+    subtitle: banner.subtitle || "",
+    couponCode: banner.couponCode || "",
+    buttonText: banner.buttonText || "Shop Now",
+    buttonLink: banner.buttonLink || "/products",
+    image: banner.image || "",
+    active: banner.active,
+  });
+
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+};
+
+const deleteBanner = async (id) => {
+  if (!window.confirm("Delete this banner?")) return;
+
+  try {
+    const data = await request(`${apiUrl}/api/banners/${id}`, {
+      method: "DELETE",
+    });
+
+    showToast(data.message || "Banner deleted");
+
+    loadBanners();
+  } catch (error) {
+    showToast(error.message);
+  }
+};
+
 
   const visibleProducts = useMemo(() => {
     const text = search.trim().toLowerCase();
@@ -666,6 +798,129 @@ const deleteCoupon = async (id) => {
             <strong>{pendingOrders}</strong>
           </article>
         </section>
+<section className="admin-form-card">
+  <div className="admin-section-title">
+    <div>
+      <p>MARKETING</p>
+      <h2>Offer Banner</h2>
+    </div>
+  </div>
+
+  <form className="product-form" onSubmit={saveBanner}>
+
+    <label>
+      Title
+      <input
+        value={bannerForm.title}
+        onChange={(e) =>
+          setBannerForm({
+            ...bannerForm,
+            title: e.target.value,
+          })
+        }
+        required
+      />
+    </label>
+
+    <label>
+      Subtitle
+      <input
+        value={bannerForm.subtitle}
+        onChange={(e) =>
+          setBannerForm({
+            ...bannerForm,
+            subtitle: e.target.value,
+          })
+        }
+      />
+    </label>
+
+    <label>
+      Coupon Code
+      <input
+        value={bannerForm.couponCode}
+        onChange={(e) =>
+          setBannerForm({
+            ...bannerForm,
+            couponCode: e.target.value.toUpperCase(),
+          })
+        }
+      />
+    </label>
+
+    <label>
+      Button Text
+      <input
+        value={bannerForm.buttonText}
+        onChange={(e) =>
+          setBannerForm({
+            ...bannerForm,
+            buttonText: e.target.value,
+          })
+        }
+      />
+    </label>
+
+    <label>
+      Button Link
+      <input
+        value={bannerForm.buttonLink}
+        onChange={(e) =>
+          setBannerForm({
+            ...bannerForm,
+            buttonLink: e.target.value,
+          })
+        }
+      />
+    </label>
+
+    <label className="full-field">
+      Banner Image
+
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => uploadBannerImage(e.target.files[0])}
+      />
+
+      {uploadingBanner && (
+        <small>Uploading banner...</small>
+      )}
+
+      {bannerForm.image && (
+        <img
+          src={bannerForm.image}
+          alt=""
+          style={{
+            marginTop: 10,
+            width: "100%",
+            maxWidth: 350,
+            borderRadius: 10,
+          }}
+        />
+      )}
+    </label>
+
+    <label className="featured-check">
+      <input
+        type="checkbox"
+        checked={bannerForm.active}
+        onChange={(e) =>
+          setBannerForm({
+            ...bannerForm,
+            active: e.target.checked,
+          })
+        }
+      />
+      Active Banner
+    </label>
+
+    <button className="save-product">
+      {editingBannerId ? "Update Banner" : "Save Banner"}
+    </button>
+
+  </form>
+</section>
 
         <section className="admin-form-card">
   <div className="admin-section-title">
@@ -955,6 +1210,7 @@ const deleteCoupon = async (id) => {
   <div className="admin-section-title">
     <h2>Coupons</h2>
   </div>
+  
 
   <table className="admin-table">
     <thead>
@@ -992,6 +1248,88 @@ const deleteCoupon = async (id) => {
       ))}
     </tbody>
   </table>
+</section>
+<section className="admin-products-card">
+  <div className="admin-section-title">
+    <div>
+      <p>LIVE BANNERS</p>
+      <h2>Manage Offer Banners</h2>
+    </div>
+  </div>
+
+  {banners.length === 0 ? (
+    <div className="admin-empty">No banners found.</div>
+  ) : (
+    <div className="admin-table-wrap">
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>Title</th>
+            <th>Coupon</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {banners.map((banner) => (
+            <tr key={banner._id}>
+              <td>
+                <img
+                  src={banner.image}
+                  alt=""
+                  style={{
+                    width: 120,
+                    borderRadius: 8,
+                  }}
+                />
+              </td>
+
+              <td>
+                <b>{banner.title}</b>
+                <br />
+                <small>{banner.subtitle}</small>
+              </td>
+
+              <td>{banner.couponCode || "-"}</td>
+
+              <td>
+                {banner.active ? (
+                  <span className="stock-active">
+                    Active
+                  </span>
+                ) : (
+                  <span className="stock-empty">
+                    Inactive
+                  </span>
+                )}
+              </td>
+
+              <td>
+                <div className="admin-actions">
+                  <button
+                    onClick={() => editBanner(banner)}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    className="delete-button"
+                    onClick={() =>
+                      deleteBanner(banner._id)
+                    }
+                  >
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
 </section>
 
         <section className="admin-products-card">

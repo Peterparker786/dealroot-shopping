@@ -180,6 +180,15 @@ useEffect(() => {
   const indiaDeliveryLabel = hasFreeDelivery ? "FREE" : "₹49";
 const couponDiscount = discountAmount;
   const totalPayable = orderSubtotal - couponDiscount + deliveryFee;
+  const payableNow =
+  paymentMethod === "cod"
+    ? deliveryFee
+    : totalPayable;
+
+const remainingCod =
+  paymentMethod === "cod"
+    ? totalPayable - deliveryFee
+    : 0;
 
   const applyCoupon = async () => {
   const code = couponInput.trim().toUpperCase();
@@ -304,7 +313,7 @@ if (!user || !userToken) {
       return;
     }
 
- const orderPayload = {
+const orderPayload = {
   customer: {
     name: form.name.trim(),
     phone,
@@ -319,6 +328,10 @@ if (!user || !userToken) {
   })),
   deliveryType,
   couponCode: appliedCoupon,
+  paymentMethod:
+    paymentMethod === "online"
+      ? "razorpay"
+      : "cod",
 };
 
     const requestHeaders = {
@@ -343,37 +356,6 @@ if (!user || !userToken) {
 
       onOrderPlaced?.(order);
     };
-
-    if (paymentMethod === "cod") {
-      try {
-        setIsSubmitting(true);
-
-        const response = await fetch(`${apiUrl}/api/orders`, {
-          method: "POST",
-          headers: requestHeaders,
-          body: JSON.stringify({
-            ...orderPayload,
-            paymentMethod: "cod",
-          }),
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "Could not place your order");
-        }
-
-        completeOrder(data.order);
-      } catch (error) {
-        showToast?.(
-          error.message || "Could not place your order. Please try again."
-        );
-      } finally {
-        setIsSubmitting(false);
-      }
-
-      return;
-    }
 
     try {
       setIsSubmitting(true);
@@ -899,10 +881,24 @@ const razorpayCheckout = new window.Razorpay({
               </div>
             )}
 
-            <div className="checkout-total">
-              <span>Total payable</span>
-              <strong>₹{totalPayable}</strong>
-            </div>
+           <div className="checkout-total">
+  <span>Total Order</span>
+  <strong>₹{totalPayable}</strong>
+</div>
+
+{paymentMethod === "cod" && (
+  <>
+    <div className="checkout-item">
+      <span>Pay Now (Delivery Charge)</span>
+      <b>₹{payableNow}</b>
+    </div>
+
+    <div className="checkout-item">
+      <span>Remaining COD</span>
+      <b>₹{remainingCod}</b>
+    </div>
+  </>
+)}
 
             <button
               className="primary-button checkout-submit"
@@ -915,7 +911,7 @@ const razorpayCheckout = new window.Razorpay({
                   : "Placing order..."
                 : paymentMethod === "online"
                 ? `Pay ₹${totalPayable} securely`
-                : "Place COD order"}
+                : `Pay ₹${payableNow} & Confirm COD`}
             </button>
 
             <small>
