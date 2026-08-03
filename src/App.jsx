@@ -14,6 +14,7 @@ import CartDrawer from "./CartDrawer";
 import CheckoutModal from "./CheckoutModal";
 import AdminPanel from "./AdminPanel";
 import AccountModal from "./AccountModal";
+import "./index.css";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -221,33 +222,50 @@ function App() {
     setActiveCategory("All");
   };
 
-  const addToCart = (product) => {
-    if (product.stock <= 0) {
-      showToast("This product is currently out of stock");
-      return;
-    }
+  const addToCart = (product, quantity = 1) => {
+  const qty = Math.max(1, Number(quantity) || 1);
 
-    setCart((currentCart) => {
-      const existing = currentCart.find((item) => item.id === product.id);
+  if (product.stock <= 0) {
+    showToast("This product is currently out of stock");
+    return;
+  }
 
-      if (existing) {
-        if (existing.quantity >= product.stock) {
-          showToast(`Only ${product.stock} item(s) available`);
-          return currentCart;
-        }
+  setCart((currentCart) => {
+    const existing = currentCart.find(
+      (item) => item.id === product.id
+    );
+
+    if (existing) {
+      const nextQuantity = existing.quantity + qty;
+
+      if (nextQuantity > product.stock) {
+        showToast(`Only ${product.stock} item(s) available`);
 
         return currentCart.map((item) =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: product.stock }
             : item
         );
       }
 
-      return [...currentCart, { ...product, quantity: 1 }];
-    });
+      return currentCart.map((item) =>
+        item.id === product.id
+          ? { ...item, quantity: nextQuantity }
+          : item
+      );
+    }
 
-    showToast(`${product.name} added to cart`);
-  };
+    return [
+      ...currentCart,
+      {
+        ...product,
+        quantity: Math.min(qty, product.stock),
+      },
+    ];
+  });
+
+  showToast(`${product.name} added to cart`);
+};
 
   const toggleWishlist = (product) => {
     setWishlist((currentWishlist) => {

@@ -546,3 +546,135 @@
     width: 100%;
   }
 }
+
+/* ==========================
+   PREMIUM ACCOUNT UPGRADE
+========================== */
+
+.account-modal{
+
+background:#ffffff;
+
+border-radius:30px;
+
+box-shadow:0 40px 100px rgba(0,0,0,.18);
+
+}
+
+.account-header{
+
+backdrop-filter:blur(16px);
+
+background:rgba(255,255,255,.88);
+
+}
+
+.account-user-card{
+
+border-radius:18px;
+
+background:#f8f8f8;
+
+padding:18px;
+
+transition:.35s;
+
+}
+
+.account-user-card:hover{
+
+transform:translateY(-3px);
+
+box-shadow:0 15px 35px rgba(0,0,0,.08);
+
+}
+
+.account-menu button{
+
+transition:.3s;
+
+}
+
+.account-menu button:hover{
+
+background:#f4f4f4;
+
+transform:translateX(4px);
+
+}
+
+.profile-form{
+
+box-shadow:0 20px 45px rgba(0,0,0,.05);
+
+}
+
+.profile-form input,
+.profile-form textarea{
+
+border-radius:14px;
+
+padding:15px;
+
+transition:.3s;
+
+}
+
+.profile-form input:focus,
+.profile-form textarea:focus{
+
+border-color:#7c3aed;
+
+box-shadow:0 0 0 4px rgba(124,58,237,.12);
+
+}
+
+.account-submit,
+.profile-save{
+
+background:linear-gradient(135deg,#7c3aed,#ec4899);
+
+border:none;
+
+}
+
+.account-submit:hover,
+.profile-save:hover{
+
+background:linear-gradient(135deg,#6d28d9,#db2777);
+
+box-shadow:0 18px 40px rgba(124,58,237,.35);
+
+}
+
+.history-order{
+
+transition:.35s;
+
+}
+
+.history-order:hover{
+
+transform:translateY(-4px);
+
+box-shadow:0 18px 40px rgba(0,0,0,.08);
+
+}
+
+.order-status{
+
+padding:8px 14px;
+
+font-size:11px;
+
+font-weight:700;
+
+border-radius:999px;
+
+}
+
+.account-empty{
+
+border-radius:18px;
+
+}

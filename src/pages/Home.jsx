@@ -1,4 +1,13 @@
+import Hero from "../components/Hero/Hero";
 import { Link } from "react-router-dom";
+import {
+  FiArrowRight,
+  FiCheck,
+  FiZap,
+  FiRefreshCw,
+  FiLock,
+} from "react-icons/fi";
+
 export default function Home({
   fallbackImage,
   showAllProducts,
@@ -18,367 +27,272 @@ export default function Home({
   banner,
 }) {
   return (
-    <>
-       <main id="top">
-        <section className="hero">
-          <div className="hero-copy">
-            <span className="eyebrow">DEALROOT BEAUTY DAYS</span>
-            <h1>Beauty deals<br />you’ll love.</h1>
-            <p>
-              Discover genuine favourites in skincare, makeup and more—at prices
-              that make every day feel special.
-            </p>
+    <main id="top">
+      <Hero
+  fallbackImage={fallbackImage}
+  banner={banner}
+/>
 
-            <div className="hero-buttons">
-              <button
-                className="primary-button"
-                onClick={() =>
-                  document
-                    .getElementById("products")
-                    .scrollIntoView({ behavior: "smooth" })
-                }
-              >
-                Shop bestsellers <span>→</span>
-              </button>
-              <button
-                className="text-button"
-                onClick={() =>
-                  document
-                    .getElementById("price-deals")
-                    ?.scrollIntoView({ behavior: "smooth" })
-                }
-              >
-                View all offers
-              </button>
-            </div>
+      <section className="benefits">
+        <div>
+          <span><FiCheck aria-hidden="true" /></span>
+          <p><b>100% Authentic</b>Verified products only</p>
+        </div>
+        <div>
+          <span><FiZap aria-hidden="true" /></span>
+          <p><b>Swift delivery</b>Same-day in Kanpur</p>
+        </div>
+        <div>
+          <span><FiRefreshCw aria-hidden="true" /></span>
+          <p><b>Easy returns</b>7-day return policy</p>
+        </div>
+        <div>
+          <span><FiLock aria-hidden="true" /></span>
+          <p><b>Secure checkout</b>UPI, cards & COD</p>
+        </div>
+      </section>
+
+      <section
+  className="section category-section"
+  id="categories"
+>
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">Categories</span>
+            <h2>Find your ritual</h2>
           </div>
+          <button type="button" onClick={showAllProducts}>
+            View all <FiArrowRight aria-hidden="true" />
+          </button>
+        </div>
 
-          <div className="hero-art">
-            <div className="glow glow-one" />
-            <div className="glow glow-two" />
-            <div className="deal-card">
-              <span>UP TO</span><strong>50%</strong><b>OFF</b>
-              <small>on beauty favourites</small>
-            </div>
-            <img
-              src={fallbackImage}
-              alt="Beauty products"
-            />
-          </div>
-        </section>
-
-{banner && (
-  <section
-    style={{
-      position: "relative",
-      margin: "30px 0",
-      borderRadius: "24px",
-      overflow: "hidden",
-      height: "340px",
-    }}
-  >
-    <img
-      src={banner.image}
-      alt={banner.title}
-      style={{
-        width: "100%",
-        height: "100%",
-        objectFit: "cover",
-      }}
-    />
-
-    <div
-      style={{
-        position: "absolute",
-        inset: 0,
-        background:
-          "linear-gradient(90deg, rgba(0,0,0,.65) 0%, rgba(0,0,0,.25) 45%, rgba(0,0,0,0) 100%)",
-        display: "flex",
-        alignItems: "center",
-        padding: "60px",
-      }}
-    >
-      <div
-        style={{
-          maxWidth: "480px",
-          color: "#fff",
-        }}
-      >
-        <p
-          style={{
-            fontSize: 14,
-            letterSpacing: 2,
-            textTransform: "uppercase",
-            opacity: 0.9,
-          }}
-        >
-          LIMITED TIME OFFER
-        </p>
-
-        <h2
-          style={{
-            fontSize: 48,
-            lineHeight: 1.1,
-            margin: "10px 0",
-            fontWeight: 700,
-          }}
-        >
-          {banner.title}
-        </h2>
-
-        <p
-          style={{
-            fontSize: 18,
-            marginBottom: 20,
-            opacity: 0.95,
-          }}
-        >
-          {banner.subtitle}
-        </p>
-
-        {banner.couponCode && (
-          <div
-            style={{
-              display: "inline-block",
-              background: "#fff",
-              color: "#111",
-              padding: "12px 18px",
-              borderRadius: 12,
-              fontWeight: 700,
-              marginBottom: 20,
-            }}
+        <div className="categories">
+          <button
+            type="button"
+            className={`category-card ${
+              activeCategory === "All" && activeDeal === "none" ? "active" : ""
+            }`}
+            onClick={showAllProducts}
           >
-            Coupon : {banner.couponCode}
+            <span className="category-icon category-all">All</span>
+            <b>All</b>
+          </button>
+
+          {categories.map((category) => (
+            <button
+              type="button"
+              className={`category-card ${
+                activeCategory === category.name ? "active" : ""
+              }`}
+              key={category.name}
+              onClick={() => showCategory(category.name)}
+            >
+              <span
+                className="category-icon"
+                style={{ background: category.color }}
+              >
+              <div className="category-icon-inner">
+  {category.emoji}
+</div>
+              </span>
+              <b>{category.label || category.name}</b>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="section price-deals-section" id="price-deals">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">By price</span>
+            <h2>Luxury for less</h2>
+          </div>
+
+          {activeDeal !== "none" && (
+            <button type="button" onClick={showAllProducts}>
+              Clear filter <FiArrowRight aria-hidden="true" />
+            </button>
+          )}
+        </div>
+
+        <div className="price-deal-grid">
+          <button
+            type="button"
+            className={`price-deal-banner deal-99 ${
+              activeDeal === "99" ? "active" : ""
+            }`}
+            onClick={() => showDeal("99")}
+          >
+            <span>Curated picks</span>
+            <strong>₹99</strong>
+            <div>
+              <h3>Essentials</h3>
+              <p>Beauty must-haves at just ₹99</p>
+            </div>
+            <b>Shop now</b>
+          </button>
+
+          <button
+            type="button"
+            className={`price-deal-banner deal-199 ${
+              activeDeal === "199" ? "active" : ""
+            }`}
+            onClick={() => showDeal("199")}
+          >
+            <span>More value</span>
+            <strong>₹199</strong>
+            <div>
+              <h3>Premium picks</h3>
+              <p>Favourites at just ₹199</p>
+            </div>
+            <b>Shop now</b>
+          </button>
+        </div>
+      </section>
+
+      <section className="section products-section" id="products">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">
+              {activeDeal === "none" ? "Trending" : "Special offers"}
+            </span>
+            <h2>
+              {activeDeal === "99"
+                ? "The ₹99 collection"
+                : activeDeal === "199"
+                  ? "The ₹199 collection"
+                  : "Our favourites"}
+            </h2>
+          </div>
+          <button type="button" onClick={showAllProducts}>
+            See all <FiArrowRight aria-hidden="true" />
+          </button>
+        </div>
+
+        {loadingProducts && (
+          <div className="product-grid">
+            {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
+              <div key={n} className="skeleton-card">
+                <div className="skeleton-img" />
+                <div style={{ padding: '20px' }}>
+                  <div className="skeleton-line" style={{ width: '40%', marginBottom: '10px' }} />
+                  <div className="skeleton-line" style={{ width: '85%', marginBottom: '12px' }} />
+                  <div className="skeleton-line" style={{ width: '60%', marginBottom: '16px' }} />
+                  <div className="skeleton-line" style={{ width: '100%', height: '36px', borderRadius: '999px' }} />
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
-        <br />
-
-        <button
-          className="primary-button"
-          onClick={() =>
-            document
-              .getElementById("products")
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
-        >
-          {banner.buttonText || "Shop Now"} →
-        </button>
-      </div>
-    </div>
-  </section>
-)}
-
-        <section className="benefits">
-          <div><span>✓</span><p><b>100% Genuine</b>Verified products only</p></div>
-          <div><span>⚡</span><p><b>Fast delivery</b>Same-day in Kanpur</p></div>
-          <div><span>↺</span><p><b>Easy returns</b>Simple 7-day return policy</p></div>
-          <div><span>🔒</span><p><b>Secure payments</b>UPI, cards & COD</p></div>
-        </section>
-
-        <section className="section category-section">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow blue">SHOP BY CATEGORY</span>
-              <h2>Everything beauty, in one place</h2>
-            </div>
-            <button onClick={showAllProducts}>View all →</button>
-          </div>
-
-          <div className="categories">
-            <button
-              className={`category-card ${
-                activeCategory === "All" && activeDeal === "none" ? "active" : ""
-              }`}
-              onClick={showAllProducts}
-            >
-              <span style={{ background: "#E5EDFF" }}>★</span><b>All Deals</b>
-            </button>
-
-            {categories.map((category) => (
-              <button
-                className={`category-card ${
-                  activeCategory === category.name ? "active" : ""
-                }`}
-                key={category.name}
-                onClick={() => showCategory(category.name)}
-              >
-                <span style={{ background: category.color }}>{category.emoji}</span>
-                <b>{category.label || category.name}</b>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="section price-deals-section" id="price-deals">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow blue">SHOP BY PRICE</span>
-              <h2>Big beauty finds. Tiny prices.</h2>
-            </div>
-
-            {activeDeal !== "none" && (
-              <button onClick={showAllProducts}>Clear deal filter →</button>
-            )}
-          </div>
-
-          <div className="price-deal-grid">
-            <button
-              type="button"
-              className={`price-deal-banner deal-99 ${
-                activeDeal === "99" ? "active" : ""
-              }`}
-              onClick={() => showDeal("99")}
-            >
-              <span>DEALROOT PICKS</span>
-              <strong>₹99</strong>
-              <div>
-                <h3>Deals Store</h3>
-                <p>Beauty essentials at just ₹99</p>
-              </div>
-              <b>SHOP NOW →</b>
-            </button>
-
-            <button
-              type="button"
-              className={`price-deal-banner deal-199 ${
-                activeDeal === "199" ? "active" : ""
-              }`}
-              onClick={() => showDeal("199")}
-            >
-              <span>MORE VALUE</span>
-              <strong>₹199</strong>
-              <div>
-                <h3>Deals Store</h3>
-                <p>Premium favourites at just ₹199</p>
-              </div>
-              <b>SHOP NOW →</b>
+        {!loadingProducts && productsError && (
+          <div className="empty-state">
+            <p>{productsError}</p>
+            <button type="button" className="secondary-button" onClick={loadProducts}>
+              Try again
             </button>
           </div>
-        </section>
+        )}
 
-        <section className="section products-section" id="products">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow blue">
-                {activeDeal === "none" ? "TRENDING NOW" : "SPECIAL PRICE STORE"}
-              </span>
-              <h2>
-                {activeDeal === "99"
-                  ? "Everything in the ₹99 Deals Store"
-                  : activeDeal === "199"
-                    ? "Everything in the ₹199 Deals Store"
-                    : "Beauty favourites at better prices"}
-              </h2>
-            </div>
-            <button onClick={showAllProducts}>See all products →</button>
-          </div>
+        {!loadingProducts && !productsError && (
+          <div className="product-grid">
+            {filteredProducts.map((product) => {
+              const isWishlisted = wishlist.includes(product.id);
+              const discount =
+                product.originalPrice > product.price
+                  ? Math.round(
+                      ((product.originalPrice - product.price) /
+                        product.originalPrice) *
+                        100
+                    )
+                  : 0;
 
-          {loadingProducts && <div className="empty-state">Loading beauty products...</div>}
+              return (
+                <article className="product-card" key={product.id}>
+                  <div className="product-image">
+                    {(product.dealType !== "none" || product.badge) && (
+                      <span className="product-badge">
+                        {product.dealType === "99"
+                          ? "₹99"
+                          : product.dealType === "199"
+                            ? "₹199"
+                            : product.badge}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      className={`wishlist ${isWishlisted ? "selected" : ""}`}
+                      onClick={() => toggleWishlist(product)}
+                      aria-label={
+                        isWishlisted ? "Remove from wishlist" : "Add to wishlist"
+                      }
+                    >
+                      {isWishlisted ? "♥" : "♡"}
+                    </button>
+                    <Link to={`/product/${product.id}`}>
+                      <img
+                        src={product.images?.[0] || product.image}
+                        alt={product.name}
+                        onError={(event) => {
+                          event.currentTarget.src = fallbackImage;
+                        }}
+                      />
+                    </Link>
+                  </div>
 
-          {!loadingProducts && productsError && (
-            <div className="empty-state">
-              <p>{productsError}</p>
-              <button className="secondary-button" onClick={loadProducts}>Try again</button>
-            </div>
-          )}
-
-          {!loadingProducts && !productsError && (
-              <div className="product-grid">
-                {filteredProducts.map((product) => {
-                  const isWishlisted = wishlist.includes(product.id);
-                  const discount = product.originalPrice > product.price
-                    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-                    : 0;
-
-                  return (
-                    <article className="product-card" key={product.id}>
-                      <div className="product-image">
-                        {(product.dealType !== "none" || product.badge) && (
-                          <span className="product-badge">
-                            {product.dealType === "99"
-                              ? "₹99 DEAL"
-                              : product.dealType === "199"
-                                ? "₹199 DEAL"
-                                : product.badge}
-                          </span>
-                        )}
-                        <button
-                          className={`wishlist ${isWishlisted ? "selected" : ""}`}
-                          onClick={() => toggleWishlist(product)}
-                        >
-                          {isWishlisted ? "♥" : "♡"}
-                        </button>
-                       <Link
-  to={`/product/${product.id}`}
-  style={{ display: "block" }}
->
-  <img
-    src={product.images?.[0] || product.image}
-    alt={product.name}
-    onError={(event) => {
-      event.currentTarget.src = fallbackImage;
-    }}
-  />
-</Link>
-                      </div>
-
-                    <div className="product-info">
-                      <p className="brand-name">{product.brand}</p>
-                      <h3>
-  <Link
-    to={`/product/${product.id}`}
-    style={{
-      textDecoration: "none",
-      color: "inherit",
-    }}
-  >
-    {product.name}
-  </Link>
-</h3>
-                      <div className="rating"><b>★ {product.rating}</b><span>({product.reviews})</span></div>
-                      <div className="price-row">
-                        <strong>₹{product.price}</strong>
-                        <del>₹{product.originalPrice}</del>
-                        {discount > 0 && <span>{discount}% off</span>}
-                      </div>
-                      {product.marketplaceLinks.length > 0 && (
-                        <div className="market-price-box">
-                          <span>See market price</span>
-                          <div className="market-links">
-                            {product.marketplaceLinks.map((link) => (
-                              <a
-                                key={`${product.id}-${link.platform}-${link.url}`}
-                                href={link.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                aria-label={`Check ${product.name} price on ${link.platform}`}
-                              >
-                                {link.platform} <b>↗</b>
-                              </a>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <button
-                        className="add-button"
-                        disabled={product.stock <= 0}
-                        onClick={() => addToCart(product)}
-                      >
-                        {product.stock <= 0 ? "Out of stock" : "Add to cart"}
-                      </button>
+                  <div className="product-info">
+                    <p className="brand-name">{product.brand}</p>
+                    <h3>
+                      <Link to={`/product/${product.id}`}>{product.name}</Link>
+                    </h3>
+                    <div className="rating">
+                      <b>★ {product.rating}</b>
+                      <span>({product.reviews})</span>
                     </div>
-                  </article>
-                );
-              })}
-            </div>
-          )}
+                    <div className="price-row">
+                      <strong>₹{product.price}</strong>
+                      <del>₹{product.originalPrice}</del>
+                      {discount > 0 && <span>{discount}% off</span>}
+                    </div>
+                    {product.marketplaceLinks.length > 0 && (
+                      <div className="market-price-box">
+                        <span>Compare price</span>
+                        <div className="market-links">
+                          {product.marketplaceLinks.map((link) => (
+                            <a
+                              key={`${product.id}-${link.platform}-${link.url}`}
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`Check ${product.name} price on ${link.platform}`}
+                            >
+                              {link.platform} ↗
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="add-button"
+                      disabled={product.stock <= 0}
+                      onClick={() => addToCart(product)}
+                    >
+                      {product.stock <= 0 ? "Out of stock" : "Add to bag"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
 
-          {!loadingProducts && !productsError && filteredProducts.length === 0 && (
-            <div className="empty-state">No products found. Try another search or category.</div>
-          )}
-        </section>
-      </main>
-    </>
+        {!loadingProducts && !productsError && filteredProducts.length === 0 && (
+          <div className="empty-state">
+            No products found. Try another search or category.
+          </div>
+        )}
+      </section>
+    </main>
   );
 }

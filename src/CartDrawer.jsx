@@ -12,16 +12,24 @@ function CartDrawer({
   );
 
   const updateQuantity = (id, change) => {
-    setCart((currentCart) =>
-      currentCart
-        .map((item) =>
-          item.id === id
-            ? { ...item, quantity: item.quantity + change }
-            : item
-        )
-        .filter((item) => item.quantity > 0)
-    );
-  };
+  setCart((currentCart) =>
+    currentCart
+      .map((item) => {
+        if (item.id !== id) return item;
+
+        const nextQuantity = item.quantity + change;
+
+        return {
+          ...item,
+          quantity: Math.max(
+            1,
+            Math.min(nextQuantity, item.stock)
+          ),
+        };
+      })
+      .filter((item) => item.quantity > 0)
+  );
+};
 
   const removeItem = (id) => {
     setCart((currentCart) => currentCart.filter((item) => item.id !== id));
@@ -75,14 +83,23 @@ function CartDrawer({
 
                     <div className="quantity-row">
                       <div className="quantity-control">
-                        <button onClick={() => updateQuantity(item.id, -1)}>
-                          -
-                        </button>
-                        <b>{item.quantity}</b>
-                        <button onClick={() => updateQuantity(item.id, 1)}>
-                          +
-                        </button>
-                      </div>
+
+  <button
+    onClick={() => updateQuantity(item.id, -1)}
+  >
+    −
+  </button>
+
+  <b>{item.quantity}</b>
+
+  <button
+    disabled={item.quantity >= item.stock}
+    onClick={() => updateQuantity(item.id, 1)}
+  >
+    +
+  </button>
+
+</div>
 
                       <button
                         className="remove-item"
@@ -113,8 +130,11 @@ function CartDrawer({
 </p>
 
 <div className="cart-total">
-  <span>Estimated Total</span>
+
+  <span>Total ({cart.length} Items)</span>
+
   <strong>₹{subtotal}</strong>
+
 </div>
               <button className="primary-button checkout-button" onClick={checkout}>
                 Proceed to checkout

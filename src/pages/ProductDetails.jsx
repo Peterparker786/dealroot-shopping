@@ -16,6 +16,7 @@ export default function ProductDetails({
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState([]);
 const [reviewsLoading, setReviewsLoading] = useState(true);
+const [quantity, setQuantity] = useState(1);
 
 useEffect(() => {
   if (!product?.images?.length) return;
@@ -169,10 +170,13 @@ setSelectedImage(
     {/* Right Side */}
     {/* Right Side */}
 <div className="product-right">
-
+   <div className="premium-badge">
+  ✨ Premium Beauty Collection
+</div>
   <h1 className="product-title">
     {product.name}
   </h1>
+ 
 
   <div className="brand-name">
     {product.brand}
@@ -203,6 +207,9 @@ setSelectedImage(
     <div className="discount-badge">
       50% OFF
     </div>
+    <div className="price-note">
+Inclusive of all taxes
+</div>
 
   </div>
 
@@ -231,11 +238,35 @@ setSelectedImage(
     </span>
   )}
 </div>
+<div className="quantity-box">
+  <span>Quantity</span>
+
+  <div className="qty-controls">
+    <button
+      onClick={() =>
+        setQuantity((q) => Math.max(1, q - 1))
+      }
+    >
+      −
+    </button>
+
+    <strong>{quantity}</strong>
+
+    <button
+      onClick={() =>
+        setQuantity((q) => q + 1)
+      }
+    >
+      +
+    </button>
+  </div>
+</div>
+
 <div className="product-actions">
 
   <button
     className="buy-now-btn"
-    onClick={() => addToCart(product)}
+    onClick={() => addToCart(product, quantity)}
   >
     ⚡ BUY NOW
     <span>Get it delivered to your doorstep</span>
@@ -243,7 +274,7 @@ setSelectedImage(
 
   <button
     className="cart-btn"
-    onClick={() => addToCart(product)}
+    onClick={() => addToCart(product, quantity)}
   >
     🛒 ADD TO CART
     <span>Secure Checkout</span>
@@ -257,6 +288,11 @@ setSelectedImage(
       ? "❤️ Wishlisted"
       : "🤍 Add To Wishlist"}
   </button>
+
+</div>
+<div className="offer-strip">
+
+🎁 Extra 10% OFF on prepaid orders
 
 </div>
 

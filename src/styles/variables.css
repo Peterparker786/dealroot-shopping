@@ -1,0 +1,76 @@
+/* ===========================================================
+   DEALROOT V2 DESIGN SYSTEM
+=========================================================== */
+
+:root {
+
+  /* COLORS */
+
+  --white:#ffffff;
+  --black:#111111;
+
+  --bg:#faf9f7;
+  --surface:#ffffff;
+  --surface-2:#f6f4f2;
+
+  --text:#1a1a1a;
+  --text-light:#666666;
+  --text-muted:#9c9c9c;
+
+  --gold:#d6b36a;
+  --gold-dark:#b8934f;
+
+  --cream:#fff8ef;
+
+  --success:#27ae60;
+  --danger:#e53935;
+
+  /* SHADOW */
+
+  --shadow-sm:
+  0 4px 14px rgba(0,0,0,.05);
+
+  --shadow-md:
+  0 15px 40px rgba(0,0,0,.08);
+
+  --shadow-lg:
+  0 25px 70px rgba(0,0,0,.12);
+
+  /* GLASS */
+
+  --glass:
+  rgba(255,255,255,.65);
+
+  --glass-border:
+  rgba(255,255,255,.35);
+
+  --blur:18px;
+
+  /* BORDER */
+
+  --border:
+  rgba(0,0,0,.08);
+
+  --radius-xs:8px;
+  --radius-sm:14px;
+  --radius-md:20px;
+  --radius-lg:28px;
+  --radius-xl:40px;
+
+  /* SPACING */
+
+  --space-xs:8px;
+  --space-sm:14px;
+  --space-md:22px;
+  --space-lg:40px;
+  --space-xl:70px;
+
+  /* CONTAINER */
+
+  --container:1400px;
+
+  /* TRANSITIONS */
+
+  --transition:.35s ease;
+
+}

@@ -8,108 +8,65 @@ import {
 
 export default function Footer() {
   return (
-    <footer
-      style={{
-        background: "#111827",
-        color: "#fff",
-        padding: "50px 8% 20px",
-        marginTop: "60px",
-      }}
-    >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px,1fr))",
-          gap: "30px",
-        }}
-      >
-        {/* Brand */}
-        <div>
-          <h2 style={{ marginBottom: 15 }}>DEALROOT</h2>
-          <p style={{ color: "#ccc", lineHeight: 1.7 }}>
-            Discover the best beauty, skincare and makeup deals from trusted
-            brands at affordable prices.
+    <footer className="site-footer" id="footer">
+      <div className="footer-grid">
+        <div className="footer-brand-block">
+          <h2 className="footer-logo">DEALROOT</h2>
+          <p className="footer-tagline">
+            Curated beauty essentials — skincare, makeup and fragrance from
+            trusted brands, delivered with care.
           </p>
         </div>
 
-        {/* Quick Links */}
-        <div>
-          <h3 style={{ marginBottom: 15 }}>Quick Links</h3>
-
-          <p><Link style={linkStyle} to="/">Home</Link></p>
-          <p><a style={linkStyle} href="/#products">Products</a></p>
-          <p><Link style={linkStyle} to="/contact">Contact Us</Link></p>
+        <div className="footer-links-block">
+          <h3>Explore</h3>
+          <ul>
+            <li><Link to="/">Home</Link></li>
+            <li><a href="/#products">Collection</a></li>
+            <li><Link to="/contact">Contact</Link></li>
+          </ul>
         </div>
 
-        {/* Policies */}
-        <div>
-          <h3 style={{ marginBottom: 15 }}>Policies</h3>
-
-          <p><Link style={linkStyle} to="/privacy">Privacy Policy</Link></p>
-          <p><Link style={linkStyle} to="/terms">Terms & Conditions</Link></p>
-          <p><Link style={linkStyle} to="/shipping">Shipping Policy</Link></p>
-          <p><Link style={linkStyle} to="/refund">Refund Policy</Link></p>
+        <div className="footer-links-block">
+          <h3>Policies</h3>
+          <ul>
+            <li><Link to="/privacy">Privacy Policy</Link></li>
+            <li><Link to="/terms">Terms & Conditions</Link></li>
+            <li><Link to="/shipping">Shipping Policy</Link></li>
+            <li><Link to="/refund">Refund Policy</Link></li>
+          </ul>
         </div>
 
-        {/* Contact */}
-        <div>
-          <h3 style={{ marginBottom: 15 }}>Contact</h3>
-
-          <p>
-            <FaEnvelope />{" "}
-            <a
-              href="mailto:hm952142@gmail.com"
-              style={linkStyle}
-            >
-              hm952142@gmail.com
-            </a>
-          </p>
-
-          <p>
-            <FaTelegramPlane />{" "}
-            <a
-              href="https://t.me/Tom_andrew72"
-              target="_blank"
-              rel="noreferrer"
-              style={linkStyle}
-            >
-              @Tom_andrew72
-            </a>
-          </p>
-
-          <p style={{ marginTop: 15 }}>
-            <FaShieldAlt /> Secure Shopping
-          </p>
-
-          <p>
-            <FaCreditCard /> Safe Payments
-          </p>
+        <div className="footer-links-block">
+          <h3>Connect</h3>
+          <ul className="footer-contact-list">
+            <li>
+              <FaEnvelope aria-hidden="true" />
+              <a href="mailto:hm952142@gmail.com">hm952142@gmail.com</a>
+            </li>
+            <li>
+              <FaTelegramPlane aria-hidden="true" />
+              <a
+                href="https://t.me/Tom_andrew72"
+                target="_blank"
+                rel="noreferrer"
+              >
+                @Tom_andrew72
+              </a>
+            </li>
+            <li className="footer-trust">
+              <FaShieldAlt aria-hidden="true" /> Secure Shopping
+            </li>
+            <li className="footer-trust">
+              <FaCreditCard aria-hidden="true" /> Safe Payments
+            </li>
+          </ul>
         </div>
       </div>
 
-      <hr
-        style={{
-          margin: "35px 0 20px",
-          border: 0,
-          borderTop: "1px solid #2f3545",
-        }}
-      />
-
-      <div
-        style={{
-          textAlign: "center",
-          color: "#aaa",
-          fontSize: "14px",
-        }}
-      >
-        © {new Date().getFullYear()} Dealroot. All Rights Reserved.
+      <div className="footer-bottom">
+        <p>© {new Date().getFullYear()} Dealroot. All rights reserved.</p>
       </div>
     </footer>
   );
 }
-
-const linkStyle = {
-  color: "#ddd",
-  textDecoration: "none",
-  lineHeight: "2",
-};
