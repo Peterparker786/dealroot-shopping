@@ -3,12 +3,12 @@
    ============================================================ */
 
 .product-page {
-  max-width: 1200px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 48px 24px 80px;
   display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  gap: 64px;
+  grid-template-columns: 1.05fr 0.95fr;
+  gap: 56px;
   align-items: start;
 }
 
@@ -92,6 +92,34 @@
   width: 100%;
   position: sticky;
   top: 100px;
+  align-self: start;
+  max-height: calc(100vh - 140px);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.product-left::-webkit-scrollbar {
+  display: none;
+}
+
+/* Side panel under the gallery — fills the left column so it
+   never looks empty while scrolling (Amazon/Nykaa style) */
+.product-side-panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.product-side-panel .delivery-card {
+  margin: 0;
+}
+
+.product-side-panel .offer-strip {
+  margin: 0;
+}
+
+.product-side-panel .trust-badges {
+  margin: 0;
 }
 
 .product-image-wrapper {
@@ -919,6 +947,10 @@
 
   .product-left {
     position: static;
+  }
+
+  .product-side-panel {
+    margin-top: 20px;
   }
 
   .product-image-container {

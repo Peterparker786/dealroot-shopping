@@ -351,6 +351,28 @@ export default function ProductDetails({
               </div>
             )}
           </motion.div>
+
+          {/* Side panel below the gallery keeps the left column full */}
+          <div className="product-side-panel">
+            <div className="delivery-card">
+              <div className="delivery-icon"><FiTruck size={20} /></div>
+              <div>
+                <div className="delivery-label">🚚 FREE Delivery</div>
+                <div className="delivery-estimate">
+                  Estimated Delivery: <strong>{product.deliveryDate}</strong>
+                </div>
+              </div>
+            </div>
+
+            <div className="offer-strip">🎁 Extra 10% OFF on prepaid orders</div>
+
+            <div className="trust-badges">
+              <div className="trust-item"><FiShield size={16} /> 100% Genuine</div>
+              <div className="trust-item"><FiTruck size={16} /> Fast Delivery</div>
+              <div className="trust-item"><FiLock size={16} /> Secure Payment</div>
+              <div className="trust-item"><FiRefreshCw size={16} /> Easy Returns</div>
+            </div>
+          </div>
         </div>
 
         {/* Right Side — Details */}
@@ -446,18 +468,6 @@ export default function ProductDetails({
             </motion.button>
           </div>
 
-          <div className="offer-strip">🎁 Extra 10% OFF on prepaid orders</div>
-
-          <div className="delivery-card">
-            <div className="delivery-icon"><FiTruck size={20} /></div>
-            <div>
-              <div className="delivery-label">🚚 FREE Delivery</div>
-              <div className="delivery-estimate">
-                Estimated Delivery: <strong>{product.deliveryDate}</strong>
-              </div>
-            </div>
-          </div>
-
           <div className="description-box">
             <h3>About this Product</h3>
             <p>{product.description}</p>
@@ -524,13 +534,6 @@ export default function ProductDetails({
               )}
             </AmazonAccordion>
           )}
-
-          <div className="trust-badges">
-            <div className="trust-item"><FiShield size={16} /> 100% Genuine</div>
-            <div className="trust-item"><FiTruck size={16} /> Fast Delivery</div>
-            <div className="trust-item"><FiLock size={16} /> Secure Payment</div>
-            <div className="trust-item"><FiRefreshCw size={16} /> Easy Returns</div>
-          </div>
 
           {product.marketplaceLinks.length > 0 && (
             <div className="marketplace-links">
