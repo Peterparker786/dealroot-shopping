@@ -1,25 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 
 export default function BannerTab({
   apiUrl,
   token,
   showToast,
 }) {
-  const [banners, setBanners] = useState([]);
-
-  const [bannerForm, setBannerForm] = useState({
-    title: "",
-    subtitle: "",
-    couponCode: "",
-    buttonText: "Shop Now",
-    buttonLink: "/products",
-    image: "",
-    active: true,
-  });
-
-  const [editingId, setEditingId] = useState("");
-  const [uploading, setUploading] = useState(false);
-
   const request = async (url, options = {}) => {
     const response = await fetch(url, {
       ...options,
@@ -40,8 +25,7 @@ export default function BannerTab({
 
   const loadBanners = async () => {
     try {
-      const data = await request(`${apiUrl}/api/banners`);
-      setBanners(data.banners || []);
+      await request(`${apiUrl}/api/banners`);
     } catch (err) {
       showToast(err.message);
     }
@@ -49,6 +33,7 @@ export default function BannerTab({
 
   useEffect(() => {
     loadBanners();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

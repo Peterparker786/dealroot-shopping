@@ -84,7 +84,7 @@ const [selectedCity, setSelectedCity] = useState(null);
     text: "",
   });
   const [discountAmount, setDiscountAmount] = useState(0);
-  const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [availableCoupons] = useState([]);
   const userKey = user?.id || user?._id || user?.email || "";
 
 const stateOptions = useMemo(() => {
@@ -127,6 +127,7 @@ setForm({
   pincode: user.pincode || "",
 });
     setPlacedOrder(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, userKey]);
 useEffect(() => {
   if (!form.state) return;
@@ -152,6 +153,7 @@ useEffect(() => {
       });
     }
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 
   if (!isOpen) return null;

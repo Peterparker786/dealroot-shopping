@@ -35,6 +35,14 @@ export default function AccountModal({
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [otpData, setOtpData] = useState({
+    email: "",
+    otp: "",
+    password: "",
+  });
+  const [otpSent, setOtpSent] = useState(false);
+  const [emailNotFound, setEmailNotFound] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -114,21 +122,6 @@ export default function AccountModal({
       requestCancelled = true;
     };
   }, [apiUrl, isOpen, showToast, tab, token, user]);
-  
-useEffect(() => {
-  const loadCoupons = async () => {
-    try {
-      const res = await fetch(`${apiUrl}/api/coupons`);
-      const data = await res.json();
-
-      setAvailableCoupons(data);
-    } catch (err) {
-      console.log(err);
-    }
-  };
-
-  loadCoupons();
-}, []);
 
   if (!isOpen) {
     return null;
@@ -153,6 +146,15 @@ useEffect(() => {
     }
   };
 
+  const updateOtpForm = (event) => {
+    const { name, value } = event.target;
+
+    setOtpData((current) => ({
+      ...current,
+      [name]: value,
+    }));
+  };
+
   const updateProfile = (event) => {
     const { name, value } = event.target;
     let cleanValue = value;
@@ -169,6 +171,76 @@ useEffect(() => {
       ...current,
       [name]: cleanValue,
     }));
+  };
+
+  const sendOTP = async () => {
+    try {
+      setSubmitting(true);
+      setEmailNotFound(false);
+      const res = await fetch(`${apiUrl}/api/auth/forgot-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: otpData.email,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const msg = (data.message || "").toLowerCase();
+        // Detect "user not found" / "email not registered" type responses
+        if (msg.includes("not found") || msg.includes("not registered") || msg.includes("doesn't exist")) {
+          setEmailNotFound(true);
+          return;
+        }
+        throw new Error(data.message || "Failed to send OTP");
+      }
+
+      showToast?.("OTP sent successfully");
+      setOtpSent(true);
+    } catch (err) {
+      showToast?.(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resetPassword = async (event) => {
+    event.preventDefault();
+    setAuthError("");
+
+    try {
+      setSubmitting(true);
+
+      const res = await fetch(`${apiUrl}/api/auth/reset-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: otpData.email,
+          otp: otpData.otp,
+          password: otpData.password,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.message || "Could not reset password");
+
+      showToast?.("Password reset successfully");
+      setForgotMode(false);
+      setOtpSent(false);
+      setOtpData({ email: "", otp: "", password: "" });
+    } catch (err) {
+      setAuthError(err.message);
+      showToast?.(err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const submitAuth = async (event) => {
@@ -216,21 +288,21 @@ useEffect(() => {
         throw new Error(errorMessage);
       }
 
-onAuth(data.token, data.user);
-setAuthForm(emptyAuthForm);
-setAuthError?.("");
+      onAuth(data.token, data.user);
+      setAuthForm(emptyAuthForm);
+      setAuthError?.("");
 
-if (mode === "login") {
-  showToast?.("Login successful");
+      if (mode === "login") {
+        showToast?.("Login successful");
 
-  setTimeout(() => {
-    onClose();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, 800);
-} else {
-  setTab("profile");
-  showToast?.("Account created successfully");
-}
+        setTimeout(() => {
+          onClose();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }, 800);
+      } else {
+        setTab("profile");
+        showToast?.("Account created successfully");
+      }
     } catch (error) {
       const errorMessage =
         error instanceof TypeError
@@ -346,107 +418,286 @@ if (mode === "login") {
               </ul>
             </div>
 
-            <form className="account-auth-form" onSubmit={submitAuth}>
-              <div className="auth-switch">
-                <button
-                  type="button"
-                  className={mode === "login" ? "active" : ""}
-                  onClick={() => changeMode("login")}
-                >
-                  Log in
-                </button>
+            {!forgotMode ? (
+              <form className="account-auth-form" onSubmit={submitAuth}>
+                <div className="auth-switch">
+                  <button
+                    type="button"
+                    className={mode === "login" ? "active" : ""}
+                    onClick={() => changeMode("login")}
+                  >
+                    Log in
+                  </button>
 
-                <button
-                  type="button"
-                  className={mode === "signup" ? "active" : ""}
-                  onClick={() => changeMode("signup")}
-                >
-                  Sign up
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    className={mode === "signup" ? "active" : ""}
+                    onClick={() => changeMode("signup")}
+                  >
+                    Sign up
+                  </button>
+                </div>
 
-              {mode === "signup" && (
+                {mode === "signup" && (
+                  <label>
+                    Full name
+
+                    <input
+                      name="name"
+                      type="text"
+                      value={authForm.name}
+                      onChange={updateAuthForm}
+                      required
+                      minLength="2"
+                      placeholder="Your full name"
+                      autoComplete="name"
+                    />
+                  </label>
+                )}
+
                 <label>
-                  Full name
+                  Email address
 
                   <input
-                    name="name"
-                    type="text"
-                    value={authForm.name}
+                    name="email"
+                    type="email"
+                    value={authForm.email}
                     onChange={updateAuthForm}
                     required
-                    minLength="2"
-                    placeholder="Your full name"
-                    autoComplete="name"
+                    placeholder="you@example.com"
+                    autoComplete="email"
                   />
                 </label>
-              )}
 
-              <label>
-                Email address
+                <label>
+                  Password
 
-                <input
-                  name="email"
-                  type="email"
-                  value={authForm.email}
-                  onChange={updateAuthForm}
-                  required
-                  placeholder="you@example.com"
-                  autoComplete="email"
-                />
-              </label>
+                  <input
+                    name="password"
+                    type="password"
+                    minLength="8"
+                    value={authForm.password}
+                    onChange={updateAuthForm}
+                    required
+                    placeholder="Minimum 8 characters"
+                    autoComplete={
+                      mode === "login"
+                        ? "current-password"
+                        : "new-password"
+                    }
+                    aria-describedby={authError ? "account-auth-error" : undefined}
+                  />
+                </label>
 
-              <label>
-                Password
-
-                <input
-                  name="password"
-                  type="password"
-                  minLength="8"
-                  value={authForm.password}
-                  onChange={updateAuthForm}
-                  required
-                  placeholder="Minimum 8 characters"
-                  autoComplete={
-                    mode === "login"
-                      ? "current-password"
-                      : "new-password"
-                  }
-                  aria-describedby={authError ? "account-auth-error" : undefined}
-                />
-              </label>
-
-              {authError && (
                 <div
-                  id="account-auth-error"
-                  role="alert"
                   style={{
-                    padding: "12px 14px",
-                    border: "1px solid #fda29b",
-                    borderRadius: "10px",
-                    background: "#fef3f2",
-                    color: "#b42318",
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    lineHeight: 1.45,
+                    textAlign: "right",
+                    marginTop: "-8px",
+                    marginBottom: "12px",
                   }}
                 >
-                  {authError}
+                  <button
+                    type="button"
+                    onClick={() => setForgotMode(true)}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "#246bfd",
+                      cursor: "pointer",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Forgot Password?
+                  </button>
                 </div>
-              )}
 
-              <button
-                className="primary-button account-submit"
-                type="submit"
-                disabled={submitting}
-              >
-                {submitting
-                  ? "Please wait..."
-                  : mode === "login"
-                  ? "Log in"
-                  : "Create account"}
-              </button>
-            </form>
+                {authError && (
+                  <div
+                    id="account-auth-error"
+                    role="alert"
+                    style={{
+                      padding: "12px 14px",
+                      border: "1px solid #fda29b",
+                      borderRadius: "10px",
+                      background: "#fef3f2",
+                      color: "#b42318",
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    {authError}
+                  </div>
+                )}
+
+                <button
+                  className="primary-button account-submit"
+                  type="submit"
+                  disabled={submitting}
+                >
+                  {submitting
+                    ? "Please wait..."
+                    : mode === "login"
+                    ? "Log in"
+                    : "Create account"}
+                </button>
+              </form>
+            ) : (
+              <form className="account-auth-form" onSubmit={(e) => { e.preventDefault(); if (otpSent) { resetPassword(e); } else { sendOTP(); } }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setForgotMode(false);
+                    setOtpSent(false);
+                    setEmailNotFound(false);
+                    setOtpData({ email: "", otp: "", password: "" });
+                    setAuthError("");
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#246bfd",
+                    cursor: "pointer",
+                    fontWeight: 600,
+                    fontSize: "13px",
+                    textAlign: "left",
+                    padding: 0,
+                    marginBottom: "8px",
+                  }}
+                >
+                  &larr; Back to login
+                </button>
+
+                <h3 style={{ margin: 0, fontSize: "21px", color: "#193651" }}>
+                  Reset your password
+                </h3>
+                <p style={{ margin: "4px 0 16px", color: "#77899b", fontSize: "13px" }}>
+                  {otpSent
+                    ? "Enter the OTP sent to your email and set a new password."
+                    : "Enter your email to receive a one-time password."}
+                </p>
+
+                <label>
+                  Email address
+                  <input
+                    name="email"
+                    type="email"
+                    value={otpData.email}
+                    onChange={updateOtpForm}
+                    required
+                    disabled={otpSent}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                  />
+                </label>
+
+                {otpSent && (
+                  <>
+                    <label>
+                      OTP
+                      <input
+                        name="otp"
+                        type="text"
+                        value={otpData.otp}
+                        onChange={updateOtpForm}
+                        required
+                        placeholder="6-digit OTP"
+                        autoComplete="one-time-code"
+                      />
+                    </label>
+
+                    <label>
+                      New password
+                      <input
+                        name="password"
+                        type="password"
+                        minLength="8"
+                        value={otpData.password}
+                        onChange={updateOtpForm}
+                        required
+                        placeholder="Minimum 8 characters"
+                    autoComplete="new-password"
+                    aria-describedby={authError ? "account-auth-error" : undefined}
+                  />
+                    </label>
+                  </>
+                )}
+
+                {emailNotFound && (
+                  <div
+                    role="alert"
+                    style={{
+                      padding: "14px 16px",
+                      border: "1px solid #fecaca",
+                      borderRadius: "12px",
+                      background: "#fef2f2",
+                      color: "#991b1b",
+                      fontSize: "13px",
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    No account found with <strong>{otpData.email}</strong>.
+                    <br />
+                    Please{" "}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setForgotMode(false);
+                        setOtpSent(false);
+                        setEmailNotFound(false);
+                        setOtpData({ email: "", otp: "", password: "" });
+                        setAuthError("");
+                        changeMode("signup");
+                      }}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#b91c1c",
+                        cursor: "pointer",
+                        fontWeight: 700,
+                        textDecoration: "underline",
+                        padding: 0,
+                        fontSize: "inherit",
+                      }}
+                    >
+                      create an account
+                    </button>
+                    {" "}first.
+                  </div>
+                )}
+
+                {authError && (
+                  <div
+                    id="account-auth-error"
+                    role="alert"
+                    style={{
+                      padding: "12px 14px",
+                      border: "1px solid #fda29b",
+                      borderRadius: "10px",
+                      background: "#fef3f2",
+                      color: "#b42318",
+                      fontSize: "14px",
+                      fontWeight: 700,
+                      lineHeight: 1.45,
+                    }}
+                  >
+                    {authError}
+                  </div>
+                )}
+
+                <button
+                  className="primary-button account-submit"
+                  type="submit"
+                  disabled={submitting}
+                >
+                  {submitting
+                    ? "Please wait..."
+                    : otpSent
+                    ? "Reset password"
+                    : "Send OTP"}
+                </button>
+              </form>
+            )}
           </div>
         ) : (
           <div className="account-dashboard">
@@ -678,4 +929,4 @@ if (mode === "login") {
       </section>
     </div>
   );
-}
+}

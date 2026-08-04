@@ -1,6 +1,7 @@
 // Verified customer account modal connection — 23 July 2026
 import Navbar from "./components/Navbar";
 import { Routes, Route } from "react-router-dom";
+import { FiHome, FiGrid, FiZap, FiPackage, FiUser } from "react-icons/fi";
 import Home from "./pages/Home";
 import Contact from "./pages/Contact";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -9,22 +10,19 @@ import ShippingPolicy from "./pages/ShippingPolicy";
 import RefundPolicy from "./pages/RefundPolicy";
 import ProductDetails from "./pages/ProductDetails";
 import Footer from "./components/Footer";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import CartDrawer from "./CartDrawer";
+import WishlistDrawer from "./WishlistDrawer";
 import CheckoutModal from "./CheckoutModal";
 import AdminPanel from "./AdminPanel";
 import AccountModal from "./AccountModal";
 import "./index.css";
+import {
+  getStoredCategories,
+  saveStoredCategories,
+} from "./utils/categories";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-
-const categories = [
-  { name: "Makeup", emoji: "💄", color: "#FFE4EC" },
-  { name: "Skincare", emoji: "✨", color: "#E4F3FF" },
-  { name: "Haircare", label: "Hair Care", emoji: "🧴", color: "#FFF1D8" },
-  { name: "Fragrance", emoji: "🌸", color: "#EEE9FF" },
-  { name: "Bath & Body", emoji: "🫧", color: "#E2F8F0" },
-];
 
 const fallbackImage =
   "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=700&q=85";
@@ -36,6 +34,8 @@ function App() {
 
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeDeal, setActiveDeal] = useState("none");
+  const [bestsellersOnly, setBestsellersOnly] = useState(false);
+  const [newArrivalsOnly, setNewArrivalsOnly] = useState(false);
   const [search, setSearch] = useState("");
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -44,8 +44,10 @@ function App() {
 
   const [cart, setCart] = useState([]);
   const [wishlist, setWishlist] = useState([]);
+  const [categories, setCategories] = useState(getStoredCategories);
   const [toast, setToast] = useState("");
   const [cartOpen, setCartOpen] = useState(false);
+  const [wishlistOpen, setWishlistOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [userToken, setUserToken] = useState(() =>
@@ -76,7 +78,9 @@ function App() {
     setUserToken("");
     setUser(null);
     setCart([]);
+    setWishlist([]);
     setCartOpen(false);
+    setWishlistOpen(false);
     setCheckoutOpen(false);
     showToast("You have been logged out");
   };
@@ -129,7 +133,7 @@ function App() {
   }
 };
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
     try {
       setLoadingProducts(true);
       setProductsError("");
@@ -173,6 +177,7 @@ function App() {
           dealType: product.dealType || "none",
           image: product.images?.[0] || product.image || fallbackImage,
           stock: product.stock,
+          createdAt: product.createdAt || "",
           marketplaceLinks: Array.isArray(product.marketplaceLinks)
             ? product.marketplaceLinks.filter(
                 (link) => link?.platform && link?.url
@@ -180,7 +185,7 @@ function App() {
             : [],
         }))
       );
-    } catch (error) {
+    } catch {
       setProducts([]);
       setProductsError(
         "Could not load products. Please make sure the backend server is running."
@@ -188,25 +193,47 @@ function App() {
     } finally {
       setLoadingProducts(false);
     }
-  };
+  }, [activeCategory, activeDeal, search]);
 
   useEffect(() => {
     const timer = window.setTimeout(loadProducts, 300);
     return () => window.clearTimeout(timer);
-  }, [activeCategory, activeDeal, search]);
+  }, [loadProducts]);
 
   useEffect(() => {
   loadBanner();
 }, []);
 
-  const filteredProducts = useMemo(() => products, [products]);
+  const filteredProducts = useMemo(() => {
+    if (bestsellersOnly) {
+      return products.filter(
+        (product) =>
+          Number(product.price) < 200 &&
+          Number.isFinite(Number(product.price))
+      );
+    }
+
+    if (newArrivalsOnly) {
+      return [...products].sort((a, b) => {
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
+      });
+    }
+
+    return products;
+  }, [products, bestsellersOnly, newArrivalsOnly]);
 
   const showCategory = (category) => {
+    setBestsellersOnly(false);
+    setNewArrivalsOnly(false);
     setActiveDeal("none");
     setActiveCategory(category);
   };
 
   const showDeal = (dealType) => {
+    setBestsellersOnly(false);
+    setNewArrivalsOnly(false);
     setActiveCategory("All");
     setActiveDeal(dealType);
 
@@ -218,8 +245,36 @@ function App() {
   };
 
   const showAllProducts = () => {
+    setBestsellersOnly(false);
+    setNewArrivalsOnly(false);
     setActiveDeal("none");
     setActiveCategory("All");
+  };
+
+  const showBestsellers = () => {
+    setBestsellersOnly(true);
+    setNewArrivalsOnly(false);
+    setActiveDeal("none");
+    setActiveCategory("All");
+
+    window.setTimeout(() => {
+      document
+        .getElementById("products")
+        ?.scrollIntoView({ behavior: "smooth" });
+    }, 80);
+  };
+
+  const showNewArrivals = () => {
+    setNewArrivalsOnly(true);
+    setBestsellersOnly(false);
+    setActiveDeal("none");
+    setActiveCategory("All");
+
+    window.setTimeout(() => {
+      document
+        .getElementById("products")
+        ?.scrollIntoView({ behavior: "smooth" });
+    }, 80);
   };
 
   const addToCart = (product, quantity = 1) => {
@@ -268,14 +323,60 @@ function App() {
 };
 
   const toggleWishlist = (product) => {
+    if (!user) {
+      showToast("Please sign in first to save items to your wishlist");
+      setAccountOpen(true);
+      return;
+    }
+
     setWishlist((currentWishlist) => {
-      const exists = currentWishlist.includes(product.id);
+      const exists = currentWishlist.some((item) => item.id === product.id);
       showToast(exists ? "Removed from wishlist" : "Saved to wishlist");
 
       return exists
-        ? currentWishlist.filter((id) => id !== product.id)
-        : [...currentWishlist, product.id];
+        ? currentWishlist.filter((item) => item.id !== product.id)
+        : [...currentWishlist, { ...product }];
     });
+  };
+
+  const removeFromWishlist = (id) => {
+    setWishlist((current) => current.filter((item) => item.id !== id));
+  };
+
+  const openWishlist = () => {
+    if (!user) {
+      showToast("Please sign in first to view your wishlist");
+      setAccountOpen(true);
+      return;
+    }
+    setCartOpen(false);
+    setWishlistOpen(true);
+  };
+
+  const wishlistProducts = wishlist;
+
+  const addCategory = (name, emoji, color) => {
+    const cleanName = name.trim();
+    if (!cleanName) return;
+    if (categories.some((c) => c.name.toLowerCase() === cleanName.toLowerCase())) {
+      showToast(`Category "${cleanName}" already exists`);
+      return;
+    }
+
+    const next = [
+      ...categories,
+      { name: cleanName, emoji: emoji.trim() || "✨", color: color || "#f5f5f5" },
+    ];
+    setCategories(next);
+    saveStoredCategories(next);
+    showToast(`Category "${cleanName}" added`);
+  };
+
+  const removeCategory = (name) => {
+    const next = categories.filter((c) => c.name !== name);
+    setCategories(next);
+    saveStoredCategories(next);
+    showToast(`Category "${name}" removed`);
   };
 
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
@@ -292,6 +393,9 @@ function App() {
         apiUrl={API_URL}
         onBack={closeAdmin}
         showToast={showToast}
+        categories={categories}
+        onAddCategory={addCategory}
+        onRemoveCategory={removeCategory}
       />
     );
   }
@@ -314,6 +418,14 @@ function App() {
           setCartOpen(false);
           setCheckoutOpen(true);
         }}
+      />
+
+      <WishlistDrawer
+        isOpen={wishlistOpen}
+        onClose={() => setWishlistOpen(false)}
+        products={wishlistProducts}
+        onRemove={removeFromWishlist}
+        addToCart={addToCart}
       />
 
       <CheckoutModal
@@ -353,7 +465,10 @@ function App() {
   cartCount={cartCount}
   setAccountOpen={setAccountOpen}
   setCartOpen={setCartOpen}
-  showToast={showToast}
+  openWishlist={openWishlist}
+  showBestsellers={showBestsellers}
+  showAllProducts={showAllProducts}
+  showNewArrivals={showNewArrivals}
 />
 
 <Routes>
@@ -365,10 +480,11 @@ function App() {
         showAllProducts={showAllProducts}
         activeCategory={activeCategory}
         activeDeal={activeDeal}
+        bestsellersOnly={bestsellersOnly}
+        newArrivalsOnly={newArrivalsOnly}
         categories={categories}
         showCategory={showCategory}
         showDeal={showDeal}
-        showToast={showToast}
         loadingProducts={loadingProducts}
         productsError={productsError}
         loadProducts={loadProducts}
@@ -402,6 +518,40 @@ function App() {
 />  
 </Routes>
 <Footer />
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="mobile-bottom-nav">
+        <div className="mobile-nav-items">
+          <a href="#top" className="mobile-nav-item active">
+            <FiHome />
+            <span className="mn-label">Home</span>
+          </a>
+          <a href="#categories" className="mobile-nav-item">
+            <FiGrid />
+            <span className="mn-label">Categories</span>
+          </a>
+          <a href="#price-deals" className="mobile-nav-item">
+            <FiZap />
+            <span className="mn-label">Deals</span>
+          </a>
+          <button
+            type="button"
+            className="mobile-nav-item"
+            onClick={() => setAccountOpen(true)}
+          >
+            <FiPackage />
+            <span className="mn-label">Orders</span>
+          </button>
+          <button
+            type="button"
+            className="mobile-nav-item"
+            onClick={() => setAccountOpen(true)}
+          >
+            <FiUser />
+            <span className="mn-label">Account</span>
+          </button>
+        </div>
+      </nav>
     </div>
   );
 }

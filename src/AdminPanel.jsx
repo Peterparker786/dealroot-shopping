@@ -1,15 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "./AdminPanel.css";
 
-const categories = [
-  "Skincare",
-  "Makeup",
-  "Haircare",
-  "Fragrance",
-  "Bath & Body",
-];
-
-
 const orderStatuses = [
   "placed",
   "confirmed",
@@ -40,7 +31,14 @@ const emptyForm = {
   otherMarketplaceLink: "",
 };
 
-function AdminPanel({ apiUrl, onBack, showToast }) {
+function AdminPanel({
+  apiUrl,
+  onBack,
+  showToast,
+  categories,
+  onAddCategory,
+  onRemoveCategory,
+}) {
   const [token, setToken] = useState(
     () => sessionStorage.getItem("dealroot_admin_token") || ""
   );
@@ -57,11 +55,7 @@ function AdminPanel({ apiUrl, onBack, showToast }) {
   const [banners, setBanners] = useState([]);
 
 const [bannerForm, setBannerForm] = useState({
-  title: "",
-  subtitle: "",
-  couponCode: "",
-  buttonText: "Shop Now",
-  buttonLink: "/products",
+  buttonLink: "",
   image: "",
   active: true,
 });
@@ -76,6 +70,11 @@ const [couponForm, setCouponForm] = useState({
   minimumOrder: "",
   maximumDiscount: "",
   expiryDate: "",
+});
+const [categoryForm, setCategoryForm] = useState({
+  name: "",
+  emoji: "✨",
+  color: "#f5f5f5",
 });
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState("");
@@ -163,6 +162,7 @@ useEffect(() => {
     loadCoupons();
     loadBanners();
   }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [token]);
 
 const refresh = () => {
@@ -339,11 +339,7 @@ const saveBanner = async (e) => {
     showToast(data.message || "Banner saved");
 
     setBannerForm({
-      title: "",
-      subtitle: "",
-      couponCode: "",
-      buttonText: "Shop Now",
-      buttonLink: "/products",
+      buttonLink: "",
       image: "",
       active: true,
     });
@@ -360,11 +356,7 @@ const editBanner = (banner) => {
   setEditingBannerId(banner._id);
 
   setBannerForm({
-    title: banner.title || "",
-    subtitle: banner.subtitle || "",
-    couponCode: banner.couponCode || "",
-    buttonText: banner.buttonText || "Shop Now",
-    buttonLink: banner.buttonLink || "/products",
+    buttonLink: banner.buttonLink || "",
     image: banner.image || "",
     active: banner.active,
   });
@@ -469,6 +461,29 @@ window.scrollTo({
   setForm(emptyForm);
   setSelectedImages([]);
 };
+
+  // Set an image as the front/cover image (moves it to index 0)
+  // selectedImages is the single source of truth — saveProduct uses it.
+  const setAsFront = (index) => {
+    if (index <= 0) return;
+
+    setSelectedImages((current) => {
+      if (index >= current.length) return current;
+
+      const updated = [...current];
+      const [picked] = updated.splice(index, 1);
+      updated.unshift(picked);
+      return updated;
+    });
+
+    showToast("Set as front image — yeh image storefront par dikhegi");
+  };
+
+  const removeImage = (index) => {
+    setSelectedImages((current) =>
+      current.filter((_, i) => i !== index)
+    );
+  };
 
   const saveProduct = async (event) => {
     event.preventDefault();
@@ -806,73 +821,14 @@ const deleteCoupon = async (id) => {
     </div>
   </div>
 
+  <div className="banner-size-hint">
+    📐 <b>Recommended banner size: 1080 × 1080 px</b> (square)
+    <br />
+    Square image sabse sahi dikhega. Iske alawa 800 × 800 ya 1024 × 1024
+    bhi chale ga. Text banner ke beech me rakhein taaki crop na ho.
+  </div>
+
   <form className="product-form" onSubmit={saveBanner}>
-
-    <label>
-      Title
-      <input
-        value={bannerForm.title}
-        onChange={(e) =>
-          setBannerForm({
-            ...bannerForm,
-            title: e.target.value,
-          })
-        }
-        required
-      />
-    </label>
-
-    <label>
-      Subtitle
-      <input
-        value={bannerForm.subtitle}
-        onChange={(e) =>
-          setBannerForm({
-            ...bannerForm,
-            subtitle: e.target.value,
-          })
-        }
-      />
-    </label>
-
-    <label>
-      Coupon Code
-      <input
-        value={bannerForm.couponCode}
-        onChange={(e) =>
-          setBannerForm({
-            ...bannerForm,
-            couponCode: e.target.value.toUpperCase(),
-          })
-        }
-      />
-    </label>
-
-    <label>
-      Button Text
-      <input
-        value={bannerForm.buttonText}
-        onChange={(e) =>
-          setBannerForm({
-            ...bannerForm,
-            buttonText: e.target.value,
-          })
-        }
-      />
-    </label>
-
-    <label>
-      Button Link
-      <input
-        value={bannerForm.buttonLink}
-        onChange={(e) =>
-          setBannerForm({
-            ...bannerForm,
-            buttonLink: e.target.value,
-          })
-        }
-      />
-    </label>
 
     <label className="full-field">
       Banner Image
@@ -890,15 +846,29 @@ const deleteCoupon = async (id) => {
       {bannerForm.image && (
         <img
           src={bannerForm.image}
-          alt=""
-          style={{
-            marginTop: 10,
-            width: "100%",
-            maxWidth: 350,
-            borderRadius: 10,
-          }}
+          alt="Banner preview"
+          className="banner-preview-img"
         />
       )}
+    </label>
+
+    <label className="full-field">
+      Redirect Link
+      <input
+        value={bannerForm.buttonLink}
+        onChange={(e) =>
+          setBannerForm({
+            ...bannerForm,
+            buttonLink: e.target.value,
+          })
+        }
+        placeholder="e.g. /product/6a699b... ya https://yoursite.com/..."
+      />
+      <small>
+        Banner par click karne se log is link par pahuchenge. Khali chhod do to
+        products section par le jayega. App ka page ho to <b>/product/...</b>,
+        bahar ka link ho to <b>https://...</b> paste karein.
+      </small>
     </label>
 
     <label className="featured-check">
@@ -912,7 +882,7 @@ const deleteCoupon = async (id) => {
           })
         }
       />
-      Active Banner
+      Active Banner (home page par dikhe)
     </label>
 
     <button className="save-product">
@@ -920,6 +890,92 @@ const deleteCoupon = async (id) => {
     </button>
 
   </form>
+</section>
+
+<section className="admin-products-card">
+  <div className="admin-section-title">
+    <div>
+      <p>LIVE BANNERS</p>
+      <h2>Manage Offer Banners</h2>
+    </div>
+  </div>
+
+  {banners.length === 0 ? (
+    <div className="admin-empty">No banners found.</div>
+  ) : (
+    <div className="admin-table-wrap">
+      <table className="admin-table">
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>Redirect Link</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {banners.map((banner) => (
+            <tr key={banner._id}>
+              <td>
+                <img
+                  src={banner.image}
+                  alt=""
+                  style={{
+                    width: 120,
+                    borderRadius: 8,
+                  }}
+                />
+              </td>
+
+              <td>
+                <b>{banner.buttonLink || "Products"}</b>
+                <br />
+                <small>
+                  {banner.buttonLink
+                    ? banner.buttonLink.startsWith("http")
+                      ? "External link (naya tab)"
+                      : "App ka page"
+                    : "Default — products section"}
+                </small>
+              </td>
+
+              <td>
+                {banner.active ? (
+                  <span className="stock-active">
+                    Active
+                  </span>
+                ) : (
+                  <span className="stock-empty">
+                    Inactive
+                  </span>
+                )}
+              </td>
+
+              <td>
+                <div className="admin-actions">
+                  <button
+                    onClick={() => editBanner(banner)}
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    className="delete-button"
+                    onClick={() =>
+                      deleteBanner(banner._id)
+                    }
+                  >
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )}
 </section>
 
         <section className="admin-form-card">
@@ -1024,6 +1080,93 @@ const deleteCoupon = async (id) => {
   </form>
 </section>
 
+<section className="admin-form-card">
+  <div className="admin-section-title">
+    <div>
+      <p>CATEGORY MANAGEMENT</p>
+      <h2>Add / Remove Store Categories</h2>
+    </div>
+  </div>
+
+  <form
+    className="product-form"
+    onSubmit={(e) => {
+      e.preventDefault();
+      onAddCategory(categoryForm.name, categoryForm.emoji, categoryForm.color);
+      setCategoryForm({ name: "", emoji: "✨", color: "#f5f5f5" });
+    }}
+  >
+    <label>
+      Category name *
+      <input
+        value={categoryForm.name}
+        onChange={(e) =>
+          setCategoryForm({ ...categoryForm, name: e.target.value })
+        }
+        placeholder="e.g. Wellness"
+        required
+      />
+    </label>
+
+    <label>
+      Emoji
+      <input
+        value={categoryForm.emoji}
+        onChange={(e) =>
+          setCategoryForm({ ...categoryForm, emoji: e.target.value })
+        }
+        placeholder="e.g. 🌿"
+        maxLength={4}
+      />
+    </label>
+
+    <label>
+      Circle colour
+      <input
+        type="color"
+        value={categoryForm.color}
+        onChange={(e) =>
+          setCategoryForm({ ...categoryForm, color: e.target.value })
+        }
+        style={{ height: 44, padding: 6, cursor: "pointer" }}
+      />
+    </label>
+
+    <div className="full-field">
+      <button className="save-product" disabled={!categoryForm.name.trim()}>
+        + Add Category
+      </button>
+      <small style={{ display: "block", marginTop: 8 }}>
+        Nayi category turant home page ke "Shop by Category" aur is product form
+        ke dropdown me dikhegi. Storage: is browser me save rehti hai.
+      </small>
+    </div>
+  </form>
+
+  <div className="category-list">
+    {(categories || []).map((category) => (
+      <div className="category-list-item" key={category.name}>
+        <span
+          className="category-list-emoji"
+          style={{ background: category.color }}
+        >
+          {category.emoji}
+        </span>
+        <b>{category.label || category.name}</b>
+        <small>{category.name}</small>
+        <button
+          type="button"
+          className="category-remove-btn"
+          onClick={() => onRemoveCategory(category.name)}
+          aria-label={`Remove ${category.name} category`}
+        >
+          ×
+        </button>
+      </div>
+    ))}
+  </div>
+</section>
+
 
         <section className="admin-form-card">
           <div className="admin-section-title">
@@ -1085,8 +1228,10 @@ const deleteCoupon = async (id) => {
                 value={form.category}
                 onChange={updateForm}
               >
-                {categories.map((category) => (
-                  <option key={category}>{category}</option>
+                {(categories || []).map((category) => (
+                  <option key={category.name} value={category.name}>
+                    {category.label || category.name}
+                  </option>
                 ))}
               </select>
             </label>
@@ -1131,60 +1276,60 @@ const deleteCoupon = async (id) => {
     <small>Uploading images...</small>
   )}
 
-  <div
-    style={{
-      display: "flex",
-      gap: "10px",
-      flexWrap: "wrap",
-      marginTop: "10px",
-    }}
-  >
-    {selectedImages.map((img, index) => (
-      <div
-        key={index}
-        style={{ position: "relative" }}
-      >
-        <img
-          src={img}
-          alt=""
-          style={{
-            width: 90,
-            height: 90,
-            objectFit: "cover",
-            borderRadius: 8,
-          }}
-        />
-
-        <button
-          type="button"
-          onClick={() => {
-            setSelectedImages((current) =>
-              current.filter((_, i) => i !== index)
-            );
-
-            setForm((current) => ({
-              ...current,
-              images: current.images.filter((_, i) => i !== index),
-            }));
-          }}
-          style={{
-            position: "absolute",
-            top: -6,
-            right: -6,
-            width: 22,
-            height: 22,
-            borderRadius: "50%",
-            border: "none",
-            cursor: "pointer",
-            background: "#f44336",
-            color: "#fff",
-          }}
-        >
-          ×
-        </button>
+  {selectedImages.length > 0 && (
+    <div className="image-front-preview">
+      <div className="front-preview-img">
+        <img src={selectedImages[0]} alt="Front image preview" />
+        <span className="front-preview-badge">⭐ FRONT IMAGE</span>
       </div>
-    ))}
-  </div>
+      <p>
+        <b>First image = front/cover.</b> Yehi image storefront par show hogi —
+        products list, flash deals aur product page par sabse pehle dikhegi.
+        Neeche kisi bhi image par <b>"Set as Front"</b> dabayein.
+      </p>
+    </div>
+  )}
+
+  {selectedImages.length > 0 && (
+    <div className="image-thumb-grid">
+      {selectedImages.map((img, index) => (
+        <div
+          key={index}
+          className={`image-thumb ${index === 0 ? "is-front" : ""}`}
+        >
+          <img src={img} alt="" />
+
+          {index === 0 && (
+            <span className="front-badge">⭐ FRONT</span>
+          )}
+
+          <span className="thumb-index">#{index + 1}</span>
+
+          <div className="thumb-actions">
+            {index !== 0 && (
+              <button
+                type="button"
+                className="thumb-front-btn"
+                onClick={() => setAsFront(index)}
+                title="Set as front image"
+              >
+                Set as Front
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="thumb-delete-btn"
+              onClick={() => removeImage(index)}
+              aria-label="Remove image"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )}
 </label>
 
             <label className="full-field">
@@ -1248,88 +1393,6 @@ const deleteCoupon = async (id) => {
       ))}
     </tbody>
   </table>
-</section>
-<section className="admin-products-card">
-  <div className="admin-section-title">
-    <div>
-      <p>LIVE BANNERS</p>
-      <h2>Manage Offer Banners</h2>
-    </div>
-  </div>
-
-  {banners.length === 0 ? (
-    <div className="admin-empty">No banners found.</div>
-  ) : (
-    <div className="admin-table-wrap">
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Image</th>
-            <th>Title</th>
-            <th>Coupon</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {banners.map((banner) => (
-            <tr key={banner._id}>
-              <td>
-                <img
-                  src={banner.image}
-                  alt=""
-                  style={{
-                    width: 120,
-                    borderRadius: 8,
-                  }}
-                />
-              </td>
-
-              <td>
-                <b>{banner.title}</b>
-                <br />
-                <small>{banner.subtitle}</small>
-              </td>
-
-              <td>{banner.couponCode || "-"}</td>
-
-              <td>
-                {banner.active ? (
-                  <span className="stock-active">
-                    Active
-                  </span>
-                ) : (
-                  <span className="stock-empty">
-                    Inactive
-                  </span>
-                )}
-              </td>
-
-              <td>
-                <div className="admin-actions">
-                  <button
-                    onClick={() => editBanner(banner)}
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    className="delete-button"
-                    onClick={() =>
-                      deleteBanner(banner._id)
-                    }
-                  >
-                    Delete
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )}
 </section>
 
         <section className="admin-products-card">

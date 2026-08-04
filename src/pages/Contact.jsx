@@ -82,7 +82,7 @@ export default function Contact() {
           </p>
 
           <p style={{ marginBottom: "22px" }}>
-            <FaEnvelope color="#555" size={18} /> hm952412@gmail.com
+            <FaEnvelope color="#555" size={18} /> dealroot.store@gmail.com
           </p>
 
           <p style={{ marginBottom: "22px" }}>

@@ -10,7 +10,7 @@ export default function RefundPolicy() {
       </ul>
 
       <p>
-        For assistance, contact us at hm952142@gmail.com or Telegram
+        For assistance, contact us at dealoot.store@gmail.com or Telegram
         @Tom_andrew72.
       </p>
     </div>

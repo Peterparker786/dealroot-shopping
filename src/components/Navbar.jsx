@@ -1,7 +1,5 @@
-import "../styles/navbar.css";
-import logo from "../assets/Logo.png";
 import { Link } from "react-router-dom";
-import { FiSearch, FiUser, FiHeart, FiShoppingBag, FiSettings } from "react-icons/fi";
+import { FiSearch, FiUser, FiHeart, FiShoppingBag, FiChevronDown, FiMenu, FiSettings } from "react-icons/fi";
 
 export default function Navbar({
   search,
@@ -12,85 +10,136 @@ export default function Navbar({
   cartCount,
   setAccountOpen,
   setCartOpen,
-  showToast,
+  openWishlist,
+  showBestsellers,
+  showAllProducts,
+  showNewArrivals,
 }) {
   return (
     <>
-      <div className="top-strip">
-        <p>Complimentary delivery on orders above ₹499</p>
-        <p>Authentic beauty · Curated with care</p>
+      {/* Scrolling Marquee Bar (Nykaa style) */}
+      <div className="top-marquee" aria-hidden="true">
+        <div className="marquee-track">
+          <span className="marquee-text">
+            ✨ COST SALE IS LIVE! FREE SHIPPING ON ALL ORDERS ABOVE ₹499! ✨ USE CODE: BEAUTY10 FOR 10% OFF ON ORDERS ABOVE ₹999! ✨ 100% ORIGINAL PRODUCTS — EASY RETURNS IN 7 DAYS ✨
+          </span>
+          <span className="marquee-text">
+            ✨ COST SALE IS LIVE! FREE SHIPPING ON ALL ORDERS ABOVE ₹499! ✨ USE CODE: BEAUTY10 FOR 10% OFF ON ORDERS ABOVE ₹999! ✨ 100% ORIGINAL PRODUCTS — EASY RETURNS IN 7 DAYS ✨
+          </span>
+        </div>
       </div>
 
-      <header className="navbar">
-        <Link to="/" className="brand">
-          <img
-            src={logo}
-            alt="Dealroot"
-            className="brand-logo"
-          />
+      {/* Announcement Bar */}
+      <div className="announcement-bar">
+        <span>🚚 FREE DELIVERY on orders above ₹499</span>
+        <span>🎁 USE CODE: BEAUTY10 - Get 10% OFF on orders above ₹999</span>
+        <div className="ann-right">
+          <a href="#">Track Order</a>
+          <a href="#">Help Center</a>
+        </div>
+      </div>
+
+      {/* Main Header */}
+      <header className="header-main">
+        <Link to="/" className="header-logo">
+          <span className="logo-main">DealRoot</span>
+          <span className="logo-sub">BEAUTY</span>
         </Link>
-<nav className="nav-links">
 
-  <a href="#top">Home</a>
-
-  <a href="#categories">Categories</a>
-
-  <a href="#products">Shop</a>
-
-  <a href="#price-deals">Offers</a>
-
-  <a href="#footer">Contact</a>
-
-</nav>
-
-        <label className="search-box">
-
-  <FiSearch className="search-icon"/>
-
-  <input
-    value={search}
-    onChange={(e)=>setSearch(e.target.value)}
-    placeholder="Search 5000+ Beauty Products..."
-  />
-
-</label>
-
-        <nav className="nav-actions">
-          <button type="button" onClick={openAdmin} className="nav-action-btn">
-            <FiSettings aria-hidden="true" />
-            <b>Admin</b>
+        <label className="header-search">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search for products, brands..."
+          />
+          <button type="button" aria-label="Search">
+            <FiSearch />
           </button>
+        </label>
 
+        <nav className="header-actions">
           <button
             type="button"
-            className="nav-action-btn"
-            onClick={() => setAccountOpen(true)}
+            className="header-action-btn"
+            onClick={openAdmin}
+            title="Admin Panel"
           >
-            <FiUser aria-hidden="true" />
-            <b>{user ? user.name.split(" ")[0] : "Account"}</b>
+            <FiSettings />
+            <span className="h-label">Admin</span>
           </button>
 
           <button
             type="button"
-            className="nav-action-btn"
-            onClick={() => showToast("Wishlist feature is coming next")}
+            className="header-action-btn"
+            onClick={openWishlist}
+            title="Wishlist"
           >
-            <FiHeart aria-hidden="true" />
-            <b>Wishlist</b>
-            {wishlist.length > 0 && <em>{wishlist.length}</em>}
+            <FiHeart />
+            {wishlist.length > 0 && <em className="header-badge">{wishlist.length}</em>}
+            <span className="h-label">Wishlist</span>
           </button>
 
           <button
             type="button"
-            className="nav-action-btn cart-button"
+            className="header-action-btn"
             onClick={() => setCartOpen(true)}
           >
-            <FiShoppingBag aria-hidden="true" />
-            <b>Bag</b>
-            {cartCount > 0 && <em>{cartCount}</em>}
+            <FiShoppingBag />
+            {cartCount > 0 && <em className="header-badge">{cartCount}</em>}
+            <span className="h-label">Cart</span>
+          </button>
+
+          <button
+            type="button"
+            className="header-action-btn"
+            onClick={() => setAccountOpen(true)}
+          >
+            <FiUser />
+            <span className="h-label">{user ? user.name.split(" ")[0] : "Account"}</span>
+            <span className="h-sub">{user ? "Profile" : "Sign in"}</span>
           </button>
         </nav>
       </header>
+
+      {/* Sub-Navigation */}
+      <nav className="sub-nav">
+        <button className="shop-by-btn" type="button">
+          <FiMenu size={14} /> Shop by Category <FiChevronDown size={12} />
+        </button>
+        <a
+          href="#top"
+          className="active"
+          onClick={(e) => {
+            e.preventDefault();
+            showAllProducts?.();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        >
+          Home
+        </a>
+        <a
+          href="#products"
+          onClick={(e) => {
+            e.preventDefault();
+            showBestsellers?.();
+          }}
+        >
+          Bestsellers
+        </a>
+        <a
+          href="#products"
+          onClick={(e) => {
+            e.preventDefault();
+            showNewArrivals?.();
+          }}
+        >
+          New Arrivals
+        </a>
+        <a href="#">Brands</a>
+        <a href="#price-deals">
+          Offers <span className="hot-badge">Hot</span>
+        </a>
+      </nav>
     </>
   );
-}
+}
