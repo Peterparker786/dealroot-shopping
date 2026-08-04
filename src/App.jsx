@@ -40,7 +40,7 @@ function App() {
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [productsError, setProductsError] = useState("");
-  const [banner, setBanner] = useState(null);
+  const [banners, setBanners] = useState([]);
 
   const [cart, setCart] = useState([]);
   const [wishlist, setWishlist] = useState([]);
@@ -124,12 +124,12 @@ function App() {
     const data = await response.json();
 
     if (response.ok && data.success) {
-      setBanner(data.banner || null);
+      setBanners(data.banners || (data.banner ? [data.banner] : []));
     } else {
-      setBanner(null);
+      setBanners([]);
     }
   } catch {
-    setBanner(null);
+    setBanners([]);
   }
 };
 
@@ -492,7 +492,7 @@ function App() {
         wishlist={wishlist}
         toggleWishlist={toggleWishlist}
         addToCart={addToCart}
-        banner={banner}
+        banners={banners}
       />
     }
   />

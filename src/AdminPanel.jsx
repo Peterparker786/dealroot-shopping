@@ -29,6 +29,9 @@ const emptyForm = {
   flipkartLink: "",
   otherMarketplaceName: "",
   otherMarketplaceLink: "",
+
+  specifications: [],
+  highlights: [],
 };
 
 function AdminPanel({
@@ -85,6 +88,14 @@ const [categoryForm, setCategoryForm] = useState({
 const [uploadingImages, setUploadingImages] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [search, setSearch] = useState("");
+
+  const [extractingInfo, setExtractingInfo] = useState(false);
+  const [screenshotFile, setScreenshotFile] = useState(null);
+
+  const [extractLink, setExtractLink] = useState("");
+  const [extractingLink, setExtractingLink] = useState(false);
+  const [extractPreview, setExtractPreview] = useState(null);
+  const [previewDraft, setPreviewDraft] = useState(null);
 
   const logOut = (message = "Logged out successfully") => {
     sessionStorage.removeItem("dealroot_admin_token");
@@ -445,6 +456,17 @@ setForm({
 
   otherMarketplaceName: otherMarketplace?.platform || "",
   otherMarketplaceLink: otherMarketplace?.url || "",
+
+  specifications: Array.isArray(product.specifications)
+    ? product.specifications.map((spec) => ({
+        label: spec?.label || "",
+        value: spec?.value || "",
+      }))
+    : [],
+
+  highlights: Array.isArray(product.highlights)
+    ? product.highlights.filter((item) => String(item).trim())
+    : [],
 });
 
 // 👇 YE OBJECT KE BAHAR HONA CHAHIYE
@@ -483,6 +505,195 @@ window.scrollTo({
     setSelectedImages((current) =>
       current.filter((_, i) => i !== index)
     );
+  };
+
+  // Apply an extracted result (info + images) into the form
+  const applyExtractedInfo = (info, images) => {
+    setForm((current) => ({
+      ...current,
+      brand: info.brand || current.brand,
+      title: info.title || current.title,
+      price: info.price ? String(info.price) : current.price,
+      mrp: info.mrp ? String(info.mrp) : current.mrp,
+      description: info.description || current.description,
+      specifications:
+        Array.isArray(info.specifications) &&
+        info.specifications.length > 0
+          ? info.specifications
+          : current.specifications,
+      highlights:
+        Array.isArray(info.highlights) && info.highlights.length > 0
+          ? info.highlights
+          : current.highlights,
+    }));
+
+    if (Array.isArray(images) && images.length > 0) {
+      setSelectedImages((current) => {
+        const existing = new Set(current);
+        const fresh = images.filter((img) => !existing.has(img));
+        return [...current, ...fresh];
+      });
+    }
+  };
+
+  // AI screenshot extraction — shows a preview first, then Apply fills form
+  const extractFromScreenshot = async () => {
+    if (!screenshotFile) {
+      showToast("Pehle product ka screenshot choose karein");
+      return;
+    }
+
+    try {
+      setExtractingInfo(true);
+
+      const formData = new FormData();
+      formData.append("image", screenshotFile);
+
+      const response = await fetch(
+        `${apiUrl}/api/products/extract-info`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Could not extract product info");
+      }
+
+      const info = data.info || {};
+      const specCount = (info.specifications || []).length;
+      const highlightCount = (info.highlights || []).length;
+
+      setScreenshotFile(null);
+
+      if (specCount === 0 && highlightCount === 0 && !info.title) {
+        showToast(
+          "⚠️ Screenshot me product info nahi mili — clear / close-up screenshot try karein"
+        );
+        return;
+      }
+
+      const preview = {
+        info,
+        images: data.images || [],
+        source: "screenshot",
+      };
+
+      setExtractPreview(preview);
+      setPreviewDraft({
+        ...info,
+        specifications: (info.specifications || []).map((spec) => ({
+          label: spec?.label || "",
+          value: spec?.value || "",
+        })),
+        highlights: [...(info.highlights || [])],
+      });
+
+      showToast("✨ Extract ho gaya — neeche preview review karke Save dabayein");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setExtractingInfo(false);
+    }
+  };
+
+  // AI link extraction — fetch product info + images from a store link
+  const extractFromLink = async () => {
+    const url = extractLink.trim();
+
+    if (!url) {
+      showToast("Pehle product ki link paste karein");
+      return;
+    }
+
+    if (!/^https?:\/\//i.test(url)) {
+      showToast("Valid link paste karein (https://...)");
+      return;
+    }
+
+    try {
+      setExtractingLink(true);
+
+      const response = await fetch(
+        `${apiUrl}/api/products/extract-from-link`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ url }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Could not extract from link");
+      }
+
+      const info = data.info || {};
+
+      const preview = {
+        info,
+        images: data.images || [],
+        source: "link",
+      };
+
+      setExtractPreview(preview);
+      setPreviewDraft({
+        ...info,
+        specifications: (info.specifications || []).map((spec) => ({
+          label: spec?.label || "",
+          value: spec?.value || "",
+        })),
+        highlights: [...(info.highlights || [])],
+      });
+
+      showToast(
+        `✨ Link se ${(info.specifications || []).length} specs + ${
+          (info.highlights || []).length
+        } points + ${(data.images || []).length} images mili — review karke Save dabayein`
+      );
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setExtractingLink(false);
+    }
+  };
+
+  // Specifications editor helpers
+  const addSpecRow = () => {
+    setForm((current) => ({
+      ...current,
+      specifications: [
+        ...(current.specifications || []),
+        { label: "", value: "" },
+      ],
+    }));
+  };
+
+  const updateSpecRow = (index, key, value) => {
+    setForm((current) => {
+      const specs = [...(current.specifications || [])];
+      specs[index] = { ...specs[index], [key]: value };
+      return { ...current, specifications: specs };
+    });
+  };
+
+  const removeSpecRow = (index) => {
+    setForm((current) => ({
+      ...current,
+      specifications: (current.specifications || []).filter(
+        (_, i) => i !== index
+      ),
+    }));
   };
 
   const saveProduct = async (event) => {
@@ -1331,6 +1542,359 @@ const deleteCoupon = async (id) => {
     </div>
   )}
 </label>
+
+            <div className="full-field ai-extract-box">
+              <span className="ai-extract-title">🤖 AI Screenshot Extract</span>
+              <small className="ai-extract-hint">
+                Kisi bhi platform (Amazon, Flipkart, Myntra...) ka product screenshot
+                upload karo — AI usse specifications aur "About this item" points
+                automatically nikale aur neeche ke fields bhar dega.
+              </small>
+
+              <div className="ai-extract-controls">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setScreenshotFile(e.target.files[0] || null)}
+                />
+                <button
+                  type="button"
+                  className="ai-extract-btn"
+                  disabled={extractingInfo}
+                  onClick={extractFromScreenshot}
+                >
+                  {extractingInfo
+                    ? "⏳ Analyzing screenshot..."
+                    : "✨ Extract product info"}
+                </button>
+              </div>
+
+              {screenshotFile && (
+                <small className="ai-extract-selected">
+                  📎 {screenshotFile.name}
+                </small>
+              )}
+            </div>
+
+            <div className="full-field ai-extract-box ai-link-box">
+              <span className="ai-extract-title">🔗 Extract from Product Link</span>
+              <small className="ai-extract-hint">
+                Amazon / Flipkart / kisi bhi store ki product link paste karo —
+                info + product images dono extract hongi.
+              </small>
+
+              <div className="ai-extract-controls">
+                <input
+                  type="url"
+                  className="ai-link-input"
+                  value={extractLink}
+                  onChange={(e) => setExtractLink(e.target.value)}
+                  placeholder="https://www.amazon.in/... ya https://www.flipkart.com/..."
+                />
+                <button
+                  type="button"
+                  className="ai-extract-btn"
+                  disabled={extractingLink}
+                  onClick={extractFromLink}
+                >
+                  {extractingLink
+                    ? "⏳ Analyzing link..."
+                    : "🔗 Extract from link"}
+                </button>
+              </div>
+            </div>
+
+            {extractPreview && previewDraft && (
+              <div className="ai-preview-box">
+                <div className="ai-preview-header">
+                  <span>👀 Extract Preview — edit karke Save karein</span>
+                  <div className="ai-preview-actions">
+                    <button
+                      type="button"
+                      className="ai-preview-apply"
+                      onClick={() => {
+                        applyExtractedInfo(previewDraft, extractPreview.images);
+                        setExtractPreview(null);
+                        setPreviewDraft(null);
+                        showToast(
+                          "✅ Extract result form me save ho gaya"
+                        );
+                      }}
+                    >
+                      ✅ Save to form
+                    </button>
+                    <button
+                      type="button"
+                      className="ai-preview-discard"
+                      onClick={() => {
+                        setExtractPreview(null);
+                        setPreviewDraft(null);
+                      }}
+                    >
+                      ✖ Discard
+                    </button>
+                  </div>
+                </div>
+
+                {extractPreview.images.length > 0 && (
+                  <div className="ai-preview-images">
+                    {extractPreview.images.map((img, index) => (
+                      <img
+                        key={index}
+                        src={img}
+                        alt={`Product ${index + 1}`}
+                      />
+                    ))}
+                    <small>
+                      {extractPreview.images.length} product image(s) mili —
+                      Save par "Product Images" me add ho jayengi
+                    </small>
+                  </div>
+                )}
+
+                <div className="ai-preview-fields">
+                  <label className="ai-edit-field">
+                    <span>Brand</span>
+                    <input
+                      value={previewDraft.brand || ""}
+                      onChange={(e) =>
+                        setPreviewDraft({
+                          ...previewDraft,
+                          brand: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="ai-edit-field">
+                    <span>Title</span>
+                    <input
+                      value={previewDraft.title || ""}
+                      onChange={(e) =>
+                        setPreviewDraft({
+                          ...previewDraft,
+                          title: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                  <div className="ai-edit-row">
+                    <label className="ai-edit-field">
+                      <span>Price (₹)</span>
+                      <input
+                        type="number"
+                        value={previewDraft.price || ""}
+                        onChange={(e) =>
+                          setPreviewDraft({
+                            ...previewDraft,
+                            price: e.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <label className="ai-edit-field">
+                      <span>MRP (₹)</span>
+                      <input
+                        type="number"
+                        value={previewDraft.mrp || ""}
+                        onChange={(e) =>
+                          setPreviewDraft({
+                            ...previewDraft,
+                            mrp: e.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+                  <label className="ai-edit-field">
+                    <span>Description</span>
+                    <textarea
+                      rows="3"
+                      value={previewDraft.description || ""}
+                      onChange={(e) =>
+                        setPreviewDraft({
+                          ...previewDraft,
+                          description: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+                </div>
+
+                <div className="ai-preview-specs">
+                  <div className="ai-section-head">
+                    <b>Specifications ({previewDraft.specifications.length})</b>
+                    <button
+                      type="button"
+                      className="ai-add-row-btn"
+                      onClick={() =>
+                        setPreviewDraft({
+                          ...previewDraft,
+                          specifications: [
+                            ...previewDraft.specifications,
+                            { label: "", value: "" },
+                          ],
+                        })
+                      }
+                    >
+                      + Add
+                    </button>
+                  </div>
+                  {previewDraft.specifications.map((spec, index) => (
+                    <div className="ai-preview-spec-row" key={index}>
+                      <input
+                        value={spec.label}
+                        placeholder="Label"
+                        onChange={(e) => {
+                          const specs = [...previewDraft.specifications];
+                          specs[index] = {
+                            ...specs[index],
+                            label: e.target.value,
+                          };
+                          setPreviewDraft({ ...previewDraft, specifications: specs });
+                        }}
+                      />
+                      <input
+                        value={spec.value}
+                        placeholder="Value"
+                        onChange={(e) => {
+                          const specs = [...previewDraft.specifications];
+                          specs[index] = {
+                            ...specs[index],
+                            value: e.target.value,
+                          };
+                          setPreviewDraft({ ...previewDraft, specifications: specs });
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="ai-row-remove"
+                        onClick={() =>
+                          setPreviewDraft({
+                            ...previewDraft,
+                            specifications: previewDraft.specifications.filter(
+                              (_, i) => i !== index
+                            ),
+                          })
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="ai-preview-highlights">
+                  <div className="ai-section-head">
+                    <b>About this item ({previewDraft.highlights.length})</b>
+                    <button
+                      type="button"
+                      className="ai-add-row-btn"
+                      onClick={() =>
+                        setPreviewDraft({
+                          ...previewDraft,
+                          highlights: [...previewDraft.highlights, ""],
+                        })
+                      }
+                    >
+                      + Add
+                    </button>
+                  </div>
+                  {previewDraft.highlights.map((item, index) => (
+                    <div className="ai-highlight-row" key={index}>
+                      <span>•</span>
+                      <input
+                        value={item}
+                        placeholder="Bullet point"
+                        onChange={(e) => {
+                          const highlights = [...previewDraft.highlights];
+                          highlights[index] = e.target.value;
+                          setPreviewDraft({ ...previewDraft, highlights });
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="ai-row-remove"
+                        onClick={() =>
+                          setPreviewDraft({
+                            ...previewDraft,
+                            highlights: previewDraft.highlights.filter(
+                              (_, i) => i !== index
+                            ),
+                          })
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="full-field specs-editor">
+              <span className="specs-editor-title">Product Specifications</span>
+              <small className="specs-editor-hint">
+                Amazon jaisi key-value specifications (jaise Hair Type → All, Scent →
+                Rosemary, Volume → 48 ml). Ye product page par table me dikhengi.
+              </small>
+
+              {(form.specifications || []).map((spec, index) => (
+                <div className="spec-row" key={index}>
+                  <input
+                    value={spec.label}
+                    onChange={(e) => updateSpecRow(index, "label", e.target.value)}
+                    placeholder="Specification (e.g. Hair Type)"
+                  />
+                  <input
+                    value={spec.value}
+                    onChange={(e) => updateSpecRow(index, "value", e.target.value)}
+                    placeholder="Value (e.g. All)"
+                  />
+                  <button
+                    type="button"
+                    className="spec-remove-btn"
+                    onClick={() => removeSpecRow(index)}
+                    aria-label="Remove specification"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                className="spec-add-btn"
+                onClick={addSpecRow}
+              >
+                + Add specification
+              </button>
+            </div>
+
+            <div className="full-field specs-editor">
+              <span className="specs-editor-title">About this item (bullet points)</span>
+              <small className="specs-editor-hint">
+                Amazon ke "About this item" jaisa — har line ek bullet banegi. Product
+                page par click karke expand/collapse ho sakti hai.
+              </small>
+
+              <textarea
+                className="highlights-textarea"
+                rows="4"
+                placeholder={
+                  "Ek line = ek bullet point:\nImproves blood circulation to the scalp\nDeeply nourishes the scalp\nStrengthens hair follicles reducing breakage"
+                }
+                value={(form.highlights || []).join("\n")}
+                onChange={(e) =>
+                  setForm((current) => ({
+                    ...current,
+                    highlights: e.target.value
+                      .split("\n")
+                      .map((line) => line.trim())
+                      .filter(Boolean),
+                  }))
+                }
+              />
+            </div>
 
             <label className="full-field">
               Description

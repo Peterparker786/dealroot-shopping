@@ -20,7 +20,7 @@ export default function Home({
   wishlist,
   toggleWishlist,
   addToCart,
-  banner,
+  banners,
 }) {
   // Flash deal countdown timer
   const [timeLeft, setTimeLeft] = useState({ h: 5, m: 23, s: 47 });
@@ -46,7 +46,7 @@ export default function Home({
 
   return (
     <main id="top">
-      <Hero fallbackImage={fallbackImage} banner={banner} />
+      <Hero fallbackImage={fallbackImage} banners={banners} />
 
       {/* Shop by Category */}
       <section className="section" id="categories">

@@ -305,10 +305,11 @@ img { max-width: 100%; display: block; }
 .hero-right { position: relative; z-index: 2; display: flex; justify-content: center; }
 .hero-product-showcase {
   position: relative; display: flex; align-items: center; justify-content: center;
-  width: 100%; max-width: 560px;
+  width: 100%; max-width: 480px;
 }
 .hero-product-img {
   width: 100%; max-width: 480px; height: auto;
+  border-radius: 24px;
   filter: drop-shadow(0 20px 60px rgba(0,0,0,0.15));
   object-fit: contain;
 }
@@ -356,6 +357,7 @@ img { max-width: 100%; display: block; }
   background: var(--brand); color: #fff;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   font-size: 11px; font-weight: 600; line-height: 1.2;
+  z-index: 3;
   box-shadow: 0 8px 30px rgba(226,28,72,0.3);
   animation: pulseBadge 2s ease-in-out infinite;
 }
@@ -363,6 +365,72 @@ img { max-width: 100%; display: block; }
 @keyframes pulseBadge {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.05); }
+}
+
+/* Hero banner carousel (multiple banners) */
+.hero-carousel {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero-carousel-slide {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hero-carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 5;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: rgba(255,255,255,0.92);
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  transition: all var(--normal) var(--ease);
+  backdrop-filter: blur(6px);
+}
+.hero-carousel-arrow:hover {
+  background: var(--brand);
+  color: #fff;
+  transform: translateY(-50%) scale(1.08);
+}
+.hero-carousel-prev { left: -6px; }
+.hero-carousel-next { right: -6px; }
+.hero-carousel-dots {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 5;
+}
+.hero-carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  padding: 0;
+  background: rgba(0,0,0,0.22);
+  cursor: pointer;
+  transition: all var(--normal) var(--ease);
+}
+.hero-carousel-dot.active {
+  width: 26px;
+  border-radius: 999px;
+  background: var(--brand);
 }
 
 .hero-features {
@@ -749,10 +817,15 @@ img { max-width: 100%; display: block; }
   .hero-left p { margin: 0 auto 28px; }
   .hero-buttons { justify-content: center; }
   .hero-right { margin-top: 20px; }
-  .hero-product-img { max-width: 240px; }
-  .hero-offer-badge { width: 80px; height: 80px; right: 10px; }
+  .hero-product-img { max-width: 240px; border-radius: 18px; }
+  .hero-product-showcase { max-width: 240px; }
+  .hero-offer-badge { width: 80px; height: 80px; right: 4%; top: 4%; }
   .hero-offer-badge strong { font-size: 16px; }
   .hero-offer-badge { font-size: 10px; }
+  .hero-carousel-prev { left: 2px; }
+  .hero-carousel-next { right: 2px; }
+  .hero-carousel-arrow { width: 34px; height: 34px; }
+  .hero-carousel-dots { bottom: 10px; }
   .hero-features { justify-content: center; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
 }

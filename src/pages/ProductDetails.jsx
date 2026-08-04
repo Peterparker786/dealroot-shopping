@@ -2,9 +2,27 @@ import "./ProductDetails.css";
 import { useEffect, useState, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FiShoppingBag, FiTruck, FiShield, FiRefreshCw, FiLock, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { FiShoppingBag, FiTruck, FiShield, FiRefreshCw, FiLock, FiChevronLeft, FiChevronRight, FiChevronDown } from "react-icons/fi";
 import { getDefaultReviews } from "../utils/defaultReviews";
 import RatingSummary from "../components/DefaultReviews";
+
+// Amazon-style expandable section (hoisted to module scope to avoid re-mounts)
+function AmazonAccordion({ title, open, onToggle, children }) {
+  return (
+    <div className={`amazon-accordion ${open ? "open" : ""}`}>
+      <button
+        type="button"
+        className="amazon-accordion-header"
+        onClick={onToggle}
+        aria-expanded={open}
+      >
+        <span>{title}</span>
+        <FiChevronDown size={18} />
+      </button>
+      {open && <div className="amazon-accordion-body">{children}</div>}
+    </div>
+  );
+}
 
 export default function ProductDetails({
   apiUrl,
@@ -23,7 +41,20 @@ export default function ProductDetails({
   const [quantity, setQuantity] = useState(1);
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [expandedSections, setExpandedSections] = useState({
+    highlights: false,
+    about: true,
+  });
+  const [showAllHighlights, setShowAllHighlights] = useState(false);
+  const [showAllAbout, setShowAllAbout] = useState(false);
   const stickySentinel = useRef(null);
+
+  const toggleSection = (key) => {
+    setExpandedSections((current) => ({
+      ...current,
+      [key]: !current[key],
+    }));
+  };
 
   // Auto-rotate images
   useEffect(() => {
@@ -104,6 +135,15 @@ export default function ProductDetails({
         description: data.product.description || "",
         deliveryDate: getEstimatedDelivery(),
         marketplaceLinks: data.product.marketplaceLinks || [],
+        specifications:
+          Array.isArray(data.product.specifications)
+            ? data.product.specifications.filter(
+                (spec) => spec?.label && spec?.value
+              )
+            : [],
+        highlights: Array.isArray(data.product.highlights)
+          ? data.product.highlights.filter((item) => String(item).trim())
+          : [],
       });
 
       setSelectedImage(data.product.images?.[0] || data.product.image || fallbackImage);
@@ -422,6 +462,68 @@ export default function ProductDetails({
             <h3>About this Product</h3>
             <p>{product.description}</p>
           </div>
+
+          {product.highlights.length > 0 && (
+            <AmazonAccordion
+              title="About this item"
+              open={expandedSections.about}
+              onToggle={() => toggleSection("about")}
+            >
+              <ul className="about-item-list">
+                {(showAllAbout
+                  ? product.highlights
+                  : product.highlights.slice(0, 3)
+                ).map((item, index) => (
+                  <li key={index}>
+                    <span className="about-bullet">•</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              {product.highlights.length > 3 && (
+                <button
+                  type="button"
+                  className="see-more-btn"
+                  onClick={() => setShowAllAbout((current) => !current)}
+                >
+                  {showAllAbout ? "See less" : "See more"}{" "}
+                  {showAllAbout ? "▲" : "▼"}
+                </button>
+              )}
+            </AmazonAccordion>
+          )}
+
+          {product.specifications.length > 0 && (
+            <AmazonAccordion
+              title="Top Highlights"
+              open={expandedSections.highlights}
+              onToggle={() => toggleSection("highlights")}
+            >
+              <table className="specifications-table">
+                <tbody>
+                  {(showAllHighlights
+                    ? product.specifications
+                    : product.specifications.slice(0, 4)
+                  ).map((spec, index) => (
+                    <tr key={index}>
+                      <th>{spec.label}</th>
+                      <td>{spec.value}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {product.specifications.length > 4 && (
+                <button
+                  type="button"
+                  className="see-more-btn"
+                  onClick={() => setShowAllHighlights((current) => !current)}
+                >
+                  {showAllHighlights ? "See less" : "See more"}{" "}
+                  {showAllHighlights ? "▲" : "▼"}
+                </button>
+              )}
+            </AmazonAccordion>
+          )}
 
           <div className="trust-badges">
             <div className="trust-item"><FiShield size={16} /> 100% Genuine</div>
