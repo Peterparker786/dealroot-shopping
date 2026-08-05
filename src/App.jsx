@@ -629,6 +629,8 @@ function App() {
   showBestsellers={showBestsellers}
   showAllProducts={showAllProducts}
   showNewArrivals={showNewArrivals}
+  categories={categories}
+  showCategory={showCategory}
 />
 
 <Suspense fallback={<PageLoader />}>

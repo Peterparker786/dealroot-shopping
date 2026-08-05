@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
 import { FiSearch, FiUser, FiHeart, FiShoppingBag, FiChevronDown, FiMenu, FiSettings } from "react-icons/fi";
 
 export default function Navbar({
@@ -14,7 +15,62 @@ export default function Navbar({
   showBestsellers,
   showAllProducts,
   showNewArrivals,
+  categories = [],
+  showCategory,
 }) {
+  const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
+  const categoryMenuRef = useRef(null);
+  const navigate = useNavigate();
+
+  // Close the category dropdown on outside click or Escape.
+  useEffect(() => {
+    if (!categoryMenuOpen) return undefined;
+
+    const closeOnOutside = (event) => {
+      if (
+        categoryMenuRef.current &&
+        !categoryMenuRef.current.contains(event.target)
+      ) {
+        setCategoryMenuOpen(false);
+      }
+    };
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setCategoryMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", closeOnOutside);
+    document.addEventListener("keydown", closeOnEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [categoryMenuOpen]);
+
+  const pickCategory = (category) => {
+    setCategoryMenuOpen(false);
+
+    // The category filter + #products section only live on the home page,
+    // so jump home first when browsing any other route.
+    if (window.location.pathname !== "/") {
+      navigate("/");
+      window.setTimeout(() => {
+        showCategory?.(category);
+        document
+          .getElementById("products")
+          ?.scrollIntoView({ behavior: "smooth" });
+      }, 150);
+      return;
+    }
+
+    showCategory?.(category);
+    window.setTimeout(() => {
+      document
+        .getElementById("products")
+        ?.scrollIntoView({ behavior: "smooth" });
+    }, 80);
+  };
   return (
     <>
       {/* Scrolling Marquee Bar (Nykaa style) */}
@@ -103,9 +159,50 @@ export default function Navbar({
 
       {/* Sub-Navigation */}
       <nav className="sub-nav">
-        <button className="shop-by-btn" type="button">
-          <FiMenu size={14} /> Shop by Category <FiChevronDown size={12} />
-        </button>
+        <div className="shop-by-wrap" ref={categoryMenuRef}>
+          <button
+            className={`shop-by-btn ${categoryMenuOpen ? "open" : ""}`}
+            type="button"
+            aria-expanded={categoryMenuOpen}
+            aria-haspopup="menu"
+            onClick={() => setCategoryMenuOpen((open) => !open)}
+          >
+            <FiMenu size={14} /> Shop by Category{" "}
+            <FiChevronDown size={12} className={categoryMenuOpen ? "rotate" : ""} />
+          </button>
+
+          {categoryMenuOpen && (
+            <div className="category-menu" role="menu">
+              <button
+                type="button"
+                className="category-menu-item"
+                role="menuitem"
+                onClick={() => pickCategory("All")}
+              >
+                <span className="category-menu-emoji all">All</span>
+                All Products
+              </button>
+
+              {categories.map((category) => (
+                <button
+                  type="button"
+                  className="category-menu-item"
+                  role="menuitem"
+                  key={category.name}
+                  onClick={() => pickCategory(category.name)}
+                >
+                  <span
+                    className="category-menu-emoji"
+                    style={{ background: category.color || "#f5f5f5" }}
+                  >
+                    {category.emoji || "✨"}
+                  </span>
+                  {category.label || category.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <a
           href="#top"
           className="active"

@@ -27,7 +27,7 @@ export default function PrivacyPolicy() {
 
       <h3>Contact</h3>
 
-      <p>Email: dealoot.store@gmail.com</p>
+      <p>Email: dealroot.store@gmail.com</p>
       <p>Telegram: @Tom_andrew72</p>
     </div>
   );

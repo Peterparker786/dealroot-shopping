@@ -34,9 +34,18 @@ export default function Footer() {
         <div className="footer-col">
           <h4>Contact</h4>
           <ul>
-            <li><a href="mailto:dealoot.store@gmail.com">dealoot.store@gmail.com</a></li>
+            <li><a href="mailto:dealroot.store@gmail.com">dealroot.store@gmail.com</a></li>
             <li><a href="https://t.me/Tom_andrew72" target="_blank" rel="noreferrer">@Tom_andrew72</a></li>
-            <li>📍 Kanpur, Uttar Pradesh</li>
+            <li>
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=Kanpur,+Uttar+Pradesh,+India"
+                target="_blank"
+                rel="noreferrer"
+                className="footer-map-link"
+              >
+                📍 Kanpur, Uttar Pradesh
+              </a>
+            </li>
           </ul>
         </div>
 
