@@ -43,10 +43,9 @@ export default function Footer() {
         <div className="footer-col">
           <h4>More</h4>
           <ul>
-            <li>About Us</li>
-            <li>Careers</li>
-            <li>Brands</li>
-            <li>Become a Seller</li>
+            <li><Link to="/about">About Us</Link></li>
+            <li><Link to="/brands">Brands</Link></li>
+            <li><Link to="/become-a-seller">Become a Seller</Link></li>
           </ul>
         </div>
       </div>

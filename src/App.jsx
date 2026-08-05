@@ -22,6 +22,10 @@ import {
 
 // Code-split heavy pages & modals so the initial bundle stays small.
 const Contact = lazy(() => import("./pages/Contact"));
+const BecomeSeller = lazy(() => import("./pages/BecomeSeller"));
+const About = lazy(() => import("./pages/About"));
+const Brands = lazy(() => import("./pages/Brands"));
+const TrackOrder = lazy(() => import("./pages/TrackOrder"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const ShippingPolicy = lazy(() => import("./pages/ShippingPolicy"));
@@ -656,6 +660,13 @@ function App() {
   />
 
   <Route path="/contact" element={<Contact />} />
+  <Route path="/become-a-seller" element={<BecomeSeller />} />
+  <Route path="/about" element={<About />} />
+  <Route path="/brands" element={<Brands />} />
+  <Route
+    path="/track-order"
+    element={<TrackOrder apiUrl={API_URL} />}
+  />
   <Route path="/privacy" element={<PrivacyPolicy />} />
   <Route path="/terms" element={<Terms />} />
   <Route path="/shipping" element={<ShippingPolicy />} />

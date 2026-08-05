@@ -681,3 +681,247 @@ border-radius:999px;
 border-radius:18px;
 
 }
+
+/* ==========================
+   LOGIN / SIGNUP — 3D CHARACTER
+========================== */
+
+.account-auth-copy {
+  position: relative;
+  transform-style: preserve-3d;
+  will-change: transform;
+  transform: perspective(1000px)
+    rotateY(calc(var(--tilt-x, 0) * -7deg))
+    rotateX(calc(var(--tilt-y, 0) * 7deg));
+  transition: transform 180ms ease-out;
+}
+
+.auth-orb {
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(30px);
+}
+
+.orb-a {
+  width: 170px;
+  height: 170px;
+  top: -46px;
+  left: -38px;
+  background: radial-gradient(circle at 30% 30%, #ff9ed8, #7c3aed 62%, transparent 78%);
+  opacity: 0.6;
+  animation: authFloat 9s ease-in-out infinite;
+}
+
+.orb-b {
+  width: 120px;
+  height: 120px;
+  top: 42%;
+  left: -30px;
+  background: radial-gradient(circle at 60% 40%, #67e8f9, #2563eb 65%, transparent 82%);
+  opacity: 0.55;
+  animation: authFloat 11s ease-in-out infinite reverse;
+}
+
+.orb-c {
+  width: 110px;
+  height: 110px;
+  right: 26px;
+  bottom: -26px;
+  background: radial-gradient(circle at 50% 50%, #fcd34d, #f472b6 72%, transparent 85%);
+  opacity: 0.5;
+  animation: authFloat 8s ease-in-out infinite;
+}
+
+@keyframes authFloat {
+  0%, 100% { transform: translate3d(0, 0, 12px); }
+  50% { transform: translate3d(16px, -20px, 12px); }
+}
+
+.auth-copy-layer {
+  position: relative;
+  z-index: 1;
+  transform: translateZ(18px);
+}
+
+.auth-copy-layer .account-avatar {
+  transform: translateZ(10px);
+}
+
+.auth-copy-layer ul {
+  max-width: 250px;
+}
+
+.auth-mascot-wrap {
+  position: absolute;
+  right: 14px;
+  bottom: 4px;
+  width: 190px;
+  height: 200px;
+  z-index: 2;
+  transform: translateZ(40px);
+  pointer-events: none;
+}
+
+.account-mascot {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 20px 26px rgba(8, 28, 66, 0.38));
+  transform-origin: 50% 100%;
+  animation: mascotBob 4.2s ease-in-out infinite;
+}
+
+@keyframes mascotBob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-12px) rotate(2deg); }
+}
+
+.mascot-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  width: 118px;
+  height: 16px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(6, 20, 45, 0.4), transparent 70%);
+  filter: blur(4px);
+  animation: mascotShadow 4.2s ease-in-out infinite;
+}
+
+@keyframes mascotShadow {
+  0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.9; }
+  50% { transform: translateX(-50%) scale(0.78); opacity: 0.45; }
+}
+
+.ma-sparkles {
+  animation: sparkleTwinkle 2.6s ease-in-out infinite;
+  transform-origin: 50% 50%;
+}
+
+@keyframes sparkleTwinkle {
+  0%, 100% { opacity: 0.55; transform: scale(0.92) rotate(-4deg); }
+  50% { opacity: 1; transform: scale(1.06) rotate(4deg); }
+}
+
+.auth-float-chip {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.24);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 12px 24px rgba(8, 25, 45, 0.25);
+  font-size: 19px;
+  animation: chipFloat 5s ease-in-out infinite;
+}
+
+.chip-1 { top: -6px; left: -10px; animation-delay: 0.4s; }
+.chip-2 { top: 34px; right: -6px; animation-delay: 1.6s; }
+
+@keyframes chipFloat {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  50% { transform: translateY(-14px) rotate(9deg); }
+}
+
+.account-auth-form {
+  position: relative;
+  overflow: hidden;
+}
+
+.account-auth-form::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 94% 4%, rgba(124, 58, 237, 0.09), transparent 44%),
+    radial-gradient(circle at 4% 96%, rgba(236, 72, 153, 0.08), transparent 42%);
+  pointer-events: none;
+}
+
+.account-auth-form > * {
+  position: relative;
+  z-index: 1;
+}
+
+.account-overlay::before,
+.account-overlay::after {
+  content: "";
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.account-overlay::before {
+  width: 460px;
+  height: 460px;
+  top: -140px;
+  left: -140px;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.5), transparent 70%);
+  animation: overlayDrift 14s ease-in-out infinite;
+}
+
+.account-overlay::after {
+  width: 420px;
+  height: 420px;
+  bottom: -120px;
+  right: -120px;
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.45), transparent 70%);
+  animation: overlayDrift 18s ease-in-out infinite reverse;
+}
+
+@keyframes overlayDrift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(46px, 34px) scale(1.14); }
+}
+
+.auth-mobile-mascot {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .auth-mobile-mascot {
+    display: flex;
+    justify-content: center;
+    margin: -14px 0 2px;
+  }
+
+  .auth-mobile-mascot-art {
+    width: 118px;
+    height: 112px;
+    animation: mascotBob 4.2s ease-in-out infinite;
+    filter: drop-shadow(0 14px 18px rgba(20, 60, 120, 0.25));
+  }
+
+  .account-overlay::before,
+  .account-overlay::after {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-auth-copy,
+  .auth-orb,
+  .auth-float-chip,
+  .account-mascot,
+  .auth-mobile-mascot-art,
+  .mascot-shadow,
+  .ma-sparkles {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .account-overlay::before,
+  .account-overlay::after {
+    animation: none !important;
+  }
+}

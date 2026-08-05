@@ -34,8 +34,8 @@ export default function Navbar({
         <span>🚚 FREE DELIVERY on orders above ₹499</span>
         <span>🎁 USE CODE: BEAUTY10 - Get 10% OFF on orders above ₹999</span>
         <div className="ann-right">
-          <a href="#">Track Order</a>
-          <a href="#">Help Center</a>
+          <Link to="/track-order">Track Order</Link>
+          <Link to="/contact">Help Center</Link>
         </div>
       </div>
 
@@ -135,7 +135,7 @@ export default function Navbar({
         >
           New Arrivals
         </a>
-        <a href="#">Brands</a>
+        <Link to="/brands">Brands</Link>
         <a href="#price-deals">
           Offers <span className="hot-badge">Hot</span>
         </a>

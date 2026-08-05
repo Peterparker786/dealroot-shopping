@@ -82,11 +82,34 @@ export default function Contact() {
           </p>
 
           <p style={{ marginBottom: "22px" }}>
-            <FaEnvelope color="#555" size={18} /> dealroot.store@gmail.com
+            <FaEnvelope color="#555" size={18} />{" "}
+            <a
+              href="mailto:dealroot.store@gmail.com"
+              style={{
+                textDecoration: "none",
+                color: "#555",
+                fontWeight: "600",
+              }}
+            >
+              dealroot.store@gmail.com
+            </a>
           </p>
 
           <p style={{ marginBottom: "22px" }}>
-            <FaMapMarkerAlt color="#555" size={18} /> Delhi, India
+            <FaMapMarkerAlt color="#555" size={18} />{" "}
+            <a
+              href="https://www.google.com/maps/search/?api=1&query=Kanpur,+Uttar+Pradesh,+India"
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                textDecoration: "none",
+                color: "#555",
+                fontWeight: "600",
+                borderBottom: "1px dotted #999",
+              }}
+            >
+              Kanpur, Uttar Pradesh
+            </a>
           </p>
 
           <p>

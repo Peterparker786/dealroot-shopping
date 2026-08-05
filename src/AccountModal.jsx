@@ -15,6 +15,137 @@ const emptyProfile = {
   pincode: "",
 };
 
+function MascotArt({ className }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 220 210"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+    >
+      <defs>
+        <linearGradient
+          id="maBody"
+          x1="90"
+          y1="30"
+          x2="150"
+          y2="186"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#ffffff" />
+          <stop offset="0.55" stopColor="#eaf1ff" />
+          <stop offset="1" stopColor="#cfe3ff" />
+        </linearGradient>
+        <linearGradient
+          id="maCape"
+          x1="62"
+          y1="92"
+          x2="158"
+          y2="186"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#8b5cf6" />
+          <stop offset="0.5" stopColor="#d946ef" />
+          <stop offset="1" stopColor="#f472b6" />
+        </linearGradient>
+        <linearGradient
+          id="maWand"
+          x1="150"
+          y1="60"
+          x2="196"
+          y2="106"
+          gradientUnits="userSpaceOnUse"
+        >
+          <stop stopColor="#ffffff" />
+          <stop offset="1" stopColor="#ffe4f1" />
+        </linearGradient>
+      </defs>
+
+      <g className="ma-sparkles" opacity="0.95">
+        <path
+          d="M34 54 l4 9 9 4 -9 4 -4 9 -4 -9 -9 -4 9 -4 z"
+          fill="#ffffff"
+          opacity="0.95"
+        />
+        <path
+          d="M188 152 l3.5 7.5 7.5 3.5 -7.5 3.5 -3.5 7.5 -3.5 -7.5 -7.5 -3.5 7.5 -3.5 z"
+          fill="#ffffff"
+          opacity="0.8"
+        />
+        <circle cx="48" cy="152" r="3" fill="#ffffff" opacity="0.75" />
+        <circle cx="176" cy="54" r="2.6" fill="#ffffff" opacity="0.85" />
+      </g>
+
+      <path
+        d="M110 92 C 74 108 60 140 62 172 C 96 188 128 190 158 176 C 156 142 140 108 110 92 Z"
+        fill="url(#maCape)"
+        opacity="0.92"
+      />
+
+      <path
+        d="M110 30 C 62 30 40 74 40 118 C 40 164 72 186 110 186 C 148 186 180 164 180 118 C 180 74 158 30 110 30 Z"
+        fill="url(#maBody)"
+        stroke="#ffffff"
+        strokeWidth="4"
+      />
+
+      <ellipse cx="76" cy="128" rx="11" ry="7" fill="#fda4c4" opacity="0.85" />
+      <ellipse cx="144" cy="128" rx="11" ry="7" fill="#fda4c4" opacity="0.85" />
+
+      <ellipse cx="88" cy="106" rx="8.5" ry="10" fill="#17324f" />
+      <ellipse cx="132" cy="106" rx="8.5" ry="10" fill="#17324f" />
+      <circle cx="91" cy="101" r="3.2" fill="#ffffff" />
+      <circle cx="135" cy="101" r="3.2" fill="#ffffff" />
+
+      <path
+        d="M100 132 Q110 144 120 132"
+        stroke="#17324f"
+        strokeWidth="4.5"
+        strokeLinecap="round"
+        fill="none"
+      />
+
+      <g>
+        <circle cx="95" cy="42" r="9" fill="#f9a8d4" />
+        <circle cx="110" cy="34" r="9" fill="#c4b5fd" />
+        <circle cx="126" cy="43" r="9" fill="#fcd34d" />
+        <circle cx="95" cy="42" r="3.4" fill="#ffffff" opacity="0.8" />
+        <circle cx="110" cy="34" r="3.4" fill="#ffffff" opacity="0.8" />
+        <circle cx="126" cy="43" r="3.4" fill="#ffffff" opacity="0.8" />
+      </g>
+
+      <line
+        x1="160"
+        y1="80"
+        x2="182"
+        y2="58"
+        stroke="#ffffff"
+        strokeWidth="6"
+        strokeLinecap="round"
+      />
+      <line
+        x1="160"
+        y1="80"
+        x2="182"
+        y2="58"
+        stroke="#d8b4fe"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        opacity="0.7"
+      />
+      <path
+        d="M196 34 l5.5 12 12 5.5 -12 5.5 -5.5 12 -5.5 -12 -12 -5.5 12 -5.5 z"
+        fill="url(#maWand)"
+        stroke="#ffffff"
+        strokeWidth="2"
+      />
+
+      <ellipse cx="110" cy="199" rx="58" ry="9" fill="rgba(10,30,70,0.22)" />
+    </svg>
+  );
+}
+
 export default function AccountModal({
   isOpen,
   onClose,
@@ -381,6 +512,20 @@ export default function AccountModal({
   const statusLabel = (status = "placed") =>
     status.charAt(0).toUpperCase() + status.slice(1);
 
+  const handleCopyTilt = (event) => {
+    const el = event.currentTarget;
+    const rect = el.getBoundingClientRect();
+    const px = (event.clientX - rect.left) / rect.width - 0.5;
+    const py = (event.clientY - rect.top) / rect.height - 0.5;
+    el.style.setProperty("--tilt-x", px.toFixed(3));
+    el.style.setProperty("--tilt-y", py.toFixed(3));
+  };
+
+  const handleCopyTiltReset = (event) => {
+    event.currentTarget.style.setProperty("--tilt-x", "0");
+    event.currentTarget.style.setProperty("--tilt-y", "0");
+  };
+
   return (
     <div
       className="account-overlay"
@@ -418,23 +563,44 @@ export default function AccountModal({
 
         {!user ? (
           <div className="account-auth-wrap">
-            <div className="account-auth-copy">
-              <span className="account-avatar">DEALROOT</span>
-              <h3>Shopping gets easier with an account.</h3>
-              <p>
-                Save your address, check every order, and enjoy a
-                faster checkout.
-              </p>
+            <div
+              className="account-auth-copy"
+              onMouseMove={handleCopyTilt}
+              onMouseLeave={handleCopyTiltReset}
+            >
+              <span className="auth-orb orb-a" aria-hidden="true" />
+              <span className="auth-orb orb-b" aria-hidden="true" />
+              <span className="auth-orb orb-c" aria-hidden="true" />
 
-              <ul>
-                <li>✓ Saved delivery details</li>
-                <li>✓ Personal order history</li>
-                <li>✓ Secure 7-day login session</li>
-              </ul>
+              <div className="auth-copy-layer">
+                <span className="account-avatar">DEALROOT</span>
+                <h3>Shopping gets easier with an account.</h3>
+                <p>
+                  Save your address, check every order, and enjoy a
+                  faster checkout.
+                </p>
+
+                <ul>
+                  <li>✓ Saved delivery details</li>
+                  <li>✓ Personal order history</li>
+                  <li>✓ Secure 7-day login session</li>
+                </ul>
+              </div>
+
+              <div className="auth-mascot-wrap" aria-hidden="true">
+                <span className="auth-float-chip chip-1">💄</span>
+                <span className="auth-float-chip chip-2">✨</span>
+                <MascotArt className="account-mascot" />
+                <span className="mascot-shadow" />
+              </div>
             </div>
 
             {!forgotMode ? (
               <form className="account-auth-form" onSubmit={submitAuth}>
+                <div className="auth-mobile-mascot" aria-hidden="true">
+                  <MascotArt className="auth-mobile-mascot-art" />
+                </div>
+
                 <div className="auth-switch">
                   <button
                     type="button"
@@ -561,6 +727,10 @@ export default function AccountModal({
               </form>
             ) : (
               <form className="account-auth-form" onSubmit={(e) => { e.preventDefault(); if (otpSent) { resetPassword(e); } else { sendOTP(); } }}>
+                <div className="auth-mobile-mascot" aria-hidden="true">
+                  <MascotArt className="auth-mobile-mascot-art" />
+                </div>
+
                 <button
                   type="button"
                   onClick={() => {
