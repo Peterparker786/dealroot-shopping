@@ -11,6 +11,7 @@ import {
   FiChevronRight,
 } from "react-icons/fi";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { optimizeImage } from "../../utils/cloudinary";
 
 function BannerShowcase({ heroImage, link }) {
   const scrollToProducts = (event) => {
@@ -26,7 +27,7 @@ function BannerShowcase({ heroImage, link }) {
         UP TO <strong>50%</strong> OFF
       </div>
       <img
-        src={heroImage}
+        src={optimizeImage(heroImage, 1000)}
         alt="Offer banner"
         className="hero-product-img"
         loading="eager"

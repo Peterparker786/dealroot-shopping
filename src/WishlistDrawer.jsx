@@ -1,3 +1,5 @@
+import { optimizeImage } from "./utils/cloudinary";
+
 function WishlistDrawer({ isOpen, onClose, products, onRemove, addToCart }) {
   return (
     <>
@@ -35,7 +37,7 @@ function WishlistDrawer({ isOpen, onClose, products, onRemove, addToCart }) {
           <div className="cart-items">
             {products.map((product) => (
               <div className="cart-item" key={product.id}>
-                <img src={product.image} alt={product.name} />
+                <img src={optimizeImage(product.image, 200)} alt={product.name} />
 
                 <div className="cart-item-info">
                   <p>{product.brand}</p>

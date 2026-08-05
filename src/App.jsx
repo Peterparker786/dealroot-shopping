@@ -1,26 +1,43 @@
-// Verified customer account modal connection — 23 July 2026
 import Navbar from "./components/Navbar";
 import { Routes, Route } from "react-router-dom";
 import { FiHome, FiGrid, FiZap, FiPackage, FiUser } from "react-icons/fi";
 import Home from "./pages/Home";
-import Contact from "./pages/Contact";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import Terms from "./pages/Terms";
-import ShippingPolicy from "./pages/ShippingPolicy";
-import RefundPolicy from "./pages/RefundPolicy";
-import ProductDetails from "./pages/ProductDetails";
 import Footer from "./components/Footer";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import CartDrawer from "./CartDrawer";
 import WishlistDrawer from "./WishlistDrawer";
-import CheckoutModal from "./CheckoutModal";
-import AdminPanel from "./AdminPanel";
-import AccountModal from "./AccountModal";
 import "./index.css";
 import {
   getStoredCategories,
   saveStoredCategories,
 } from "./utils/categories";
+
+// Code-split heavy pages & modals so the initial bundle stays small.
+const Contact = lazy(() => import("./pages/Contact"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Terms = lazy(() => import("./pages/Terms"));
+const ShippingPolicy = lazy(() => import("./pages/ShippingPolicy"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const ProductDetails = lazy(() => import("./pages/ProductDetails"));
+const CheckoutModal = lazy(() => import("./CheckoutModal"));
+const AdminPanel = lazy(() => import("./AdminPanel"));
+const AccountModal = lazy(() => import("./AccountModal"));
+
+function PageLoader() {
+  return (
+    <div className="page-loader" role="status" aria-label="Loading">
+      <span className="spinner" />
+    </div>
+  );
+}
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
@@ -46,18 +63,30 @@ function App() {
   const [wishlist, setWishlist] = useState([]);
   const [categories, setCategories] = useState(getStoredCategories);
   const [toast, setToast] = useState("");
+  const [toastAction, setToastAction] = useState(null);
+  const toastTimer = useRef(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [checkoutMounted, setCheckoutMounted] = useState(false);
+  const [accountMounted, setAccountMounted] = useState(false);
   const [userToken, setUserToken] = useState(() =>
     localStorage.getItem("dealroot_user_token") || ""
   );
   const [user, setUser] = useState(null);
 
-  const showToast = (message) => {
+  const showToast = (message, action = null) => {
     setToast(message);
-    window.setTimeout(() => setToast(""), 2200);
+    setToastAction(action);
+
+    // Clear any pending timer so a previous toast can never wipe out
+    // the current one early.
+    window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => {
+      setToast("");
+      setToastAction(null);
+    }, 2400);
   };
 
   const openAdmin = () => {
@@ -90,6 +119,14 @@ function App() {
     setUserToken(token);
     setUser(nextUser);
   };
+
+  useEffect(() => {
+    if (checkoutOpen) setCheckoutMounted(true);
+  }, [checkoutOpen]);
+
+  useEffect(() => {
+    if (accountOpen) setAccountMounted(true);
+  }, [accountOpen]);
 
   useEffect(() => {
     if (!userToken) return;
@@ -203,6 +240,52 @@ function App() {
   useEffect(() => {
   loadBanner();
 }, []);
+
+  // Load categories from the server so every browser/device sees the same
+  // list. Falls back to localStorage if the API is unreachable.
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/categories`);
+        const data = await response.json();
+
+        if (response.ok && data.success && Array.isArray(data.categories)) {
+          const serverList = data.categories.map((category) => ({
+            name: category.name,
+            emoji: category.emoji,
+            color: category.color,
+          }));
+
+          if (serverList.length > 0) {
+            // Merge with any locally-added categories instead of replacing,
+            // so a slow response can never wipe out a just-added category.
+            setCategories((current) => {
+              const merged = [...serverList];
+
+              current.forEach((category) => {
+                const exists = merged.some(
+                  (item) =>
+                    item.name.toLowerCase() ===
+                    category.name.toLowerCase()
+                );
+
+                if (!exists) {
+                  merged.push(category);
+                }
+              });
+
+              saveStoredCategories(merged);
+              return merged;
+            });
+          }
+        }
+      } catch {
+        // keep the localStorage fallback
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   const filteredProducts = useMemo(() => {
     if (bestsellersOnly) {
@@ -319,7 +402,10 @@ function App() {
     ];
   });
 
-  showToast(`${product.name} added to cart`);
+  showToast("Product added to cart!", {
+    label: "View Bag",
+    onClick: () => setCartOpen(true),
+  });
 };
 
   const toggleWishlist = (product) => {
@@ -355,7 +441,7 @@ function App() {
 
   const wishlistProducts = wishlist;
 
-  const addCategory = (name, emoji, color) => {
+  const addCategory = async (name, emoji, color) => {
     const cleanName = name.trim();
     if (!cleanName) return;
     if (categories.some((c) => c.name.toLowerCase() === cleanName.toLowerCase())) {
@@ -363,20 +449,60 @@ function App() {
       return;
     }
 
-    const next = [
-      ...categories,
-      { name: cleanName, emoji: emoji.trim() || "✨", color: color || "#f5f5f5" },
-    ];
-    setCategories(next);
-    saveStoredCategories(next);
-    showToast(`Category "${cleanName}" added`);
+    try {
+      const response = await fetch(`${API_URL}/api/categories`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: cleanName,
+          emoji: emoji.trim() || "✨",
+          color: color || "#f5f5f5",
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Could not add category");
+      }
+
+      const next = [
+        ...categories,
+        {
+          name: data.category.name,
+          emoji: data.category.emoji,
+          color: data.category.color,
+        },
+      ];
+      setCategories(next);
+      saveStoredCategories(next);
+      showToast(`Category "${cleanName}" added`);
+    } catch (error) {
+      showToast(error.message);
+    }
   };
 
-  const removeCategory = (name) => {
-    const next = categories.filter((c) => c.name !== name);
-    setCategories(next);
-    saveStoredCategories(next);
-    showToast(`Category "${name}" removed`);
+  const removeCategory = async (name) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/api/categories/${encodeURIComponent(name)}`,
+        { method: "DELETE" }
+      );
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || "Could not remove category");
+      }
+
+      const next = categories.filter((c) => c.name !== name);
+      setCategories(next);
+      saveStoredCategories(next);
+      showToast(`Category "${name}" removed`);
+    } catch (error) {
+      showToast(error.message);
+    }
   };
 
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
@@ -389,20 +515,42 @@ function App() {
 
   if (isAdminPage) {
     return (
-      <AdminPanel
-        apiUrl={API_URL}
-        onBack={closeAdmin}
-        showToast={showToast}
-        categories={categories}
-        onAddCategory={addCategory}
-        onRemoveCategory={removeCategory}
-      />
+      <>
+        {toast && <div className="toast">✓ {toast}</div>}
+        <Suspense fallback={<PageLoader />}>
+          <AdminPanel
+            apiUrl={API_URL}
+            onBack={closeAdmin}
+            showToast={showToast}
+            categories={categories}
+            onAddCategory={addCategory}
+            onRemoveCategory={removeCategory}
+          />
+        </Suspense>
+      </>
     );
   }
 
   return (
     <div className="app-shell">
-      {toast && <div className="toast">✓ {toast}</div>}
+      {toast && (
+        <div className={`toast ${toastAction ? "toast-with-action" : ""}`}>
+          <span className="toast-text">✓ {toast}</span>
+          {toastAction && (
+            <button
+              type="button"
+              className="toast-action"
+              onClick={() => {
+                toastAction.onClick?.();
+                setToast("");
+                setToastAction(null);
+              }}
+            >
+              {toastAction.label} →
+            </button>
+          )}
+        </div>
+      )}
 
       <CartDrawer
         isOpen={cartOpen}
@@ -428,33 +576,41 @@ function App() {
         addToCart={addToCart}
       />
 
-      <CheckoutModal
-        isOpen={checkoutOpen}
-        onClose={() => setCheckoutOpen(false)}
-        cart={cart}
-        total={cartTotal}
-        showToast={showToast}
-        apiUrl={API_URL}
-        user={user}
-        userToken={userToken}
-        onProfileUpdated={setUser}
-        onOrderPlaced={() => {
-          setCart([]);
-          loadProducts();
-        }}
-      />
+      {checkoutMounted && (
+        <Suspense fallback={<PageLoader />}>
+          <CheckoutModal
+            isOpen={checkoutOpen}
+            onClose={() => setCheckoutOpen(false)}
+            cart={cart}
+            total={cartTotal}
+            showToast={showToast}
+            apiUrl={API_URL}
+            user={user}
+            userToken={userToken}
+            onProfileUpdated={setUser}
+            onOrderPlaced={() => {
+              setCart([]);
+              loadProducts();
+            }}
+          />
+        </Suspense>
+      )}
 
-      <AccountModal
-        isOpen={accountOpen}
-        onClose={() => setAccountOpen(false)}
-        apiUrl={API_URL}
-        user={user}
-        token={userToken}
-        onAuth={saveCustomerAuth}
-        onLogout={logOutCustomer}
-        onUserUpdated={setUser}
-        showToast={showToast}
-      />
+      {accountMounted && (
+        <Suspense fallback={null}>
+          <AccountModal
+            isOpen={accountOpen}
+            onClose={() => setAccountOpen(false)}
+            apiUrl={API_URL}
+            user={user}
+            token={userToken}
+            onAuth={saveCustomerAuth}
+            onLogout={logOutCustomer}
+            onUserUpdated={setUser}
+            showToast={showToast}
+          />
+        </Suspense>
+      )}
 
 <Navbar
   search={search}
@@ -471,6 +627,7 @@ function App() {
   showNewArrivals={showNewArrivals}
 />
 
+<Suspense fallback={<PageLoader />}>
 <Routes>
   <Route
     path="/"
@@ -489,6 +646,7 @@ function App() {
         productsError={productsError}
         loadProducts={loadProducts}
         filteredProducts={filteredProducts}
+        products={products}
         wishlist={wishlist}
         toggleWishlist={toggleWishlist}
         addToCart={addToCart}
@@ -517,6 +675,7 @@ function App() {
   }
 />  
 </Routes>
+</Suspense>
 <Footer />
 
       {/* Mobile Bottom Navigation */}

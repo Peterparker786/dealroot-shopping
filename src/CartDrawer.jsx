@@ -1,3 +1,5 @@
+import { optimizeImage } from "./utils/cloudinary";
+
 function CartDrawer({
   isOpen,
   onClose,
@@ -22,7 +24,7 @@ function CartDrawer({
         return {
           ...item,
           quantity: Math.max(
-            1,
+            0,
             Math.min(nextQuantity, item.stock)
           ),
         };
@@ -74,7 +76,7 @@ function CartDrawer({
             <div className="cart-items">
               {cart.map((item) => (
                 <div className="cart-item" key={item.id}>
-                  <img src={item.image} alt={item.name} />
+                  <img src={optimizeImage(item.image, 200)} alt={item.name} />
 
                   <div className="cart-item-info">
                     <p>{item.brand}</p>

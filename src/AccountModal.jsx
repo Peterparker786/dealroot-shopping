@@ -43,6 +43,7 @@ export default function AccountModal({
   });
   const [otpSent, setOtpSent] = useState(false);
   const [emailNotFound, setEmailNotFound] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
 
   useEffect(() => {
     if (!user) {
@@ -63,6 +64,7 @@ export default function AccountModal({
     if (!isOpen) {
       setAuthError("");
       setSaveSuccess(false);
+      setResendIn(0);
       return undefined;
     }
 
@@ -122,6 +124,17 @@ export default function AccountModal({
       requestCancelled = true;
     };
   }, [apiUrl, isOpen, showToast, tab, token, user]);
+
+  // 30s countdown before the user can request another OTP.
+  useEffect(() => {
+    if (resendIn <= 0) return undefined;
+
+    const timer = window.setTimeout(() => {
+      setResendIn((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [resendIn]);
 
   if (!isOpen) {
     return null;
@@ -201,6 +214,7 @@ export default function AccountModal({
 
       showToast?.("OTP sent successfully");
       setOtpSent(true);
+      setResendIn(30);
     } catch (err) {
       showToast?.(err.message);
     } finally {
@@ -235,6 +249,7 @@ export default function AccountModal({
       setForgotMode(false);
       setOtpSent(false);
       setOtpData({ email: "", otp: "", password: "" });
+      setResendIn(0);
     } catch (err) {
       setAuthError(err.message);
       showToast?.(err.message);
@@ -404,7 +419,7 @@ export default function AccountModal({
         {!user ? (
           <div className="account-auth-wrap">
             <div className="account-auth-copy">
-              <span className="account-avatar">D</span>
+              <span className="account-avatar">DEALROOT</span>
               <h3>Shopping gets easier with an account.</h3>
               <p>
                 Save your address, check every order, and enjoy a
@@ -489,27 +504,29 @@ export default function AccountModal({
                   />
                 </label>
 
-                <div
-                  style={{
-                    textAlign: "right",
-                    marginTop: "-8px",
-                    marginBottom: "12px",
-                  }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setForgotMode(true)}
+                {mode === "login" && (
+                  <div
                     style={{
-                      background: "none",
-                      border: "none",
-                      color: "#246bfd",
-                      cursor: "pointer",
-                      fontWeight: 600,
+                      textAlign: "right",
+                      marginTop: "-8px",
+                      marginBottom: "12px",
                     }}
                   >
-                    Forgot Password?
-                  </button>
-                </div>
+                    <button
+                      type="button"
+                      onClick={() => setForgotMode(true)}
+                      style={{
+                        background: "none",
+                        border: "none",
+                        color: "#246bfd",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Forgot Password?
+                    </button>
+                  </div>
+                )}
 
                 {authError && (
                   <div
@@ -552,6 +569,7 @@ export default function AccountModal({
                     setEmailNotFound(false);
                     setOtpData({ email: "", otp: "", password: "" });
                     setAuthError("");
+                    setResendIn(0);
                   }}
                   style={{
                     background: "none",
@@ -589,9 +607,7 @@ export default function AccountModal({
                     placeholder="you@example.com"
                     autoComplete="email"
                   />
-                </label>
-
-                {otpSent && (
+                </label>                    {otpSent && (
                   <>
                     <label>
                       OTP
@@ -605,6 +621,38 @@ export default function AccountModal({
                         autoComplete="one-time-code"
                       />
                     </label>
+
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginTop: "-6px",
+                        marginBottom: "14px",
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={sendOTP}
+                        disabled={resendIn > 0 || submitting}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          padding: 0,
+                          cursor: resendIn > 0 || submitting ? "default" : "pointer",
+                          color: resendIn > 0 ? "#98a6b4" : "#246bfd",
+                          fontWeight: 600,
+                          fontSize: "13px",
+                          opacity: submitting ? 0.6 : 1,
+                        }}
+                      >
+                        {resendIn > 0
+                          ? `Resend OTP in ${resendIn}s`
+                          : submitting
+                          ? "Sending..."
+                          : "Resend OTP"}
+                      </button>
+                    </div>
 
                     <label>
                       New password
@@ -647,6 +695,7 @@ export default function AccountModal({
                         setEmailNotFound(false);
                         setOtpData({ email: "", otp: "", password: "" });
                         setAuthError("");
+                        setResendIn(0);
                         changeMode("signup");
                       }}
                       style={{

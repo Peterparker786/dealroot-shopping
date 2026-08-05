@@ -1,7 +1,8 @@
 import Hero from "../components/Hero/Hero";
 import { Link } from "react-router-dom";
-import { FiArrowRight, FiClock, FiTruck, FiRefreshCw, FiShield, FiTag, FiAward } from "react-icons/fi";
-import { useEffect, useState } from "react";
+import { FiArrowRight, FiClock, FiTruck, FiRefreshCw, FiShield, FiTag, FiAward, FiZap } from "react-icons/fi";
+import { useEffect, useMemo, useState } from "react";
+import { optimizeImage } from "../utils/cloudinary";
 
 export default function Home({
   fallbackImage,
@@ -17,6 +18,7 @@ export default function Home({
   productsError,
   loadProducts,
   filteredProducts,
+  products,
   wishlist,
   toggleWishlist,
   addToCart,
@@ -43,6 +45,39 @@ export default function Home({
 
   // Flash deal products (first 5)
   const flashProducts = filteredProducts.slice(0, 5);
+
+  // Deal of the Day: the 5 cheapest products (from the full catalogue,
+  // independent of any active category/search filter).
+  const dealProducts = useMemo(() => {
+    const pool = products && products.length ? products : filteredProducts;
+
+    return [...pool]
+      .filter((p) => p && Number.isFinite(Number(p.price)))
+      .sort((a, b) => Number(a.price) - Number(b.price))
+      .slice(0, 5);
+  }, [products, filteredProducts]);
+
+  // Deal of the Day countdown — resets every midnight.
+  const [dealTimeLeft, setDealTimeLeft] = useState({ h: 0, m: 0, s: 0 });
+
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      const end = new Date(now);
+      end.setHours(23, 59, 59, 999);
+
+      const diff = Math.max(0, end - now);
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+
+      setDealTimeLeft({ h, m, s });
+    };
+
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
     <main id="top">
@@ -114,7 +149,7 @@ export default function Home({
                   <div className="flash-card-img">
                     {discount > 0 && <span className="flash-discount">-{discount}%</span>}
                     <Link to={`/product/${product.id}`}>
-                      <img src={product.images?.[0] || product.image} alt={product.name} />
+                      <img src={optimizeImage(product.images?.[0] || product.image, 400)} alt={product.name} />
                     </Link>
                   </div>
                   <div className="flash-card-body">
@@ -173,6 +208,76 @@ export default function Home({
             <b>Shop now</b>
           </button>
         </div>
+      </section>
+
+      {/* Deal of the Day */}
+      <section className="section deal-day-section" id="deal-of-the-day">
+        <div className="deal-day-header">
+          <div className="deal-day-title-wrap">
+            <span className="eyebrow blue">TODAY'S BEST PRICE</span>
+            <h2>Deal of the Day</h2>
+          </div>
+
+          <div className="deal-day-timer">
+            <FiZap size={15} />
+            Ends in {formatTime(dealTimeLeft.h)}:{formatTime(dealTimeLeft.m)}:{formatTime(dealTimeLeft.s)}
+          </div>
+        </div>
+
+        {loadingProducts ? (
+          <div className="deal-day-track">
+            {[1, 2, 3, 4, 5].map((n) => (
+              <div key={n} className="deal-day-card">
+                <div className="skeleton-img" style={{ height: 220 }} />
+                <div style={{ padding: 16 }}>
+                  <div className="skeleton-line" style={{ width: '40%', marginBottom: 8 }} />
+                  <div className="skeleton-line" style={{ width: '85%', marginBottom: 10 }} />
+                  <div className="skeleton-line" style={{ width: '50%', marginBottom: 12 }} />
+                  <div className="skeleton-line" style={{ width: '100%', height: 40, borderRadius: 10 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="deal-day-track">
+            {dealProducts.map((product) => {
+              const discount = product.originalPrice > product.price
+                ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+                : 0;
+
+              return (
+                <div className="deal-day-card" key={product.id}>
+                  <Link to={`/product/${product.id}`} className="deal-day-card-img">
+                    <img
+                      src={optimizeImage(product.images?.[0] || product.image, 500)}
+                      alt={product.name}
+                      loading="lazy"
+                    />
+                    {discount > 0 && (
+                      <span className="deal-day-discount">-{discount}%</span>
+                    )}
+                  </Link>
+
+                  <div className="deal-day-card-body">
+                    <p className="deal-day-brand">{product.brand}</p>
+                    <h3>
+                      <Link to={`/product/${product.id}`}>{product.name}</Link>
+                    </h3>
+                    <div className="deal-day-price">
+                      <strong>₹{product.price}</strong>
+                      {product.originalPrice > product.price && (
+                        <del>₹{product.originalPrice}</del>
+                      )}
+                    </div>
+                    <Link to={`/product/${product.id}`} className="deal-day-buy">
+                      Buy Now
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       {/* Product Grid */}
@@ -245,7 +350,7 @@ export default function Home({
                     </button>
                     <Link to={`/product/${product.id}`}>
                       <img
-                        src={product.images?.[0] || product.image}
+                        src={optimizeImage(product.images?.[0] || product.image, 400)}
                         alt={product.name}
                         onError={(event) => { event.currentTarget.src = fallbackImage; }}
                       />

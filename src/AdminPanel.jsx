@@ -176,11 +176,22 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [token]);
 
-const refresh = () => {
-  loadProducts();
-  loadOrders();
-  loadCoupons();
-  loadBanners();
+const [refreshing, setRefreshing] = useState(false);
+
+const refresh = async () => {
+  if (refreshing) return;
+
+  setRefreshing(true);
+
+  await Promise.allSettled([
+    loadProducts(),
+    loadOrders(),
+    loadCoupons(),
+    loadBanners(),
+  ]);
+
+  setRefreshing(false);
+  showToast("Admin data refreshed");
 };
 
   const logIn = async (event) => {
@@ -990,8 +1001,13 @@ const deleteCoupon = async (id) => {
         </div>
 
         <div className="admin-header-actions">
-          <button className="admin-refresh" onClick={refresh}>
-            ↻ Refresh
+          <button
+            className={`admin-refresh ${refreshing ? "refreshing" : ""}`}
+            onClick={refresh}
+            disabled={refreshing}
+          >
+            <span className="admin-refresh-icon">↻</span>{" "}
+            {refreshing ? "Refreshing…" : "Refresh"}
           </button>
 
           <button className="admin-back" onClick={() => logOut()}>

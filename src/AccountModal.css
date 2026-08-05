@@ -98,15 +98,18 @@
 }
 
 .account-avatar {
-  display: grid;
-  width: 58px;
-  height: 58px;
-  place-items: center;
-  border-radius: 17px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px;
+  padding: 0 18px;
+  border-radius: 14px;
   background: #ffffff;
   color: #145bc0;
-  font-size: 27px;
+  font-size: 15px;
   font-weight: 900;
+  letter-spacing: 1.4px;
+  width: max-content;
 }
 
 .account-auth-copy h3 {

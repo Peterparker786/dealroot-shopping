@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import Select from "react-select";
-import { State, City } from "country-state-city";
+import {
+  INDIAN_STATES,
+  CITIES_BY_STATE,
+} from "./utils/indianAddressData";
 import "./CouponCheckout.css";
 
 const emptyDeliveryForm = {
@@ -87,21 +90,24 @@ const [selectedCity, setSelectedCity] = useState(null);
   const [availableCoupons] = useState([]);
   const userKey = user?.id || user?._id || user?.email || "";
 
-const stateOptions = useMemo(() => {
-  return State.getStatesOfCountry("IN").map((state) => ({
-    value: state.isoCode,
-    label: state.name,
-  }));
-}, []);
+const stateOptions = INDIAN_STATES;
 
 const cityOptions = useMemo(() => {
   if (!selectedState) return [];
 
-  return City.getCitiesOfState("IN", selectedState.value).map((city) => ({
-    value: city.name,
-    label: city.name,
+  const baseCities = CITIES_BY_STATE[selectedState.value] || [];
+  const savedCity = String(form.city || "").trim();
+
+  const cities =
+    savedCity && !baseCities.includes(savedCity)
+      ? [savedCity, ...baseCities]
+      : baseCities;
+
+  return cities.map((city) => ({
+    value: city,
+    label: city,
   }));
-}, [selectedState]);
+}, [selectedState, form.city]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -132,24 +138,20 @@ setForm({
 useEffect(() => {
   if (!form.state) return;
 
-  const state = State.getStatesOfCountry("IN").find(
-    (s) => s.name === form.state
-  );
+  const state = INDIAN_STATES.find((s) => s.label === form.state);
 
   if (state) {
     setSelectedState({
-      value: state.isoCode,
-      label: state.name,
+      value: state.value,
+      label: state.label,
     });
 
-    const city = City.getCitiesOfState("IN", state.isoCode).find(
-      (c) => c.name === form.city
-    );
+    const cities = CITIES_BY_STATE[state.value] || [];
 
-    if (city) {
+    if (cities.includes(form.city)) {
       setSelectedCity({
-        value: city.name,
-        label: city.name,
+        value: form.city,
+        label: form.city,
       });
     }
   }
@@ -381,15 +383,6 @@ const orderPayload = {
       }
 
       let paymentHandled = false;
-
-      console.log({
-  key: createData.keyId,
-  amount: createData.amount,
-  currency: createData.currency,
-  order_id: createData.razorpayOrderId,
-  session: createData.paymentSessionId,
-  createData,
-});
 
 const razorpayCheckout = new window.Razorpay({
         key: createData.keyId,

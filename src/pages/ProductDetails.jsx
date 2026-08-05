@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiShoppingBag, FiTruck, FiShield, FiRefreshCw, FiLock, FiChevronLeft, FiChevronRight, FiChevronDown } from "react-icons/fi";
 import { getDefaultReviews } from "../utils/defaultReviews";
+import { optimizeImage } from "../utils/cloudinary";
 import RatingSummary from "../components/DefaultReviews";
 
 // Amazon-style expandable section (hoisted to module scope to avoid re-mounts)
@@ -285,7 +286,7 @@ export default function ProductDetails({
               <AnimatePresence mode="wait">
                 <motion.img
                   key={selectedImage}
-                  src={selectedImage}
+                  src={optimizeImage(selectedImage, 900)}
                   alt={product.name}
                   className="product-image-main"
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -345,7 +346,7 @@ export default function ProductDetails({
                     }}
                     className={`thumbnail ${selectedImage === img ? "active-thumb" : ""}`}
                   >
-                    <img src={img} alt="" />
+                    <img src={optimizeImage(img, 120)} alt="" />
                   </motion.button>
                 ))}
               </div>
