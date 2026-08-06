@@ -493,6 +493,78 @@
   font-size: 12px;
 }
 
+/* Order status timeline (Placed → Packed → Shipped → Delivered) */
+.order-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 16px 18px;
+  border-bottom: 1px solid #ebf0f5;
+  background: #fbfcfe;
+}
+.timeline-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  position: relative;
+  padding-bottom: 18px;
+}
+.timeline-step:last-child {
+  padding-bottom: 0;
+}
+.timeline-step::before {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 16px;
+  bottom: -2px;
+  width: 2px;
+  background: #e3e9f0;
+}
+.timeline-step:last-child::before {
+  display: none;
+}
+.timeline-step.done::before {
+  background: #22c55e;
+}
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e3e9f0;
+  flex: 0 0 auto;
+  margin-top: 3px;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px #e3e9f0;
+}
+.timeline-step.done .timeline-dot {
+  background: #22c55e;
+  box-shadow: 0 0 0 1px #22c55e;
+}
+.timeline-step > div b {
+  display: block;
+  color: #28445f;
+  font-size: 12.5px;
+  line-height: 1.3;
+}
+.timeline-step.pending > div b {
+  color: #a4b1c0;
+}
+.timeline-step small {
+  color: #8aa0b5;
+  font-size: 10.5px;
+}
+.timeline-step.cancelled .timeline-dot {
+  background: #ef4444;
+  box-shadow: 0 0 0 1px #ef4444;
+}
+.timeline-step.cancelled::before {
+  background: #fecaca;
+}
+.timeline-step.cancelled > div b {
+  color: #dc2626;
+}
+
 @media (max-width: 760px) {
   .account-overlay {
     padding: 0;

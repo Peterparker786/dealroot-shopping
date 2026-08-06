@@ -1,5 +1,11 @@
 import Navbar from "./components/Navbar";
-import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import {
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+  useLocation,
+} from "react-router-dom";
 import { FiHome, FiGrid, FiZap, FiPackage, FiUser } from "react-icons/fi";
 import Home from "./pages/Home";
 import Footer from "./components/Footer";
@@ -19,6 +25,12 @@ import {
   getStoredCategories,
   saveStoredCategories,
 } from "./utils/categories";
+import {
+  PAGE_META,
+  setSeo,
+  buildStoreJsonLd,
+  SITE_URL,
+} from "./seo/seoManager";
 
 // Code-split heavy pages & modals so the initial bundle stays small.
 const Contact = lazy(() => import("./pages/Contact"));
@@ -56,12 +68,36 @@ function AccountGate({ onOpen }) {
   return null;
 }
 
+// Sets per-route titles, descriptions, canonical URLs and the store schema on
+// every navigation. Product pages override with their own data once loaded.
+function RouteSeo() {
+  const location = useLocation();
+  const path = location.pathname;
+
+  useEffect(() => {
+    const isProduct = path.startsWith("/product/");
+    const meta = isProduct ? PAGE_META.product : PAGE_META[path] || {};
+
+    setSeo({
+      title: meta.title,
+      description: meta.description,
+      keywords: meta.keywords,
+      url: `${SITE_URL}${path}`,
+      jsonLd: path === "/" ? buildStoreJsonLd() : null,
+    });
+  }, [path]);
+
+  return null;
+}
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const fallbackImage =
   "https://images.unsplash.com/photo-1598440947619-2c35fc9aa908?auto=format&fit=crop&w=700&q=85";
 
 function App() {
+  const navigate = useNavigate();
+
   const [isAdminPage, setIsAdminPage] = useState(
     window.location.hash === "#admin"
   );
@@ -191,6 +227,20 @@ function App() {
     localStorage.removeItem("dealroot_cart");
     localStorage.removeItem("dealroot_checkout_details");
     localStorage.removeItem("dealroot_delivery_location");
+
+    // Clear the backend's abandoned-cart snapshot so no recovery email goes
+    // out for a cart the user just dismissed.
+    if (userToken) {
+      fetch(`${API_URL}/api/cart/save`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userToken}`,
+        },
+        body: JSON.stringify({ items: [] }),
+      }).catch(() => {});
+    }
+
     setUserToken("");
     setUser(null);
     setCart([]);
@@ -241,6 +291,36 @@ function App() {
 
     restoreCustomer();
   }, [userToken]);
+
+  // Abandoned cart recovery: snapshot a logged-in user's cart so the backend
+  // can email a reminder + discount coupon if they don't check out.
+  const cartSaveTimer = useRef(null);
+
+  useEffect(() => {
+    if (!userToken) return undefined;
+
+    window.clearTimeout(cartSaveTimer.current);
+
+    cartSaveTimer.current = window.setTimeout(() => {
+      // The backend re-derives title/brand/price/image from its own catalogue,
+      // so only the product id + quantity are sent.
+      fetch(`${API_URL}/api/cart/save`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userToken}`,
+        },
+        body: JSON.stringify({
+          items: cart.map((item) => ({
+            productId: item.id,
+            quantity: item.quantity,
+          })),
+        }),
+      }).catch(() => {});
+    }, 2000);
+
+    return () => window.clearTimeout(cartSaveTimer.current);
+  }, [cart, userToken]);
 
   const loadBanner = async () => {
   try {
@@ -592,6 +672,27 @@ function App() {
     }
   };
 
+  // Scroll to a home-page section from the mobile bottom nav. Works from any
+  // route (jumps home first if needed) and always re-scrolls, even when the
+  // URL hash is already set — plain anchor clicks silently no-op in that case.
+  const scrollToHomeSection = (id) => {
+    const scroll = () => {
+      window.setTimeout(() => {
+        document
+          .getElementById(id)
+          ?.scrollIntoView({ behavior: "smooth" });
+      }, 80);
+    };
+
+    if (window.location.pathname !== "/") {
+      navigate("/");
+      window.setTimeout(scroll, 200);
+      return;
+    }
+
+    scroll();
+  };
+
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
   const cartSubtotal = cart.reduce(
     (total, item) => total + item.price * item.quantity,
@@ -620,6 +721,8 @@ function App() {
 
   return (
     <div className="app-shell">
+      <RouteSeo />
+
       {toast && (
         <div className={`toast ${toastAction ? "toast-with-action" : ""}`}>
           <span className="toast-text">✓ {toast}</span>
@@ -791,15 +894,36 @@ function App() {
       {/* Mobile Bottom Navigation */}
       <nav className="mobile-bottom-nav">
         <div className="mobile-nav-items">
-          <a href="#top" className="mobile-nav-item active">
+          <a
+            href="#top"
+            className="mobile-nav-item active"
+            onClick={(event) => {
+              event.preventDefault();
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          >
             <FiHome />
             <span className="mn-label">Home</span>
           </a>
-          <a href="#categories" className="mobile-nav-item">
+          <a
+            href="#categories"
+            className="mobile-nav-item"
+            onClick={(event) => {
+              event.preventDefault();
+              scrollToHomeSection("categories");
+            }}
+          >
             <FiGrid />
             <span className="mn-label">Categories</span>
           </a>
-          <a href="#price-deals" className="mobile-nav-item">
+          <a
+            href="#price-deals"
+            className="mobile-nav-item"
+            onClick={(event) => {
+              event.preventDefault();
+              scrollToHomeSection("price-deals");
+            }}
+          >
             <FiZap />
             <span className="mn-label">Deals</span>
           </a>

@@ -20,6 +20,7 @@ import {
   FiZap,
 } from "react-icons/fi";
 import "./AdminPanel.css";
+import { optimizeImage } from "./utils/cloudinary";
 
 const orderStatuses = [
   "placed",
@@ -878,7 +879,7 @@ function AdminPanel({
         )
       );
 
-      showToast("Order status updated");
+      showToast(data.message || "Order status updated");
     } catch (error) {
       showToast(error.message);
     } finally {
@@ -1351,7 +1352,7 @@ function AdminPanel({
                         <div className="admin-dash-row" key={product._id}>
                           <img
                             src={
-                              product.images?.[0] ||
+                              optimizeImage(product.images?.[0], 120) ||
                               "https://placehold.co/80x80?text=Product"
                             }
                             alt={product.title}
@@ -2048,7 +2049,7 @@ function AdminPanel({
                               <div className="admin-product-name">
                                 <img
                                   src={
-                                    product.images?.[0] ||
+                                    optimizeImage(product.images?.[0], 120) ||
                                     "https://placehold.co/80x80?text=Product"
                                   }
                                   alt={product.title}

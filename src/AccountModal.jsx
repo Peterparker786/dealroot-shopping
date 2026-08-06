@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Select from "react-select";
 import { FiPackage } from "react-icons/fi";
+import { optimizeImage } from "./utils/cloudinary";
 import {
   INDIAN_STATES,
   CITIES_BY_STATE,
@@ -29,6 +30,90 @@ const emptyAddress = {
   city: "",
   pincode: "",
 };
+
+// ---- Order status timeline (Placed → Packed → Shipped → Delivered) ----
+const TIMELINE_STATUSES = ["placed", "packed", "shipped", "delivered"];
+const TIMELINE_LABELS = {
+  placed: "Placed",
+  packed: "Packed",
+  shipped: "Shipped",
+  delivered: "Delivered",
+};
+
+const shortDate = (value) => {
+  if (!value) return "";
+  try {
+    return new Date(value).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+    });
+  } catch {
+    return "";
+  }
+};
+
+// Builds the timeline steps for one order. "confirmed" counts as Placed.
+function orderTimelineSteps(order) {
+  const status = order?.orderStatus || "placed";
+  const currentIndex = TIMELINE_STATUSES.indexOf(status);
+  const rank =
+    status === "confirmed" ? 0 : currentIndex < 0 ? 0 : currentIndex;
+
+  const history = Array.isArray(order?.statusHistory)
+    ? order.statusHistory
+    : [];
+
+  const steps = TIMELINE_STATUSES.map((stepStatus, index) => {
+    const entry = history.find((item) => item.status === stepStatus);
+
+    return {
+      key: stepStatus,
+      label: TIMELINE_LABELS[stepStatus],
+      done: index <= rank,
+      date:
+        entry?.at ||
+        (index === 0 ? order?.createdAt : "") ||
+        (status === stepStatus ? order?.updatedAt : ""),
+    };
+  });
+
+  if (status === "cancelled") {
+    const cancelEntry = history.find((item) => item.status === "cancelled");
+
+    steps.push({
+      key: "cancelled",
+      label: "Cancelled",
+      done: false,
+      date: cancelEntry?.at || order?.cancelledAt || "",
+      cancelled: true,
+    });
+  }
+
+  return steps;
+}
+
+function OrderTimeline({ order }) {
+  const steps = orderTimelineSteps(order);
+
+  return (
+    <div className="order-timeline">
+      {steps.map((step) => (
+        <div
+          key={step.key}
+          className={`timeline-step ${step.done ? "done" : "pending"}${
+            step.cancelled ? " cancelled" : ""
+          }`}
+        >
+          <span className="timeline-dot" aria-hidden="true" />
+          <div>
+            <b>{step.label}</b>
+            {step.date && <small>{shortDate(step.date)}</small>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function MascotArt({ className }) {
   return (
@@ -2185,15 +2270,19 @@ export default function AccountModal({
                             </span>
                           </header>
 
+                          <OrderTimeline order={order} />
+
                           <div className="history-items">
                             {order.items?.map((item) => (
                               <div key={item._id || item.product}>
                                 <img
                                   src={
-                                    item.image ||
+                                    optimizeImage(item.image, 200) ||
                                     "https://placehold.co/60x60?text=Product"
                                   }
                                   alt={item.title || "Product"}
+                                  loading="lazy"
+                                  decoding="async"
                                 />
 
                                 <span>

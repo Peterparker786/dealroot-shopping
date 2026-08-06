@@ -76,7 +76,12 @@ function CartDrawer({
             <div className="cart-items">
               {cart.map((item) => (
                 <div className="cart-item" key={item.id}>
-                  <img src={optimizeImage(item.image, 200)} alt={item.name} />
+                  <img
+                    src={optimizeImage(item.image, 200)}
+                    alt={item.name}
+                    loading="lazy"
+                    decoding="async"
+                  />
 
                   <div className="cart-item-info">
                     <p>{item.brand}</p>

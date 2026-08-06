@@ -37,7 +37,12 @@ function WishlistDrawer({ isOpen, onClose, products, onRemove, addToCart }) {
           <div className="cart-items">
             {products.map((product) => (
               <div className="cart-item" key={product.id}>
-                <img src={optimizeImage(product.image, 200)} alt={product.name} />
+                <img
+                  src={optimizeImage(product.image, 200)}
+                  alt={product.name}
+                  loading="lazy"
+                  decoding="async"
+                />
 
                 <div className="cart-item-info">
                   <p>{product.brand}</p>

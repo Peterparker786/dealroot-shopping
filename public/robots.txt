@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Admin panel is a client-side app — no public value in crawling it.
+Disallow: /admin
+
+Sitemap: https://www.dealroot.store/sitemap.xml
+Sitemap: https://dealroot-backend.onrender.com/sitemap.xml

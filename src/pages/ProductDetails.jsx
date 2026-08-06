@@ -6,6 +6,11 @@ import { FiShoppingBag, FiTruck, FiShield, FiRefreshCw, FiLock, FiChevronLeft, F
 import { getDefaultReviews } from "../utils/defaultReviews";
 import { optimizeImage } from "../utils/cloudinary";
 import RatingSummary from "../components/DefaultReviews";
+import {
+  useSeo,
+  buildProductJsonLd,
+  SITE_URL,
+} from "../seo/seoManager";
 
 // Amazon-style expandable section (hoisted to module scope to avoid re-mounts)
 function AmazonAccordion({ title, open, onToggle, children }) {
@@ -111,6 +116,26 @@ export default function ProductDetails({
     loadReviews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // SEO: dynamic meta tags + Product structured data (Google rich snippets).
+  useSeo(
+    {
+      title: product?.name,
+      description: product?.description
+        ? `${product.description.slice(0, 155)}${
+            product.description.length > 155 ? "…" : ""
+          }`
+        : `Buy ${product?.brand || ""} ${
+            product?.name || "beauty products"
+          } at the best price on DEALROOT.`,
+      image: product?.images?.[0] || product?.image,
+      url: `${SITE_URL}/product/${id}`,
+      type: "product",
+      keywords: `${product?.name || ""}, ${product?.brand || ""}, buy online india`,
+      jsonLd: buildProductJsonLd(product, id),
+    },
+    [product, id]
+  );
 
   async function loadProduct() {
     try {
@@ -289,6 +314,8 @@ export default function ProductDetails({
                   src={optimizeImage(selectedImage, 900)}
                   alt={product.name}
                   className="product-image-main"
+                  fetchPriority="high"
+                  decoding="async"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
@@ -346,7 +373,12 @@ export default function ProductDetails({
                     }}
                     className={`thumbnail ${selectedImage === img ? "active-thumb" : ""}`}
                   >
-                    <img src={optimizeImage(img, 120)} alt="" />
+                    <img
+                      src={optimizeImage(img, 120)}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
                   </motion.button>
                 ))}
               </div>
