@@ -163,7 +163,15 @@ img { max-width: 100%; display: block; }
 .announcement-bar span { display: flex; align-items: center; gap: 6px; }
 .announcement-bar .ann-right { display: flex; gap: 16px; margin-left: auto; color: #8b7a4a; }
 .announcement-bar .ann-right a { color: #8b7a4a; text-decoration: none; }
-.announcement-bar .ann-right a:hover { color: var(--brand); }
+.announcement-bar .ann-right button {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: #8b7a4a;
+}
+.announcement-bar .ann-right button:hover { color: var(--brand); }
 
 /* ============================================================
    HEADER (Logo + Search + Icons)
@@ -181,6 +189,247 @@ img { max-width: 100%; display: block; }
 }
 .header-main.scrolled {
   box-shadow: 0 2px 20px rgba(0,0,0,0.06);
+}
+
+/* ============================================================
+   DELIVER TO (Amazon style)
+   ============================================================ */
+.deliver-to-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.deliver-to-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 12px;
+  background: #f5f7fa;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all var(--fast) var(--ease);
+  text-align: left;
+}
+.deliver-to-btn:hover {
+  background: #eef1f6;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+.deliver-to-btn svg:first-child {
+  color: var(--brand);
+  flex-shrink: 0;
+}
+.deliver-to-copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.deliver-to-copy small {
+  font-size: 10px;
+  font-weight: 600;
+  color: #94a3b8;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+.deliver-to-copy b {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+}
+.deliver-chevron {
+  transition: transform var(--fast) var(--ease);
+  color: #64748b;
+}
+.deliver-chevron.open {
+  transform: rotate(180deg);
+}
+.deliver-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  min-width: 320px;
+  max-width: 380px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.18);
+  padding: 16px;
+  z-index: 220;
+  animation: deliverPop 0.2s var(--ease);
+}
+@keyframes deliverPop {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.deliver-popover-title {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.deliver-locate-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 12px;
+  margin-bottom: 10px;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #0f172a;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--fast) var(--ease);
+}
+.deliver-locate-btn:hover:not(:disabled) {
+  border-color: var(--brand);
+  background: #fff5f7;
+}
+.deliver-locate-btn > svg {
+  flex-shrink: 0;
+  color: var(--brand);
+}
+.deliver-locate-btn > span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+.deliver-locate-btn b {
+  font-size: 13px;
+  font-weight: 700;
+}
+.deliver-locate-btn small {
+  font-size: 11px;
+  color: #64748b;
+}
+.deliver-locate-btn.locating {
+  opacity: 0.75;
+  cursor: default;
+}
+.deliver-locate-spin {
+  animation: deliverSpin 0.9s linear infinite;
+}
+@keyframes deliverSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.deliver-locate-error {
+  margin: -2px 0 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 12px;
+  line-height: 1.45;
+}
+.deliver-address-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.deliver-address-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--fast) var(--ease);
+}
+.deliver-address-item:hover {
+  border-color: #c7d5f0;
+}
+.deliver-address-item.selected {
+  border-color: var(--brand);
+  background: #fff5f7;
+}
+.deliver-address-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.deliver-default-tag {
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: var(--brand);
+  background: rgba(226, 28, 72, 0.1);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.deliver-address-detail {
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.4;
+}
+.deliver-manage-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #1e293b;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--fast) var(--ease);
+}
+.deliver-manage-btn:hover {
+  background: #e2e8f0;
+}
+.deliver-popover-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 6px 6px;
+  text-align: center;
+}
+.deliver-popover-empty svg {
+  color: #94a3b8;
+}
+.deliver-popover-empty p {
+  margin: 0;
+}
+.deliver-popover-empty p b {
+  display: block;
+  font-size: 13.5px;
+  color: #0f172a;
+  margin-bottom: 3px;
+}
+.deliver-popover-empty p span {
+  font-size: 12px;
+  color: #64748b;
+}
+.deliver-popover-empty button {
+  padding: 9px 22px;
+  border: none;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background var(--fast) var(--ease);
+}
+.deliver-popover-empty button:hover {
+  background: var(--brand-dark);
 }
 
 .header-logo {
@@ -378,7 +627,7 @@ img { max-width: 100%; display: block; }
 }
 .banner-click-hint {
   position: absolute;
-  bottom: 8px;
+  bottom: 58px;
   left: 50%;
   transform: translateX(-50%) translateY(6px);
   padding: 8px 18px;
@@ -436,11 +685,12 @@ img { max-width: 100%; display: block; }
 }
 .hero-carousel-arrow {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  top: auto;
+  bottom: 12px;
+  transform: none;
   z-index: 5;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: 1px solid rgba(0,0,0,0.08);
   background: rgba(255,255,255,0.92);
@@ -456,13 +706,13 @@ img { max-width: 100%; display: block; }
 .hero-carousel-arrow:hover {
   background: var(--brand);
   color: #fff;
-  transform: translateY(-50%) scale(1.08);
+  transform: scale(1.08);
 }
-.hero-carousel-prev { left: -6px; }
-.hero-carousel-next { right: -6px; }
+.hero-carousel-prev { left: calc(50% - 74px); }
+.hero-carousel-next { right: calc(50% - 74px); }
 .hero-carousel-dots {
   position: absolute;
-  bottom: 18px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -800,7 +1050,7 @@ img { max-width: 100%; display: block; }
    FOOTER
    ============================================================ */
 .site-footer { background: #1a1a1a; color: rgba(255,255,255,0.7); padding: 48px 40px 24px; }
-.footer-grid { max-width: 1600px; margin: 0 auto; display: grid; grid-template-columns: 1.5fr repeat(4, 1fr); gap: 32px; }
+.footer-grid { max-width: 1600px; margin: 0 auto; display: grid; grid-template-columns: 1.5fr repeat(5, 1fr); gap: 32px; }
 .footer-brand .footer-logo { font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 4px; }
 .footer-brand .footer-logo-sub { font-size: 9px; font-weight: 700; color: var(--brand); letter-spacing: 3px; text-transform: uppercase; display: block; margin-bottom: 12px; }
 .footer-brand p { font-size: 13px; line-height: 1.6; max-width: 260px; }
@@ -815,6 +1065,27 @@ img { max-width: 100%; display: block; }
   display: inline-block; border-bottom: 1px dotted rgba(255,255,255,0.25);
 }
 .footer-col .footer-map-link:hover { color: var(--brand); border-bottom-color: var(--brand); }
+.footer-social-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255,255,255,0.6);
+  font-size: 13px;
+  text-decoration: none;
+  transition: color var(--fast) var(--ease);
+}
+.footer-social-link:hover { color: #fff; }
+.footer-social-icon {
+  font-size: 15px;
+  transition: transform var(--fast) var(--ease);
+}
+.footer-social-link:hover .footer-social-icon { transform: scale(1.18); }
+.footer-social-link:hover .instagram-icon {
+  color: #e1306c;
+}
+.footer-social-link:hover .facebook-icon {
+  color: #1877f2;
+}
 .footer-bottom { max-width: 1600px; margin: 40px auto 0; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.08); text-align: center; }
 .footer-bottom p { font-size: 12px; color: rgba(255,255,255,0.3); }
 
@@ -880,9 +1151,7 @@ img { max-width: 100%; display: block; }
   .hero-offer-badge { width: 80px; height: 80px; right: 4%; top: 4%; }
   .hero-offer-badge strong { font-size: 16px; }
   .hero-offer-badge { font-size: 10px; }
-  .hero-carousel-prev { left: 2px; }
-  .hero-carousel-next { right: 2px; }
-  .hero-carousel-arrow { width: 34px; height: 34px; }
+  .hero-carousel-arrow { display: none; }
   .hero-carousel-dots { bottom: 10px; }
   .hero-features { justify-content: center; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
@@ -890,8 +1159,13 @@ img { max-width: 100%; display: block; }
 @media (max-width: 768px) {
   .announcement-bar { flex-direction: column; gap: 4px; padding: 6px 16px; font-size: 11px; }
   .announcement-bar .ann-right { margin-left: 0; }
-  .header-main { padding: 12px 16px; gap: 12px; }
+  .header-main { padding: 12px 16px; gap: 10px; }
   .header-logo .logo-main { font-size: 20px; }
+  .deliver-to-btn { padding: 6px 9px; gap: 5px; }
+  .deliver-to-copy small { display: none; }
+  .deliver-to-copy b { font-size: 11.5px; max-width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .deliver-popover { min-width: 264px; left: auto; right: 0; }
+  .header-search { order: 3; }
   .header-search { max-width: 100%; }
   .header-search input { height: 40px; font-size: 13px; }
   .header-actions { gap: 0; }
@@ -1117,6 +1391,96 @@ img { max-width: 100%; display: block; }
   }
 }
 
+
+/* ============================================================
+   PWA INSTALL PROMPT
+   ============================================================ */
+.install-prompt {
+  position: fixed;
+  bottom: 92px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9990;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(92vw, 460px);
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.2);
+  animation: installIn 0.35s var(--ease);
+}
+@keyframes installIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(16px); }
+}
+.install-prompt-icon {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+}
+.install-prompt-icon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.install-prompt-copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  min-width: 0;
+}
+.install-prompt-copy b {
+  font-size: 13.5px;
+  color: var(--n-900);
+}
+.install-prompt-copy small {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+.install-prompt-btn {
+  flex-shrink: 0;
+  padding: 9px 18px;
+  border-radius: 999px;
+  background: var(--brand);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  transition: background var(--fast) var(--ease), transform var(--fast) var(--ease);
+}
+.install-prompt-btn:hover {
+  background: var(--brand-dark);
+  transform: scale(1.04);
+}
+.install-prompt-close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--n-100);
+  color: var(--text-secondary);
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  transition: all var(--fast) var(--ease);
+}
+.install-prompt-close:hover {
+  background: var(--n-200);
+}
+@media (max-width: 768px) {
+  .install-prompt {
+    bottom: 82px;
+  }
+}
 
 /* Route-level code-split loader */
 .page-loader {

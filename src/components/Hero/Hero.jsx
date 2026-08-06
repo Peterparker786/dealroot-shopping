@@ -27,10 +27,12 @@ function BannerShowcase({ heroImage, link }) {
         UP TO <strong>50%</strong> OFF
       </div>
       <img
-        src={optimizeImage(heroImage, 1000)}
+        src={optimizeImage(heroImage, 900)}
         alt="Offer banner"
         className="hero-product-img"
         loading="eager"
+        fetchPriority="high"
+        decoding="async"
       />
       <span className="banner-click-hint">Click to Shop →</span>
     </>

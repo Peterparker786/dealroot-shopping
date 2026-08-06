@@ -472,6 +472,30 @@ const orderPayload = {
 
     try {
       setIsSubmitting(true);
+
+      // Cash on Delivery: place the order directly — the backend creates the
+      // order, reduces stock and sends the confirmation emails.
+      if (paymentMethod === "cod") {
+        const orderResponse = await fetch(`${apiUrl}/api/orders`, {
+          method: "POST",
+          headers: requestHeaders,
+          body: JSON.stringify(orderPayload),
+        });
+
+        const orderData = await orderResponse.json();
+
+        if (!orderResponse.ok) {
+          throw new Error(
+            orderData.message || "Could not place your order"
+          );
+        }
+
+        completeOrder(orderData.order);
+        showToast?.("Your COD order has been placed successfully");
+        setIsSubmitting(false);
+        return;
+      }
+
       await loadRazorpayCheckout();
 
       const createResponse = await fetch(

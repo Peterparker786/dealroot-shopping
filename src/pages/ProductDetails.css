@@ -90,12 +90,7 @@
 
 .product-left {
   width: 100%;
-  position: sticky;
-  top: 100px;
   align-self: start;
-  max-height: calc(100vh - 140px);
-  overflow-y: auto;
-  scrollbar-width: none;
 }
 
 .product-left::-webkit-scrollbar {

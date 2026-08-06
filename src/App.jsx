@@ -1,5 +1,5 @@
 import Navbar from "./components/Navbar";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { FiHome, FiGrid, FiZap, FiPackage, FiUser } from "react-icons/fi";
 import Home from "./pages/Home";
 import Footer from "./components/Footer";
@@ -25,7 +25,6 @@ const Contact = lazy(() => import("./pages/Contact"));
 const BecomeSeller = lazy(() => import("./pages/BecomeSeller"));
 const About = lazy(() => import("./pages/About"));
 const Brands = lazy(() => import("./pages/Brands"));
-const TrackOrder = lazy(() => import("./pages/TrackOrder"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const ShippingPolicy = lazy(() => import("./pages/ShippingPolicy"));
@@ -41,6 +40,20 @@ function PageLoader() {
       <span className="spinner" />
     </div>
   );
+}
+
+// Deep-link landing for /account (used by the order-confirmation email's
+// "My Orders" button). Opens the account modal on the orders tab, then
+// returns to the home route so the modal sits on a real page.
+function AccountGate({ onOpen }) {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    onOpen();
+    navigate("/", { replace: true });
+  }, [onOpen, navigate]);
+
+  return null;
 }
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
@@ -73,12 +86,81 @@ function App() {
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [accountTab, setAccountTab] = useState("profile");
   const [checkoutMounted, setCheckoutMounted] = useState(false);
   const [accountMounted, setAccountMounted] = useState(false);
   const [userToken, setUserToken] = useState(() =>
     localStorage.getItem("dealroot_user_token") || ""
   );
   const [user, setUser] = useState(null);
+  const [deliveryLocation, setDeliveryLocation] = useState(() => {
+    try {
+      return JSON.parse(
+        localStorage.getItem("dealroot_delivery_location") || "null"
+      );
+    } catch {
+      return null;
+    }
+  });
+
+  // Amazon-style "Deliver to": mark a saved address as the default delivery
+  // location (persisted to the account, shown in the navbar).
+  const selectDefaultAddress = async (index) => {
+    const list = Array.isArray(user?.addresses) ? user.addresses : [];
+    if (!userToken || !list[index]) return false;
+
+    const updated = list.map((a, i) => ({
+      ...a,
+      isDefault: i === index,
+    }));
+
+    try {
+      const response = await fetch(`${API_URL}/api/auth/me`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userToken}`,
+        },
+        body: JSON.stringify({
+          name: user.name,
+          phone: user.phone,
+          addresses: updated,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        showToast?.(data.message || "Could not update delivery address");
+        return false;
+      }
+
+      setUser(data.user);
+      showToast?.("Delivery address updated");
+      return true;
+    } catch {
+      showToast?.("Could not update delivery address");
+      return false;
+    }
+  };
+
+  // "Use my current location": store the GPS-detected state/city so the
+  // navbar shows it and checkout can prefill + ask for the full address.
+  const useCurrentLocation = (location) => {
+    const next = {
+      stateLabel: location?.stateLabel || "",
+      stateValue: location?.stateValue || "",
+      city: location?.city || "",
+    };
+
+    setDeliveryLocation(next);
+    localStorage.setItem("dealroot_delivery_location", JSON.stringify(next));
+    showToast?.(
+      next.city
+        ? `📍 Location set: ${next.city}, ${next.stateLabel}`
+        : `📍 Location set: ${next.stateLabel}`
+    );
+  };
 
   const showToast = (message, action = null) => {
     setToast(message);
@@ -108,6 +190,7 @@ function App() {
     localStorage.removeItem("dealroot_user");
     localStorage.removeItem("dealroot_cart");
     localStorage.removeItem("dealroot_checkout_details");
+    localStorage.removeItem("dealroot_delivery_location");
     setUserToken("");
     setUser(null);
     setCart([]);
@@ -596,6 +679,7 @@ function App() {
               setCart([]);
               loadProducts();
             }}
+            deliveryLocation={deliveryLocation}
           />
         </Suspense>
       )}
@@ -612,6 +696,7 @@ function App() {
             onLogout={logOutCustomer}
             onUserUpdated={setUser}
             showToast={showToast}
+            initialTab={accountTab}
           />
         </Suspense>
       )}
@@ -624,6 +709,10 @@ function App() {
   wishlist={wishlist}
   cartCount={cartCount}
   setAccountOpen={setAccountOpen}
+  setAccountTab={setAccountTab}
+  onSelectAddress={selectDefaultAddress}
+  onUseCurrentLocation={useCurrentLocation}
+  deliveryLocation={deliveryLocation}
   setCartOpen={setCartOpen}
   openWishlist={openWishlist}
   showBestsellers={showBestsellers}
@@ -665,9 +754,17 @@ function App() {
   <Route path="/become-a-seller" element={<BecomeSeller />} />
   <Route path="/about" element={<About />} />
   <Route path="/brands" element={<Brands />} />
+  <Route path="/track-order" element={<Navigate to="/account" replace />} />
   <Route
-    path="/track-order"
-    element={<TrackOrder apiUrl={API_URL} />}
+    path="/account"
+    element={
+      <AccountGate
+        onOpen={() => {
+          setAccountTab("orders");
+          setAccountOpen(true);
+        }}
+      />
+    }
   />
   <Route path="/privacy" element={<PrivacyPolicy />} />
   <Route path="/terms" element={<Terms />} />
@@ -709,7 +806,10 @@ function App() {
           <button
             type="button"
             className="mobile-nav-item"
-            onClick={() => setAccountOpen(true)}
+            onClick={() => {
+              setAccountTab("orders");
+              setAccountOpen(true);
+            }}
           >
             <FiPackage />
             <span className="mn-label">Orders</span>
@@ -717,7 +817,10 @@ function App() {
           <button
             type="button"
             className="mobile-nav-item"
-            onClick={() => setAccountOpen(true)}
+            onClick={() => {
+              setAccountTab("profile");
+              setAccountOpen(true);
+            }}
           >
             <FiUser />
             <span className="mn-label">Account</span>

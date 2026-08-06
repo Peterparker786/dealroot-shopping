@@ -1,6 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
-import { FiSearch, FiUser, FiHeart, FiShoppingBag, FiChevronDown, FiMenu, FiSettings } from "react-icons/fi";
+import { FiSearch, FiUser, FiHeart, FiShoppingBag, FiChevronDown, FiMenu, FiSettings, FiMapPin, FiCrosshair, FiLoader } from "react-icons/fi";
+import {
+  getCurrentPosition,
+  reverseGeocode,
+  geolocationErrorMessage,
+} from "../utils/geoLocation";
 
 export default function Navbar({
   search,
@@ -10,6 +15,10 @@ export default function Navbar({
   wishlist,
   cartCount,
   setAccountOpen,
+  setAccountTab,
+  onSelectAddress,
+  onUseCurrentLocation,
+  deliveryLocation,
   setCartOpen,
   openWishlist,
   showBestsellers,
@@ -20,7 +29,72 @@ export default function Navbar({
 }) {
   const [categoryMenuOpen, setCategoryMenuOpen] = useState(false);
   const categoryMenuRef = useRef(null);
+  const [deliverToOpen, setDeliverToOpen] = useState(false);
+  const deliverToRef = useRef(null);
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState("");
   const navigate = useNavigate();
+
+  const defaultAddress = (user?.addresses || []).find((a) => a.isDefault);
+
+  // Close the deliver-to popover on outside click or Escape.
+  useEffect(() => {
+    if (!deliverToOpen) return undefined;
+
+    const closeOnOutside = (event) => {
+      if (deliverToRef.current && !deliverToRef.current.contains(event.target)) {
+        setDeliverToOpen(false);
+      }
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setDeliverToOpen(false);
+    };
+
+    document.addEventListener("mousedown", closeOnOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeOnOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [deliverToOpen]);
+
+  const openAccountTab = (tab) => {
+    setDeliverToOpen(false);
+    setAccountTab?.(tab);
+    setAccountOpen(true);
+  };
+
+  // Detect the user's current location via GPS, reverse-geocode it to an
+  // Indian state + city, then let the parent decide what to do with it.
+  const detectCurrentLocation = async () => {
+    if (locating) return;
+
+    setLocating(true);
+    setLocationError("");
+
+    try {
+      const position = await getCurrentPosition();
+      const { latitude, longitude } = position.coords;
+      const { state, city } = await reverseGeocode(latitude, longitude);
+
+      if (!state) {
+        throw new Error(
+          "Could not identify your state. Please enter your address manually."
+        );
+      }
+
+      setDeliverToOpen(false);
+      onUseCurrentLocation?.({
+        stateLabel: state.label,
+        stateValue: state.value,
+        city: city || "",
+      });
+    } catch (error) {
+      setLocationError(geolocationErrorMessage(error));
+    } finally {
+      setLocating(false);
+    }
+  };
 
   // Close the category dropdown on outside click or Escape.
   useEffect(() => {
@@ -90,7 +164,15 @@ export default function Navbar({
         <span>🚚 FREE DELIVERY on orders above ₹499</span>
         <span>🎁 USE CODE: BEAUTY10 - Get 10% OFF on orders above ₹999</span>
         <div className="ann-right">
-          <Link to="/track-order">Track Order</Link>
+          <button
+            type="button"
+            onClick={() => {
+              setAccountTab?.("orders");
+              setAccountOpen(true);
+            }}
+          >
+            Track Order
+          </button>
           <Link to="/contact">Help Center</Link>
         </div>
       </div>
@@ -101,6 +183,125 @@ export default function Navbar({
           <span className="logo-main">DealRoot</span>
           <span className="logo-sub">BEAUTY</span>
         </Link>
+
+        <div className="deliver-to-wrap" ref={deliverToRef}>
+          <button
+            type="button"
+            className="deliver-to-btn"
+            onClick={() => setDeliverToOpen((open) => !open)}
+            aria-expanded={deliverToOpen}
+            aria-haspopup="dialog"
+          >
+            <FiMapPin size={20} />
+            <span className="deliver-to-copy">
+              <small>Deliver to</small>
+              <b>
+                {defaultAddress
+                  ? `${defaultAddress.city}, ${defaultAddress.pincode}`
+                  : deliveryLocation?.city
+                  ? `${deliveryLocation.city}, ${deliveryLocation.stateLabel}`
+                  : user
+                  ? "Select address"
+                  : "Login to choose"}
+              </b>
+            </span>
+            <FiChevronDown
+              size={16}
+              className={`deliver-chevron ${deliverToOpen ? "open" : ""}`}
+            />
+          </button>
+
+          {deliverToOpen && (
+            <div className="deliver-popover" role="dialog" aria-label="Choose delivery address">
+              <button
+                type="button"
+                className={`deliver-locate-btn ${locating ? "locating" : ""}`}
+                onClick={detectCurrentLocation}
+                disabled={locating}
+              >
+                {locating ? (
+                  <FiLoader className="deliver-locate-spin" size={17} />
+                ) : (
+                  <FiCrosshair size={17} />
+                )}
+                <span>
+                  <b>
+                    {locating ? "Detecting your location..." : "Use my current location"}
+                  </b>
+                  <small>
+                    Auto-fill your city & state from GPS
+                  </small>
+                </span>
+              </button>
+
+              {locationError && (
+                <p className="deliver-locate-error" role="alert">
+                  {locationError}
+                </p>
+              )}
+
+              {!user ? (
+                <div className="deliver-popover-empty">
+                  <FiMapPin size={26} />
+                  <p>
+                    <b>Sign in to choose a delivery address</b>
+                    <span>Your saved addresses will appear here.</span>
+                  </p>
+                  <button type="button" onClick={() => openAccountTab("profile")}>
+                    Sign in
+                  </button>
+                </div>
+              ) : (user.addresses || []).length === 0 ? (
+                <div className="deliver-popover-empty">
+                  <FiMapPin size={26} />
+                  <p>
+                    <b>No saved addresses yet</b>
+                    <span>Add an address to speed up checkout.</span>
+                  </p>
+                  <button type="button" onClick={() => openAccountTab("profile")}>
+                    Add address
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <p className="deliver-popover-title">Choose a delivery address</p>
+                  <div className="deliver-address-list">
+                    {user.addresses.map((addr, index) => (
+                      <button
+                        type="button"
+                        key={index}
+                        className={`deliver-address-item ${
+                          addr.isDefault ? "selected" : ""
+                        }`}
+                        onClick={() => {
+                          setDeliverToOpen(false);
+                          onSelectAddress?.(index);
+                        }}
+                      >
+                        <span className="deliver-address-name">
+                          {addr.name}
+                          {addr.isDefault && (
+                            <em className="deliver-default-tag">DEFAULT</em>
+                          )}
+                        </span>
+                        <span className="deliver-address-detail">
+                          📍 {addr.city}, {addr.state} — {addr.pincode}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="deliver-manage-btn"
+                    onClick={() => openAccountTab("profile")}
+                  >
+                    Manage addresses
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
 
         <label className="header-search">
           <input
@@ -148,7 +349,10 @@ export default function Navbar({
           <button
             type="button"
             className="header-action-btn"
-            onClick={() => setAccountOpen(true)}
+            onClick={() => {
+              setAccountTab?.("profile");
+              setAccountOpen(true);
+            }}
           >
             <FiUser />
             <span className="h-label">{user ? user.name.split(" ")[0] : "Account"}</span>

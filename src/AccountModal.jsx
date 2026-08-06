@@ -1,4 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Select from "react-select";
+import { FiPackage } from "react-icons/fi";
+import {
+  INDIAN_STATES,
+  CITIES_BY_STATE,
+} from "./utils/indianAddressData";
 import "./AccountModal.css";
 
 const emptyAuthForm = {
@@ -12,6 +18,15 @@ const emptyProfile = {
   phone: "",
   address: "",
   city: "Kanpur",
+  pincode: "",
+};
+
+const emptyAddress = {
+  name: "",
+  phone: "",
+  address: "",
+  state: "Uttar Pradesh",
+  city: "",
   pincode: "",
 };
 
@@ -156,12 +171,46 @@ export default function AccountModal({
   onLogout,
   onUserUpdated,
   showToast,
+  initialTab,
 }) {
   const [mode, setMode] = useState("login");
   const [tab, setTab] = useState("profile");
+
+  // When the modal is opened from a deep link (e.g. the order-confirmation
+  // email's "My Orders" button), or the navbar's Track Order button is
+  // pressed while the modal is already open, switch to the requested tab.
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setTab(initialTab);
+      setForgotMode(false);
+    }
+  }, [isOpen, initialTab]);
   const [authForm, setAuthForm] = useState(emptyAuthForm);
   const [authError, setAuthError] = useState("");
   const [profile, setProfile] = useState(emptyProfile);
+  const [addresses, setAddresses] = useState([]);
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [draft, setDraft] = useState(emptyAddress);
+  const [addressErrors, setAddressErrors] = useState({});
+  const [editorSelectedState, setEditorSelectedState] = useState(null);
+  const [editorSelectedCity, setEditorSelectedCity] = useState(null);
+
+  const stateOptions = INDIAN_STATES;
+  const editorCityOptions = useMemo(() => {
+    if (!editorSelectedState) return [];
+
+    const baseCities = CITIES_BY_STATE[editorSelectedState.value] || [];
+    const savedCity = String(draft.city || "").trim();
+    const cities =
+      savedCity && !baseCities.includes(savedCity)
+        ? [savedCity, ...baseCities]
+        : baseCities;
+
+    return cities.map((city) => ({
+      value: city,
+      label: city,
+    }));
+  }, [editorSelectedState, draft.city]);
   const [orders, setOrders] = useState([]);
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -176,6 +225,22 @@ export default function AccountModal({
   const [emailNotFound, setEmailNotFound] = useState(false);
   const [resendIn, setResendIn] = useState(0);
 
+  // Login & Security (Amazon-style) editor state.
+  const [securityEdit, setSecurityEdit] = useState(null); // name | email | phone | password
+  const [secForm, setSecForm] = useState({
+    name: "",
+    newEmail: "",
+    newPhone: "",
+    otp: "",
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [secOtpSent, setSecOtpSent] = useState(false);
+  const [secSubmitting, setSecSubmitting] = useState(false);
+  const [secError, setSecError] = useState("");
+  const [secFieldErrors, setSecFieldErrors] = useState({});
+
   useEffect(() => {
     if (!user) {
       setProfile(emptyProfile);
@@ -189,6 +254,25 @@ export default function AccountModal({
       city: user.city || "Kanpur",
       pincode: user.pincode || "",
     });
+
+    // Sync the address book. Seed it from the legacy flat address the first
+    // time (users who saved a single address before this feature existed).
+    const list = Array.isArray(user.addresses) ? user.addresses : [];
+    if (list.length === 0 && user.address) {
+      setAddresses([
+        {
+          name: user.name || "",
+          phone: user.phone || "",
+          address: user.address || "",
+          state: user.state || "Uttar Pradesh",
+          city: user.city || "Kanpur",
+          pincode: user.pincode || "",
+          isDefault: true,
+        },
+      ]);
+    } else {
+      setAddresses(list);
+    }
   }, [user]);
 
   useEffect(() => {
@@ -196,6 +280,16 @@ export default function AccountModal({
       setAuthError("");
       setSaveSuccess(false);
       setResendIn(0);
+      setEditingIndex(null);
+      setDraft(emptyAddress);
+      setAddressErrors({});
+      setEditorSelectedState(null);
+      setEditorSelectedCity(null);
+      setSecurityEdit(null);
+      setSecOtpSent(false);
+      setSecSubmitting(false);
+      setSecError("");
+      setSecFieldErrors({});
       return undefined;
     }
 
@@ -439,14 +533,21 @@ export default function AccountModal({
       setAuthError?.("");
 
       if (mode === "login") {
-        showToast?.("Login successful");
+        if (initialTab === "orders") {
+          // Opened from "Track Order": jump straight to My Orders
+          // instead of closing the modal.
+          setTab("orders");
+          showToast?.("Login successful — here are your orders");
+        } else {
+          showToast?.("Login successful");
 
-        setTimeout(() => {
-          onClose();
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        }, 800);
+          setTimeout(() => {
+            onClose();
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }, 800);
+        }
       } else {
-        setTab("profile");
+        setTab(initialTab === "orders" ? "orders" : "profile");
         showToast?.("Account created successfully");
       }
     } catch (error) {
@@ -462,9 +563,7 @@ export default function AccountModal({
     }
   };
 
-  const saveProfile = async (event) => {
-    event.preventDefault();
-
+  const persistProfile = async (nextAddresses, successMessage) => {
     try {
       setSubmitting(true);
       setSaveSuccess(false);
@@ -475,7 +574,11 @@ export default function AccountModal({
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(profile),
+        body: JSON.stringify({
+          name: profile.name,
+          phone: profile.phone,
+          addresses: nextAddresses,
+        }),
       });
 
       const data = await response.json();
@@ -486,17 +589,393 @@ export default function AccountModal({
 
       onUserUpdated(data.user);
       setSaveSuccess(true);
-      showToast?.("Address saved successfully");
-
-      window.setTimeout(() => {
-        onClose();
-        window.location.assign("/");
-      }, 1800);
+      showToast?.(successMessage || "Details saved successfully");
     } catch (error) {
       setSaveSuccess(false);
       showToast?.(error.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const saveProfile = async (event) => {
+    event.preventDefault();
+
+    // If the address editor is open with unsaved changes, fold them into the
+    // address list before saving — otherwise "Save details" would silently
+    // drop the user's in-progress State/City edits.
+    const nextAddresses =
+      editingIndex !== null ? commitDraft() : addresses;
+
+    if (nextAddresses !== null) {
+      await persistProfile(nextAddresses);
+    }
+  };
+
+  const updateDraft = (field, value) => {
+    setDraft((current) => ({ ...current, [field]: value }));
+
+    if (addressErrors[field]) {
+      setAddressErrors((current) => ({ ...current, [field]: "" }));
+    }
+  };
+
+  const startEditAddress = (index) => {
+    const nextDraft = index === -1 ? emptyAddress : { ...addresses[index] };
+    setDraft(nextDraft);
+    setEditingIndex(index);
+    setAddressErrors({});
+
+    // Sync the state/city dropdowns with the address being edited.
+    const state = INDIAN_STATES.find((s) => s.label === nextDraft.state);
+    setEditorSelectedState(
+      state ? { value: state.value, label: state.label } : null
+    );
+    const cities = state ? CITIES_BY_STATE[state.value] || [] : [];
+    setEditorSelectedCity(
+      cities.includes(nextDraft.city)
+        ? { value: nextDraft.city, label: nextDraft.city }
+        : null
+    );
+  };
+
+  const validateDraft = () => {
+    const errors = {};
+
+    if (!draft.name.trim()) {
+      errors.name = "Please enter the recipient's name";
+    }
+    if (draft.phone.length !== 10) {
+      errors.phone = "Please enter a valid 10-digit mobile number";
+    }
+    if (!draft.address.trim()) {
+      errors.address = "Please enter the complete address";
+    }
+    if (!draft.city.trim()) {
+      errors.city = "Please enter the city";
+    }
+    if (!draft.state.trim()) {
+      errors.state = "Please enter the state";
+    }
+    if (draft.pincode.length !== 6) {
+      errors.pincode = "Please enter a valid 6-digit pincode";
+    }
+
+    return errors;
+  };
+
+  // Validate the open editor draft and, if valid, commit it into the address
+  // list (local state). Returns the updated list, or null when invalid so the
+  // caller can stop before persisting.
+  const commitDraft = () => {
+    const errors = validateDraft();
+
+    if (Object.keys(errors).length) {
+      setAddressErrors(errors);
+      return null;
+    }
+
+    const updated =
+      editingIndex === -1
+        ? [...addresses, { ...draft, isDefault: addresses.length === 0 }]
+        : addresses.map((addr, i) =>
+            i === editingIndex ? { ...addr, ...draft } : addr
+          );
+
+    setAddresses(updated);
+    setEditingIndex(null);
+    setDraft(emptyAddress);
+    setAddressErrors({});
+    setEditorSelectedState(null);
+    setEditorSelectedCity(null);
+    return updated;
+  };
+
+  const saveAddress = () => {
+    const wasAdding = editingIndex === -1;
+    const updated = commitDraft();
+
+    if (updated === null) {
+      return;
+    }
+
+    persistProfile(updated, wasAdding ? "Address added" : "Address updated");
+  };
+
+  const markDefaultAddress = (index) => {
+    const updated = addresses.map((addr, i) => ({
+      ...addr,
+      isDefault: i === index,
+    }));
+
+    setAddresses(updated);
+    persistProfile(updated, "Default address updated");
+  };
+
+  const deleteAddress = (index) => {
+    const remaining = addresses.filter((_, i) => i !== index);
+
+    if (remaining.length > 0 && !remaining.some((a) => a.isDefault)) {
+      remaining[0].isDefault = true;
+    }
+
+    setAddresses(remaining);
+    persistProfile(remaining, "Address removed");
+  };
+
+  // ---------- Login & Security ----------
+
+  const resetSecurity = () => {
+    setSecurityEdit(null);
+    setSecForm({
+      name: "",
+      newEmail: "",
+      newPhone: "",
+      otp: "",
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setSecOtpSent(false);
+    setSecError("");
+    setSecFieldErrors({});
+  };
+
+  const startSecEdit = (which) => {
+    if (securityEdit === which) {
+      resetSecurity();
+      return;
+    }
+
+    setSecForm({
+      name: user.name || "",
+      newEmail: "",
+      newPhone: "",
+      otp: "",
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setSecOtpSent(false);
+    setSecError("");
+    setSecFieldErrors({});
+    setSecurityEdit(which);
+  };
+
+  const secRequestOtp = async () => {
+    setSecError("");
+
+    const field = securityEdit === "email" ? "newEmail" : "newPhone";
+    const value = String(secForm[field] || "").trim();
+    const errors = {};
+
+    if (securityEdit === "email") {
+      if (!/^\S+@\S+\.\S+$/.test(value)) {
+        errors.newEmail = "Please enter a valid email address";
+      } else if (value.toLowerCase() === (user.email || "").toLowerCase()) {
+        errors.newEmail = "This is already your email address";
+      }
+    } else if (value.length !== 10) {
+      errors.newPhone = "Please enter a valid 10-digit mobile number";
+    }
+
+    if (Object.keys(errors).length) {
+      setSecFieldErrors(errors);
+      return;
+    }
+
+    setSecFieldErrors({});
+
+    try {
+      setSecSubmitting(true);
+
+      const endpoint =
+        securityEdit === "email"
+          ? "request-email-change"
+          : "request-phone-change";
+      const payload =
+        securityEdit === "email"
+          ? { newEmail: value }
+          : { newPhone: value };
+
+      const res = await fetch(`${apiUrl}/api/auth/${endpoint}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Could not send OTP");
+      }
+
+      setSecOtpSent(true);
+      setResendIn(30);
+      showToast?.("OTP sent to your current email");
+    } catch (err) {
+      const msg = err.message || "Could not send OTP";
+
+      // If the new email/phone already belongs to another account, show the
+      // error right under the field so the user knows to pick something else.
+      if (/already exists|already registered/i.test(msg)) {
+        const field = securityEdit === "email" ? "newEmail" : "newPhone";
+        setSecFieldErrors({ [field]: msg });
+      } else {
+        setSecError(msg);
+      }
+
+      showToast?.(msg);
+    } finally {
+      setSecSubmitting(false);
+    }
+  };
+
+  const secVerifyChange = async () => {
+    setSecError("");
+
+    if (!String(secForm.otp || "").trim()) {
+      setSecFieldErrors({ otp: "Please enter the OTP" });
+      return;
+    }
+
+    try {
+      setSecSubmitting(true);
+
+      const endpoint =
+        securityEdit === "email"
+          ? "verify-email-change"
+          : "verify-phone-change";
+
+      const res = await fetch(`${apiUrl}/api/auth/${endpoint}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ otp: secForm.otp }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Verification failed");
+      }
+
+      onUserUpdated(data.user);
+      setProfile((current) => ({
+        ...current,
+        name: data.user.name || current.name,
+        phone: data.user.phone || current.phone,
+      }));
+      showToast?.(data.message || "Updated successfully");
+      resetSecurity();
+    } catch (err) {
+      setSecError(err.message);
+      showToast?.(err.message);
+    } finally {
+      setSecSubmitting(false);
+    }
+  };
+
+  const saveSecName = async () => {
+    setSecError("");
+
+    const name = String(secForm.name || "").trim();
+
+    if (name.length < 2) {
+      setSecFieldErrors({ name: "Please enter your full name" });
+      return;
+    }
+
+    try {
+      setSecSubmitting(true);
+
+      const res = await fetch(`${apiUrl}/api/auth/me`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name,
+          phone: profile.phone,
+          addresses,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Could not save name");
+      }
+
+      onUserUpdated(data.user);
+      setProfile((current) => ({
+        ...current,
+        name: data.user.name,
+      }));
+      showToast?.("Name updated successfully");
+      resetSecurity();
+    } catch (err) {
+      setSecError(err.message);
+      showToast?.(err.message);
+    } finally {
+      setSecSubmitting(false);
+    }
+  };
+
+  const changePassword = async () => {
+    setSecError("");
+
+    const errors = {};
+
+    if (!secForm.currentPassword) {
+      errors.currentPassword = "Enter your current password";
+    }
+    if (String(secForm.newPassword || "").length < 8) {
+      errors.newPassword = "New password must be at least 8 characters";
+    }
+    if (secForm.newPassword !== secForm.confirmPassword) {
+      errors.confirmPassword = "Passwords do not match";
+    }
+
+    if (Object.keys(errors).length) {
+      setSecFieldErrors(errors);
+      return;
+    }
+
+    try {
+      setSecSubmitting(true);
+
+      const res = await fetch(`${apiUrl}/api/auth/change-password`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword: secForm.currentPassword,
+          newPassword: secForm.newPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Could not change password");
+      }
+
+      showToast?.("Password changed successfully");
+      resetSecurity();
+    } catch (err) {
+      setSecError(err.message);
+      showToast?.(err.message);
+    } finally {
+      setSecSubmitting(false);
     }
   };
 
@@ -506,6 +985,7 @@ export default function AccountModal({
     setOrders([]);
     setAuthForm(emptyAuthForm);
     setAuthError("");
+    resetSecurity();
     showToast?.("Logged out successfully");
   };
 
@@ -600,6 +1080,15 @@ export default function AccountModal({
                 <div className="auth-mobile-mascot" aria-hidden="true">
                   <MascotArt className="auth-mobile-mascot-art" />
                 </div>
+
+                {initialTab === "orders" && !user && (
+                  <div className="orders-intent-note">
+                    <FiPackage size={15} />
+                    {mode === "login"
+                      ? "Sign in to track your orders and see their live status"
+                      : "Create an account to start tracking your orders"}
+                  </div>
+                )}
 
                 <div className="auth-switch">
                   <button
@@ -949,6 +1438,14 @@ export default function AccountModal({
               </button>
 
               <button
+                type="button"
+                className={tab === "security" ? "active" : ""}
+                onClick={() => setTab("security")}
+              >
+                Login & security
+              </button>
+
+              <button
                 className="account-logout"
                 type="button"
                 onClick={handleLogout}
@@ -962,10 +1459,10 @@ export default function AccountModal({
                 <form className="profile-form" onSubmit={saveProfile}>
                   <div className="full-field">
                     <span className="eyebrow blue">MY DETAILS</span>
-                    <h3>Profile & delivery address</h3>
+                    <h3>Profile & address book</h3>
                     <p>
-                      These details will automatically appear during
-                      checkout.
+                      Save multiple addresses and pick one at checkout — just
+                      like your favourite stores.
                     </p>
                   </div>
 
@@ -998,49 +1495,251 @@ export default function AccountModal({
                       name="phone"
                       type="tel"
                       value={profile.phone}
-                      onChange={updateProfile}
-                      inputMode="numeric"
-                      maxLength="10"
-                      placeholder="10-digit mobile number"
+                      disabled
+                      placeholder="Not added yet"
                     />
+                    <small className="field-hint">
+                      To change your mobile number, go to{" "}
+                      <b>Login &amp; security</b>.
+                    </small>
                   </label>
 
-                  <label className="full-field">
-                    Complete address
+                  <div className="full-field">
+                    <span className="eyebrow blue">ADDRESS BOOK</span>
+                    <h3>Saved addresses</h3>
+                  </div>
 
-                    <textarea
-                      name="address"
-                      value={profile.address}
-                      onChange={updateProfile}
-                      rows="3"
-                      placeholder="House no., street, area and landmark"
-                    />
-                  </label>
+                  {addresses.length === 0 && editingIndex === null && (
+                    <p className="address-book-empty">
+                      No saved addresses yet — add your home, office or any
+                      other address to speed up checkout.
+                    </p>
+                  )}
 
-                  <label>
-                    City
+                  {addresses.map((addr, index) => (
+                    <div
+                      className={`saved-address ${
+                        addr.isDefault ? "is-default" : ""
+                      }`}
+                      key={index}
+                    >
+                      <div className="saved-address-head">
+                        <b>{addr.name}</b>
+                        {addr.isDefault && (
+                          <span className="default-badge">DEFAULT</span>
+                        )}
+                      </div>
+                      <p className="saved-address-preview">
+                        📍 {addr.city}, {addr.state} — {addr.pincode}
+                      </p>
+                      <p className="saved-address-phone">📞 {addr.phone}</p>
+                      <div className="saved-address-actions">
+                        <button
+                          type="button"
+                          onClick={() => markDefaultAddress(index)}
+                          disabled={addr.isDefault}
+                        >
+                          {addr.isDefault ? "Default" : "Set as default"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => startEditAddress(index)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="danger"
+                          onClick={() => deleteAddress(index)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
 
-                    <input
-                      name="city"
-                      type="text"
-                      value={profile.city}
-                      onChange={updateProfile}
-                    />
-                  </label>
+                  {editingIndex !== null ? (
+                    <div className="address-editor">
+                      <div className="address-editor-head">
+                        <b>
+                          {editingIndex === -1
+                            ? "Add new address"
+                            : "Edit address"}
+                        </b>
+                        <button
+                          type="button"
+                          className="danger"
+                          onClick={() => {
+                            setEditingIndex(null);
+                            setAddressErrors({});
+                            setEditorSelectedState(null);
+                            setEditorSelectedCity(null);
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
 
-                  <label>
-                    Pincode
+                      <label>
+                        Recipient name
 
-                    <input
-                      name="pincode"
-                      type="text"
-                      value={profile.pincode}
-                      onChange={updateProfile}
-                      inputMode="numeric"
-                      maxLength="6"
-                      placeholder="6-digit pincode"
-                    />
-                  </label>
+                        <input
+                          value={draft.name}
+                          onChange={(e) =>
+                            updateDraft("name", e.target.value)
+                          }
+                          placeholder="Who should receive the order?"
+                        />
+                        {addressErrors.name && (
+                          <span className="field-error">
+                            {addressErrors.name}
+                          </span>
+                        )}
+                      </label>
+
+                      <label>
+                        Mobile number
+
+                        <input
+                          value={draft.phone}
+                          onChange={(e) =>
+                            updateDraft(
+                              "phone",
+                              e.target.value.replace(/\D/g, "").slice(0, 10)
+                            )
+                          }
+                          inputMode="numeric"
+                          maxLength="10"
+                          placeholder="10-digit mobile number"
+                        />
+                        {addressErrors.phone && (
+                          <span className="field-error">
+                            {addressErrors.phone}
+                          </span>
+                        )}
+                      </label>
+
+                      <label className="full-field">
+                        Complete address
+
+                        <textarea
+                          value={draft.address}
+                          onChange={(e) =>
+                            updateDraft("address", e.target.value)
+                          }
+                          rows="3"
+                          placeholder="House no., street, area and landmark"
+                        />
+                        {addressErrors.address && (
+                          <span className="field-error">
+                            {addressErrors.address}
+                          </span>
+                        )}
+                      </label>
+
+                      <label>
+                        State
+
+                        <Select
+                          options={stateOptions}
+                          value={editorSelectedState}
+                          placeholder="Search State..."
+                          isSearchable
+                          onChange={(state) => {
+                            setEditorSelectedState(state);
+                            setEditorSelectedCity(null);
+                            setDraft((current) => ({
+                              ...current,
+                              state: state?.label || "",
+                              city: "",
+                            }));
+                            if (addressErrors.state || addressErrors.city) {
+                              setAddressErrors((current) => ({
+                                ...current,
+                                state: "",
+                                city: "",
+                              }));
+                            }
+                          }}
+                        />
+                        {addressErrors.state && (
+                          <span className="field-error">
+                            {addressErrors.state}
+                          </span>
+                        )}
+                      </label>
+
+                      <label>
+                        City
+
+                        <Select
+                          options={editorCityOptions}
+                          value={editorSelectedCity}
+                          placeholder="Search City..."
+                          isSearchable
+                          isDisabled={!editorSelectedState}
+                          onChange={(city) => {
+                            setEditorSelectedCity(city);
+                            setDraft((current) => ({
+                              ...current,
+                              city: city?.label || "",
+                            }));
+                            if (addressErrors.city) {
+                              setAddressErrors((current) => ({
+                                ...current,
+                                city: "",
+                              }));
+                            }
+                          }}
+                        />
+                        {addressErrors.city && (
+                          <span className="field-error">
+                            {addressErrors.city}
+                          </span>
+                        )}
+                      </label>
+
+                      <label>
+                        Pincode
+
+                        <input
+                          value={draft.pincode}
+                          onChange={(e) =>
+                            updateDraft(
+                              "pincode",
+                              e.target.value.replace(/\D/g, "").slice(0, 6)
+                            )
+                          }
+                          inputMode="numeric"
+                          maxLength="6"
+                          placeholder="6-digit pincode"
+                        />
+                        {addressErrors.pincode && (
+                          <span className="field-error">
+                            {addressErrors.pincode}
+                          </span>
+                        )}
+                      </label>
+
+                      <button
+                        type="button"
+                        className="primary-button save-address-btn"
+                        onClick={saveAddress}
+                      >
+                        {editingIndex === -1
+                          ? "Add address"
+                          : "Update address"}
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      className="add-address-btn"
+                      onClick={() => startEditAddress(-1)}
+                    >
+                      ＋ Add new address
+                    </button>
+                  )}
 
                   {saveSuccess && (
                     <div
@@ -1055,7 +1754,7 @@ export default function AccountModal({
                         fontWeight: 700,
                       }}
                     >
-                      ✓ Address saved successfully
+                      ✓ Details saved successfully
                     </div>
                   )}
 
@@ -1067,6 +1766,381 @@ export default function AccountModal({
                     {submitting ? "Saving..." : "Save details"}
                   </button>
                 </form>
+              ) : tab === "security" ? (
+                <section className="security-panel">
+                  <div>
+                    <span className="eyebrow blue">LOGIN & SECURITY</span>
+                    <h3>Login & security</h3>
+                    <p>
+                      Edit your login name, email, mobile number and password.
+                    </p>
+                  </div>
+
+                  {/* Name */}
+                  <div className="security-row">
+                    <div className="security-meta">
+                      <span className="security-key">Name</span>
+                      <span className="security-value">{user.name}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="security-edit"
+                      onClick={() => startSecEdit("name")}
+                    >
+                      {securityEdit === "name" ? "Cancel" : "Edit"}
+                    </button>
+                  </div>
+                  {securityEdit === "name" && (
+                    <div className="security-editor">
+                      <label>
+                        Full name
+                        <input
+                          value={secForm.name}
+                          onChange={(e) =>
+                            setSecForm((f) => ({ ...f, name: e.target.value }))
+                          }
+                        />
+                      </label>
+                      {secFieldErrors.name && (
+                        <span className="field-error">
+                          {secFieldErrors.name}
+                        </span>
+                      )}
+                      <div className="security-editor-actions">
+                        <button
+                          type="button"
+                          className="primary-button"
+                          onClick={saveSecName}
+                          disabled={secSubmitting}
+                        >
+                          {secSubmitting ? "Saving..." : "Save changes"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* E-mail */}
+                  <div className="security-row">
+                    <div className="security-meta">
+                      <span className="security-key">E-mail</span>
+                      <span className="security-value">{user.email}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="security-edit"
+                      onClick={() => startSecEdit("email")}
+                    >
+                      {securityEdit === "email" ? "Cancel" : "Edit"}
+                    </button>
+                  </div>
+                  {securityEdit === "email" && (
+                    <div className="security-editor">
+                      {!secOtpSent ? (
+                        <>
+                          <p className="security-hint">
+                            Enter your new email address. An OTP will be sent to
+                            your current email to confirm the change.
+                          </p>
+                          <label>
+                            New email address
+                            <input
+                              type="email"
+                              value={secForm.newEmail}
+                              onChange={(e) =>
+                                setSecForm((f) => ({
+                                  ...f,
+                                  newEmail: e.target.value,
+                                }))
+                              }
+                              placeholder="new@example.com"
+                            />
+                          </label>
+                          {secFieldErrors.newEmail && (
+                            <span className="field-error">
+                              {secFieldErrors.newEmail}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            className="primary-button"
+                            onClick={secRequestOtp}
+                            disabled={secSubmitting}
+                          >
+                            {secSubmitting ? "Sending..." : "Send OTP"}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="security-hint">
+                            OTP sent to <strong>{user.email}</strong>. Enter it
+                            below to confirm the change to{" "}
+                            <strong>{secForm.newEmail}</strong>.
+                          </p>
+                          <label>
+                            OTP
+                            <input
+                              value={secForm.otp}
+                              onChange={(e) =>
+                                setSecForm((f) => ({
+                                  ...f,
+                                  otp: e.target.value
+                                    .replace(/\D/g, "")
+                                    .slice(0, 6),
+                                }))
+                              }
+                              placeholder="6-digit OTP"
+                              inputMode="numeric"
+                              maxLength="6"
+                              autoComplete="one-time-code"
+                            />
+                          </label>
+                          {secFieldErrors.otp && (
+                            <span className="field-error">
+                              {secFieldErrors.otp}
+                            </span>
+                          )}
+                          <div className="security-editor-actions">
+                            <button
+                              type="button"
+                              className="primary-button"
+                              onClick={secVerifyChange}
+                              disabled={secSubmitting}
+                            >
+                              {secSubmitting
+                                ? "Verifying..."
+                                : "Verify & change email"}
+                            </button>
+                            <button
+                              type="button"
+                              className="resend-btn"
+                              onClick={secRequestOtp}
+                              disabled={resendIn > 0 || secSubmitting}
+                            >
+                              {resendIn > 0
+                                ? `Resend OTP in ${resendIn}s`
+                                : "Resend OTP"}
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Primary mobile number */}
+                  <div className="security-row">
+                    <div className="security-meta">
+                      <span className="security-key">
+                        Primary mobile number
+                      </span>
+                      <span className="security-value">
+                        {user.phone ? `+91 ${user.phone}` : "Not added yet"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="security-edit"
+                      onClick={() => startSecEdit("phone")}
+                    >
+                      {securityEdit === "phone"
+                        ? "Cancel"
+                        : user.phone
+                        ? "Edit"
+                        : "Add"}
+                    </button>
+                  </div>
+                  {securityEdit === "phone" && (
+                    <div className="security-editor">
+                      {!secOtpSent ? (
+                        <>
+                          <p className="security-hint">
+                            Enter your new mobile number. An OTP will be sent to
+                            your current email to confirm the change.
+                          </p>
+                          <label>
+                            New mobile number
+                            <input
+                              type="tel"
+                              inputMode="numeric"
+                              maxLength="10"
+                              value={secForm.newPhone}
+                              onChange={(e) =>
+                                setSecForm((f) => ({
+                                  ...f,
+                                  newPhone: e.target.value
+                                    .replace(/\D/g, "")
+                                    .slice(0, 10),
+                                }))
+                              }
+                              placeholder="10-digit mobile number"
+                            />
+                          </label>
+                          {secFieldErrors.newPhone && (
+                            <span className="field-error">
+                              {secFieldErrors.newPhone}
+                            </span>
+                          )}
+                          <button
+                            type="button"
+                            className="primary-button"
+                            onClick={secRequestOtp}
+                            disabled={secSubmitting}
+                          >
+                            {secSubmitting ? "Sending..." : "Send OTP"}
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="security-hint">
+                            OTP sent to <strong>{user.email}</strong>. Enter it
+                            below to confirm updating your mobile number to{" "}
+                            <strong>+91 {secForm.newPhone}</strong>.
+                          </p>
+                          <label>
+                            OTP
+                            <input
+                              value={secForm.otp}
+                              onChange={(e) =>
+                                setSecForm((f) => ({
+                                  ...f,
+                                  otp: e.target.value
+                                    .replace(/\D/g, "")
+                                    .slice(0, 6),
+                                }))
+                              }
+                              placeholder="6-digit OTP"
+                              inputMode="numeric"
+                              maxLength="6"
+                              autoComplete="one-time-code"
+                            />
+                          </label>
+                          {secFieldErrors.otp && (
+                            <span className="field-error">
+                              {secFieldErrors.otp}
+                            </span>
+                          )}
+                          <div className="security-editor-actions">
+                            <button
+                              type="button"
+                              className="primary-button"
+                              onClick={secVerifyChange}
+                              disabled={secSubmitting}
+                            >
+                              {secSubmitting
+                                ? "Verifying..."
+                                : "Verify & update mobile"}
+                            </button>
+                            <button
+                              type="button"
+                              className="resend-btn"
+                              onClick={secRequestOtp}
+                              disabled={resendIn > 0 || secSubmitting}
+                            >
+                              {resendIn > 0
+                                ? `Resend OTP in ${resendIn}s`
+                                : "Resend OTP"}
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Password */}
+                  <div className="security-row">
+                    <div className="security-meta">
+                      <span className="security-key">Password</span>
+                      <span className="security-value">••••••••</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="security-edit"
+                      onClick={() => startSecEdit("password")}
+                    >
+                      {securityEdit === "password" ? "Cancel" : "Edit"}
+                    </button>
+                  </div>
+                  {securityEdit === "password" && (
+                    <div className="security-editor">
+                      <p className="security-hint">
+                        Verify your current password to set a new one.
+                      </p>
+                      <label>
+                        Current password
+                        <input
+                          type="password"
+                          value={secForm.currentPassword}
+                          onChange={(e) =>
+                            setSecForm((f) => ({
+                              ...f,
+                              currentPassword: e.target.value,
+                            }))
+                          }
+                          autoComplete="current-password"
+                        />
+                      </label>
+                      {secFieldErrors.currentPassword && (
+                        <span className="field-error">
+                          {secFieldErrors.currentPassword}
+                        </span>
+                      )}
+                      <label>
+                        New password
+                        <input
+                          type="password"
+                          value={secForm.newPassword}
+                          onChange={(e) =>
+                            setSecForm((f) => ({
+                              ...f,
+                              newPassword: e.target.value,
+                            }))
+                          }
+                          autoComplete="new-password"
+                          placeholder="Minimum 8 characters"
+                        />
+                      </label>
+                      {secFieldErrors.newPassword && (
+                        <span className="field-error">
+                          {secFieldErrors.newPassword}
+                        </span>
+                      )}
+                      <label>
+                        Re-enter new password
+                        <input
+                          type="password"
+                          value={secForm.confirmPassword}
+                          onChange={(e) =>
+                            setSecForm((f) => ({
+                              ...f,
+                              confirmPassword: e.target.value,
+                            }))
+                          }
+                          autoComplete="new-password"
+                        />
+                      </label>
+                      {secFieldErrors.confirmPassword && (
+                        <span className="field-error">
+                          {secFieldErrors.confirmPassword}
+                        </span>
+                      )}
+                      <div className="security-editor-actions">
+                        <button
+                          type="button"
+                          className="primary-button"
+                          onClick={changePassword}
+                          disabled={secSubmitting}
+                        >
+                          {secSubmitting ? "Saving..." : "Save new password"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {secError && (
+                    <div role="alert" className="security-error">
+                      {secError}
+                    </div>
+                  )}
+                </section>
               ) : (
                 <section className="orders-panel">
                   <div>

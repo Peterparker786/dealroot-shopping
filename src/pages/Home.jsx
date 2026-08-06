@@ -149,7 +149,12 @@ export default function Home({
                   <div className="flash-card-img">
                     {discount > 0 && <span className="flash-discount">-{discount}%</span>}
                     <Link to={`/product/${product.id}`}>
-                      <img src={optimizeImage(product.images?.[0] || product.image, 400)} alt={product.name} />
+                      <img
+                        src={optimizeImage(product.images?.[0] || product.image, 400)}
+                        alt={product.name}
+                        loading="lazy"
+                        decoding="async"
+                      />
                     </Link>
                   </div>
                   <div className="flash-card-body">
@@ -352,6 +357,8 @@ export default function Home({
                       <img
                         src={optimizeImage(product.images?.[0] || product.image, 400)}
                         alt={product.name}
+                        loading="lazy"
+                        decoding="async"
                         onError={(event) => { event.currentTarget.src = fallbackImage; }}
                       />
                     </Link>

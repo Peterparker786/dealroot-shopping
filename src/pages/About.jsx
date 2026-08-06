@@ -100,6 +100,35 @@ export default function About() {
           </p>
         </div>
 
+        {/* FOUNDER */}
+        <div className="about-card about-founder">
+          <div className="about-founder-head">
+            <span className="about-founder-avatar">HM</span>
+            <h2>Meet Our Founder</h2>
+            <p className="about-founder-name">Harsh Mishra</p>
+            <p className="about-founder-role">
+              Founder & CEO, DealRoot Beauty
+            </p>
+          </div>
+          <p className="about-founder-text">
+            Harsh started DealRoot Beauty with a simple belief — everyone
+            deserves access to authentic, premium beauty products without
+            paying a premium. From curating the brands we list to making
+            sure every order reaches you perfectly, he is personally
+            invested in making your shopping experience world-class.
+          </p>
+          <a
+            className="about-founder-mail"
+            href="mailto:hm952142@gmail.com"
+          >
+            <FaEnvelope />
+            <span>
+              <small>Email the founder</small>
+              <b>hm952142@gmail.com</b>
+            </span>
+          </a>
+        </div>
+
         {/* GET IN TOUCH */}
         <div className="about-card about-contact">
           <h2>Get In Touch</h2>

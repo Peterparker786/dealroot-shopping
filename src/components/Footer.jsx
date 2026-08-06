@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { FaInstagram, FaFacebookF } from "react-icons/fa";
 
 export default function Footer() {
   return (
@@ -44,6 +45,34 @@ export default function Footer() {
                 className="footer-map-link"
               >
                 📍 Kanpur, Uttar Pradesh
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div className="footer-col">
+          <h4>Follow Us</h4>
+          <ul>
+            <li>
+              <a
+                href="https://www.instagram.com/dealroot.store"
+                target="_blank"
+                rel="noreferrer"
+                className="footer-social-link"
+              >
+                <FaInstagram className="footer-social-icon instagram-icon" />
+                @dealroot.store
+              </a>
+            </li>
+            <li>
+              <a
+                href="https://www.facebook.com/profile.php?id=61592758863958"
+                target="_blank"
+                rel="noreferrer"
+                className="footer-social-link"
+              >
+                <FaFacebookF className="footer-social-icon facebook-icon" />
+                DealRoot Beauty
               </a>
             </li>
           </ul>
