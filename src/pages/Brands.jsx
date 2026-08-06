@@ -20,7 +20,7 @@ const featuredBrands = [
 ];
 
 const massBrands = [
-  { name: "Plum Goodness", text: "100% vegan skincare, body care, aur hair care." },
+  { name: "Plum Goodness", text: "100% vegan skincare, body care, and hair care." },
   { name: "Brillare", text: "Natural hair-growth essentials & rosemary oil treatments." },
   { name: "Dot & Key", text: "Trendy, high-performance skincare for glowing skin." },
   { name: "Mamaearth", text: "Toxin-free natural makeup & family skin essentials." },
@@ -66,22 +66,22 @@ const benefits = [
   {
     icon: <FaCheckCircle />,
     title: "100% Authentic Products",
-    text: "Direct authorized suppliers aur brand partners se sourced.",
+    text: "Sourced directly from authorized suppliers and brand partners.",
   },
   {
     icon: <FaTag />,
     title: "Unbeatable Discounts",
-    text: "Daily flash sales aur exclusive combo deals.",
+    text: "Daily flash sales and exclusive combo deals.",
   },
   {
     icon: <FaTruck />,
     title: "Fast & Safe Delivery",
-    text: "Safe packaging ke saath quick delivery aapke doorstep par.",
+    text: "Quick delivery to your doorstep with safe packaging.",
   },
   {
     icon: <FaUndo />,
     title: "Easy 7-Day Returns",
-    text: "Hassle-free return policy aapke pure trust ke liye.",
+    text: "Hassle-free return policy for your complete trust.",
   },
 ];
 
@@ -95,9 +95,9 @@ export default function Brands() {
           Brands We <span>Love</span>
         </h1>
         <p className="brands-hero-sub">
-          DealRoot Beauty par aapko milte hain 100% original aur authentic
-          beauty products duniya ke <b>30+ top-rated</b>, luxury aur
-          affordable brands se—woh bhi sabse unbeatable prices par!
+          At DealRoot Beauty you get 100% original and authentic beauty
+          products from <b>30+ top-rated</b>, luxury and affordable
+          brands — at unbeatable prices!
         </p>
         <div className="brands-count">
           <FaStar /> 30+ Brands &amp; Growing

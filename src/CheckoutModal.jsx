@@ -73,6 +73,7 @@ function CheckoutModal({
   user,
   userToken,
   onProfileUpdated,
+  deliveryLocation,
 }) {
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [placedOrder, setPlacedOrder] = useState(null);
@@ -80,6 +81,9 @@ function CheckoutModal({
   const [selectedState, setSelectedState] = useState(null);
 const [selectedCity, setSelectedCity] = useState(null);
   const [form, setForm] = useState(emptyDeliveryForm);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddr, setSelectedAddr] = useState(null);
+  const [formErrors, setFormErrors] = useState({});
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState("");
   const [couponMessage, setCouponMessage] = useState({
@@ -124,14 +128,50 @@ const cityOptions = useMemo(() => {
       return;
     }
 
-setForm({
-  name: user.name || "",
-  phone: user.phone || "",
-  state: user.state || "Uttar Pradesh",
-  address: user.address || "",
-  city: user.city || "Kanpur",
-  pincode: user.pincode || "",
-});
+    setFormErrors({});
+    const list = Array.isArray(user.addresses) ? user.addresses : [];
+    setSavedAddresses(list);
+    const defaultIndex = list.findIndex((a) => a.isDefault);
+    setSelectedAddr(defaultIndex >= 0 ? defaultIndex : null);
+
+    // Prefill from the default saved address when one exists, so the form
+    // matches the preselected card (name, phone and location all consistent).
+    if (defaultIndex >= 0) {
+      const addr = list[defaultIndex];
+      setForm({
+        name: addr.name || "",
+        phone: addr.phone || "",
+        state: addr.state || "Uttar Pradesh",
+        address: addr.address || "",
+        city: addr.city || "Kanpur",
+        pincode: addr.pincode || "",
+      });
+      syncStateCitySelects(addr.state, addr.city);
+    } else if (deliveryLocation?.stateLabel) {
+      // GPS-detected location ("Use my current location"): prefill state +
+      // city, then ask the customer to add the rest of their address below.
+      setForm({
+        name: user.name || "",
+        phone: user.phone || "",
+        state: deliveryLocation.stateLabel,
+        address: "",
+        city: deliveryLocation.city || "",
+        pincode: "",
+      });
+      syncStateCitySelects(
+        deliveryLocation.stateLabel,
+        deliveryLocation.city || ""
+      );
+    } else {
+      setForm({
+        name: user.name || "",
+        phone: user.phone || "",
+        state: user.state || "Uttar Pradesh",
+        address: user.address || "",
+        city: user.city || "Kanpur",
+        pincode: user.pincode || "",
+      });
+    }
     setPlacedOrder(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, userKey]);
@@ -259,6 +299,68 @@ const remainingCod =
       ...current,
       [name]: value,
     }));
+
+    if (formErrors[name]) {
+      setFormErrors((current) => ({ ...current, [name]: "" }));
+    }
+  };
+
+  const syncStateCitySelects = (stateName, cityName) => {
+    const state = INDIAN_STATES.find((s) => s.label === stateName);
+    setSelectedState(state ? { value: state.value, label: state.label } : null);
+    const cities = state ? CITIES_BY_STATE[state.value] || [] : [];
+    setSelectedCity(
+      cities.includes(cityName)
+        ? { value: cityName, label: cityName }
+        : null
+    );
+  };
+
+  const applySavedAddress = (index) => {
+    const addr = savedAddresses[index];
+    if (!addr) return;
+
+    setSelectedAddr(index);
+    setFormErrors({});
+    setForm({
+      name: addr.name || "",
+      phone: addr.phone || "",
+      state: addr.state || "Uttar Pradesh",
+      address: addr.address || "",
+      city: addr.city || "Kanpur",
+      pincode: addr.pincode || "",
+    });
+
+    syncStateCitySelects(addr.state, addr.city);
+  };
+
+  const useNewAddress = () => {
+    setSelectedAddr(null);
+    setFormErrors({});
+    setSelectedCity(null);
+
+    // If the user already detected their current location, keep its state +
+    // city so the "add full address" note stays consistent with the form.
+    if (deliveryLocation?.stateLabel) {
+      setForm({
+        ...emptyDeliveryForm,
+        name: user?.name || "",
+        phone: user?.phone || "",
+        state: deliveryLocation.stateLabel,
+        city: deliveryLocation.city || "",
+      });
+      syncStateCitySelects(
+        deliveryLocation.stateLabel,
+        deliveryLocation.city || ""
+      );
+      return;
+    }
+
+    setForm({
+      ...emptyDeliveryForm,
+      name: user?.name || "",
+      phone: user?.phone || "",
+    });
   };
 
   const selectDeliveryArea = (area) => {
@@ -291,24 +393,30 @@ if (!user || !userToken) {
     const phone = form.phone.replace(/\D/g, "");
     const pincode = form.pincode.replace(/\D/g, "");
 
-    if (
-      !form.name.trim() ||
-      !phone ||
-      !form.address.trim() ||
-      !form.city.trim() ||
-      !pincode
-    ) {
-      showToast?.("Please complete your delivery details");
-      return;
+    const errors = {};
+    if (!form.name.trim()) {
+      errors.name = "Please enter the recipient's full name";
+    }
+    if (!phone) {
+      errors.phone = "Please enter your mobile number";
+    } else if (phone.length !== 10) {
+      errors.phone = "Please enter a valid 10-digit mobile number";
+    }
+    if (!form.address.trim()) {
+      errors.address = "Please enter your complete address";
+    }
+    if (!form.city.trim()) {
+      errors.city = "Please enter your city";
+    }
+    if (!pincode) {
+      errors.pincode = "Please enter your pincode";
+    } else if (pincode.length !== 6) {
+      errors.pincode = "Please enter a valid 6-digit pincode";
     }
 
-    if (phone.length !== 10) {
-      showToast?.("Please enter a valid 10-digit mobile number");
-      return;
-    }
-
-    if (pincode.length !== 6) {
-      showToast?.("Please enter a valid 6-digit pincode");
+    setFormErrors(errors);
+    if (Object.keys(errors).length) {
+      showToast?.("Please fix the highlighted fields");
       return;
     }
 
@@ -320,6 +428,7 @@ if (!user || !userToken) {
 const orderPayload = {
   customer: {
     name: form.name.trim(),
+    email: user?.email || "",
     phone,
     state: form.state,
     address: form.address.trim(),
@@ -529,10 +638,66 @@ const razorpayCheckout = new window.Razorpay({
             <section className="checkout-card">
               <h3>1. Delivery details</h3>
 
+              {deliveryLocation?.stateLabel && selectedAddr === null && (
+                <div className="checkout-location-note" role="status">
+                  <span className="checkout-location-pin">📍</span>
+                  <p>
+                    <b>Current location detected:</b>{" "}
+                    {deliveryLocation.city
+                      ? `${deliveryLocation.city}, ${deliveryLocation.stateLabel}`
+                      : deliveryLocation.stateLabel}{" "}
+                    — please add your <b>full address</b> (house no., street,
+                    landmark) below so we can deliver your order.
+                  </p>
+                </div>
+              )}
+
+              {user && savedAddresses.length > 0 && (
+                <div className="deliver-to">
+                  <p className="deliver-to-label">Deliver to</p>
+                  <div className="address-options">
+                    {savedAddresses.map((addr, index) => (
+                      <button
+                        type="button"
+                        key={index}
+                        className={`address-option ${
+                          selectedAddr === index ? "selected" : ""
+                        }`}
+                        onClick={() => applySavedAddress(index)}
+                      >
+                        <span className="address-option-name">
+                          {addr.name}
+                          {addr.isDefault && (
+                            <span className="default-badge">DEFAULT</span>
+                          )}
+                        </span>
+                        <span className="address-option-detail">
+                          {addr.address}, {addr.city}, {addr.state} — {addr.pincode}
+                        </span>
+                        <span className="address-option-phone">📞 {addr.phone}</span>
+                      </button>
+                    ))}
+
+                    <button
+                      type="button"
+                      className={`address-option new-address ${
+                        selectedAddr === null ? "selected" : ""
+                      }`}
+                      onClick={useNewAddress}
+                    >
+                      <span className="address-option-name">＋ New address</span>
+                      <span className="address-option-detail">
+                        Enter a different delivery address
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {user && (
                 <p className="checkout-account-note">
-                  Signed in as <b>{user.email}</b>. Your latest delivery details
-                  will be saved to your account.
+                  Signed in as <b>{user.email}</b>. The address you use will be
+                  saved to your account.
                 </p>
               )}
 
@@ -545,7 +710,11 @@ const razorpayCheckout = new window.Razorpay({
                     onChange={updateForm}
                     placeholder="Your full name"
                     required
+                    aria-invalid={formErrors.name ? "true" : undefined}
                   />
+                  {formErrors.name && (
+                    <span className="field-error">{formErrors.name}</span>
+                  )}
                 </label>
 
                 <label>
@@ -558,7 +727,11 @@ const razorpayCheckout = new window.Razorpay({
                     maxLength="10"
                     placeholder="10-digit mobile number"
                     required
+                    aria-invalid={formErrors.phone ? "true" : undefined}
                   />
+                  {formErrors.phone && (
+                    <span className="field-error">{formErrors.phone}</span>
+                  )}
                 </label>
               </div>
 
@@ -571,7 +744,11 @@ const razorpayCheckout = new window.Razorpay({
                   placeholder="House no., street, area and landmark"
                   rows="3"
                   required
+                  aria-invalid={formErrors.address ? "true" : undefined}
                 />
+                {formErrors.address && (
+                  <span className="field-error">{formErrors.address}</span>
+                )}
               </label>
 
               <div className="form-grid">
@@ -606,13 +783,18 @@ const razorpayCheckout = new window.Razorpay({
     isDisabled={!selectedState}
     onChange={(city) => {
       setSelectedCity(city);
-
       setForm((current) => ({
         ...current,
         city: city.label,
       }));
+      if (formErrors.city) {
+        setFormErrors((current) => ({ ...current, city: "" }));
+      }
     }}
   />
+  {formErrors.city && (
+    <span className="field-error">{formErrors.city}</span>
+  )}
 </label>
 
 
@@ -626,7 +808,11 @@ const razorpayCheckout = new window.Razorpay({
                     maxLength="6"
                     placeholder="6-digit pincode"
                     required
+                    aria-invalid={formErrors.pincode ? "true" : undefined}
                   />
+                  {formErrors.pincode && (
+                    <span className="field-error">{formErrors.pincode}</span>
+                  )}
                 </label>
               </div>
             </section>

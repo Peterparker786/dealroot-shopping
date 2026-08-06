@@ -1,4 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
+import {
+  FiHome,
+  FiPackage,
+  FiShoppingBag,
+  FiImage,
+  FiPercent,
+  FiGrid,
+  FiRefreshCw,
+  FiLogOut,
+  FiArrowLeft,
+  FiPlus,
+  FiBox,
+  FiLayers,
+  FiAlertTriangle,
+  FiShoppingCart,
+  FiTrash2,
+  FiEdit2,
+  FiX,
+  FiZap,
+} from "react-icons/fi";
 import "./AdminPanel.css";
 
 const orderStatuses = [
@@ -34,6 +54,15 @@ const emptyForm = {
   highlights: [],
 };
 
+const adminTabs = [
+  { id: "dashboard", label: "Dashboard", icon: FiHome },
+  { id: "products", label: "Products", icon: FiPackage },
+  { id: "orders", label: "Orders", icon: FiShoppingBag },
+  { id: "banners", label: "Offer Banners", icon: FiImage },
+  { id: "coupons", label: "Coupons", icon: FiPercent },
+  { id: "categories", label: "Categories", icon: FiGrid },
+];
+
 function AdminPanel({
   apiUrl,
   onBack,
@@ -57,35 +86,35 @@ function AdminPanel({
   const [coupons, setCoupons] = useState([]);
   const [banners, setBanners] = useState([]);
 
-const [bannerForm, setBannerForm] = useState({
-  buttonLink: "",
-  image: "",
-  active: true,
-});
+  const [bannerForm, setBannerForm] = useState({
+    buttonLink: "",
+    image: "",
+    active: true,
+  });
 
-const [editingBannerId, setEditingBannerId] = useState("");
-const [uploadingBanner, setUploadingBanner] = useState(false);
+  const [editingBannerId, setEditingBannerId] = useState("");
+  const [uploadingBanner, setUploadingBanner] = useState(false);
 
-const [couponForm, setCouponForm] = useState({
-  code: "",
-  discountType: "percentage",
-  discountValue: "",
-  minimumOrder: "",
-  maximumDiscount: "",
-  expiryDate: "",
-});
-const [categoryForm, setCategoryForm] = useState({
-  name: "",
-  emoji: "✨",
-  color: "#f5f5f5",
-});
+  const [couponForm, setCouponForm] = useState({
+    code: "",
+    discountType: "percentage",
+    discountValue: "",
+    minimumOrder: "",
+    maximumDiscount: "",
+    expiryDate: "",
+  });
+  const [categoryForm, setCategoryForm] = useState({
+    name: "",
+    emoji: "✨",
+    color: "#f5f5f5",
+  });
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState("");
   const [loading, setLoading] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
-const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [search, setSearch] = useState("");
 
@@ -96,6 +125,10 @@ const [uploadingImages, setUploadingImages] = useState(false);
   const [extractingLink, setExtractingLink] = useState(false);
   const [extractPreview, setExtractPreview] = useState(null);
   const [previewDraft, setPreviewDraft] = useState(null);
+
+  const [tab, setTab] = useState("dashboard");
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const logOut = (message = "Logged out successfully") => {
     sessionStorage.removeItem("dealroot_admin_token");
@@ -166,33 +199,59 @@ const [uploadingImages, setUploadingImages] = useState(false);
     }
   };
 
-useEffect(() => {
-  if (token) {
-    loadProducts();
-    loadOrders();
-    loadCoupons();
-    loadBanners();
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [token]);
+  const loadCoupons = async () => {
+    try {
+      const data = await request(`${apiUrl}/api/coupons`);
+      setCoupons(data.coupons || []);
+    } catch (error) {
+      showToast(error.message);
+    }
+  };
 
-const [refreshing, setRefreshing] = useState(false);
+  const loadBanners = async () => {
+    try {
+      const data = await request(`${apiUrl}/api/banners`);
+      setBanners(data.banners || []);
+    } catch (error) {
+      showToast(error.message);
+    }
+  };
 
-const refresh = async () => {
-  if (refreshing) return;
+  useEffect(() => {
+    if (token) {
+      loadProducts();
+      loadOrders();
+      loadCoupons();
+      loadBanners();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
-  setRefreshing(true);
+  const refresh = async () => {
+    if (refreshing) return;
 
-  await Promise.allSettled([
-    loadProducts(),
-    loadOrders(),
-    loadCoupons(),
-    loadBanners(),
-  ]);
+    setRefreshing(true);
 
-  setRefreshing(false);
-  showToast("Admin data refreshed");
-};
+    await Promise.allSettled([
+      loadProducts(),
+      loadOrders(),
+      loadCoupons(),
+      loadBanners(),
+    ]);
+
+    setRefreshing(false);
+    showToast("Admin data refreshed");
+  };
+
+  const switchTab = (nextTab, options = {}) => {
+    setTab(nextTab);
+
+    if (options.showForm) {
+      setShowProductForm(true);
+    }
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const logIn = async (event) => {
     event.preventDefault();
@@ -225,24 +284,6 @@ const refresh = async () => {
     }
   };
 
-  const loadCoupons = async () => {
-  try {
-    const data = await request(`${apiUrl}/api/coupons`);
-    setCoupons(data.coupons || []);
-  } catch (error) {
-    showToast(error.message);
-  }
-};
-
-const loadBanners = async () => {
-  try {
-    const data = await request(`${apiUrl}/api/banners`);
-    setBanners(data.banners || []);
-  } catch (error) {
-    showToast(error.message);
-  }
-};
-
   const updateForm = ({ target }) => {
     const value =
       target.type === "checkbox" ? target.checked : target.value;
@@ -264,147 +305,146 @@ const loadBanners = async () => {
   };
 
   const uploadImages = async (files) => {
-  try {
-    setUploadingImages(true);
+    try {
+      setUploadingImages(true);
 
-    const formData = new FormData();
+      const formData = new FormData();
 
-    [...files].forEach((file) => {
-      formData.append("images", file);
-    });
+      [...files].forEach((file) => {
+        formData.append("images", file);
+      });
 
-    const response = await fetch(`${apiUrl}/api/upload`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    const data = await response.json();
-    console.log("UPLOAD RESPONSE:", data);
-
-    if (!response.ok || !data.success) {
-      throw new Error(data.message || "Upload failed");
-    }
-
-    setForm((current) => ({
-      ...current,
-      images: [...current.images, ...data.images],
-    }));
-
-    setSelectedImages((current) => {
-  const updated = [...current, ...data.images];
-  console.log("UPDATED IMAGES:", updated);
-  return updated;
-});
-
-    showToast("Images uploaded successfully");
-  } catch (error) {
-    showToast(error.message);
-  } finally {
-    setUploadingImages(false);
-  }
-};
-
-const uploadBannerImage = async (file) => {
-  try {
-    setUploadingBanner(true);
-
-    const formData = new FormData();
-    formData.append("images", file);
-
-    const response = await fetch(`${apiUrl}/api/upload`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: formData,
-    });
-
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      throw new Error(data.message || "Upload failed");
-    }
-
-    setBannerForm((current) => ({
-      ...current,
-      image: data.images[0],
-    }));
-
-    showToast("Banner image uploaded");
-  } catch (error) {
-    showToast(error.message);
-  } finally {
-    setUploadingBanner(false);
-  }
-};
-
-const saveBanner = async (e) => {
-  e.preventDefault();
-
-  try {
-    const data = await request(
-      editingBannerId
-        ? `${apiUrl}/api/banners/${editingBannerId}`
-        : `${apiUrl}/api/banners`,
-      {
-        method: editingBannerId ? "PUT" : "POST",
+      const response = await fetch(`${apiUrl}/api/upload`, {
+        method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(bannerForm),
-      }
-    );
+        body: formData,
+      });
 
-    showToast(data.message || "Banner saved");
+      const data = await response.json();
+      console.log("UPLOAD RESPONSE:", data);
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Upload failed");
+      }
+
+      setForm((current) => ({
+        ...current,
+        images: [...current.images, ...data.images],
+      }));
+
+      setSelectedImages((current) => {
+        const updated = [...current, ...data.images];
+        console.log("UPDATED IMAGES:", updated);
+        return updated;
+      });
+
+      showToast("Images uploaded successfully");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setUploadingImages(false);
+    }
+  };
+
+  const uploadBannerImage = async (file) => {
+    try {
+      setUploadingBanner(true);
+
+      const formData = new FormData();
+      formData.append("images", file);
+
+      const response = await fetch(`${apiUrl}/api/upload`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Upload failed");
+      }
+
+      setBannerForm((current) => ({
+        ...current,
+        image: data.images[0],
+      }));
+
+      showToast("Banner image uploaded");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setUploadingBanner(false);
+    }
+  };
+
+  const saveBanner = async (e) => {
+    e.preventDefault();
+
+    try {
+      const data = await request(
+        editingBannerId
+          ? `${apiUrl}/api/banners/${editingBannerId}`
+          : `${apiUrl}/api/banners`,
+        {
+          method: editingBannerId ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(bannerForm),
+        }
+      );
+
+      showToast(data.message || "Banner saved");
+
+      setBannerForm({
+        buttonLink: "",
+        image: "",
+        active: true,
+      });
+
+      setEditingBannerId("");
+
+      loadBanners();
+    } catch (error) {
+      showToast(error.message);
+    }
+  };
+
+  const editBanner = (banner) => {
+    setEditingBannerId(banner._id);
 
     setBannerForm({
-      buttonLink: "",
-      image: "",
-      active: true,
+      buttonLink: banner.buttonLink || "",
+      image: banner.image || "",
+      active: banner.active,
     });
 
-    setEditingBannerId("");
-
-    loadBanners();
-  } catch (error) {
-    showToast(error.message);
-  }
-};
-
-const editBanner = (banner) => {
-  setEditingBannerId(banner._id);
-
-  setBannerForm({
-    buttonLink: banner.buttonLink || "",
-    image: banner.image || "",
-    active: banner.active,
-  });
-
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth",
-  });
-};
-
-const deleteBanner = async (id) => {
-  if (!window.confirm("Delete this banner?")) return;
-
-  try {
-    const data = await request(`${apiUrl}/api/banners/${id}`, {
-      method: "DELETE",
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
     });
+  };
 
-    showToast(data.message || "Banner deleted");
+  const deleteBanner = async (id) => {
+    if (!window.confirm("Delete this banner?")) return;
 
-    loadBanners();
-  } catch (error) {
-    showToast(error.message);
-  }
-};
+    try {
+      const data = await request(`${apiUrl}/api/banners/${id}`, {
+        method: "DELETE",
+      });
 
+      showToast(data.message || "Banner deleted");
+
+      loadBanners();
+    } catch (error) {
+      showToast(error.message);
+    }
+  };
 
   const visibleProducts = useMemo(() => {
     const text = search.trim().toLowerCase();
@@ -436,64 +476,65 @@ const deleteBanner = async (id) => {
         !["amazon", "flipkart"].includes(link.platform?.toLowerCase())
     );
 
-  setEditingId(product._id);
+    setEditingId(product._id);
+    setShowProductForm(true);
 
-setForm({
-  brand: product.brand || "",
-  title: product.title || "",
-  description: product.description || "",
-  category: product.category || "Skincare",
-  price: String(product.price ?? ""),
-  mrp: String(product.mrp ?? ""),
-  rating: String(product.rating ?? 4.5),
-  reviews: String(product.reviews ?? 0),
+    setForm({
+      brand: product.brand || "",
+      title: product.title || "",
+      description: product.description || "",
+      category: product.category || "Skincare",
+      price: String(product.price ?? ""),
+      mrp: String(product.mrp ?? ""),
+      rating: String(product.rating ?? 4.5),
+      reviews: String(product.reviews ?? 0),
 
-  images: product.images || [],
+      images: product.images || [],
 
-  badge: product.badge || "",
-  stock: String(product.stock ?? 0),
-  isFeatured: Boolean(product.isFeatured),
-  dealType: product.dealType || "none",
+      badge: product.badge || "",
+      stock: String(product.stock ?? 0),
+      isFeatured: Boolean(product.isFeatured),
+      dealType: product.dealType || "none",
 
-  amazonLink:
-    product.marketplaceLinks?.find(
-      (link) => link.platform?.toLowerCase() === "amazon"
-    )?.url || "",
+      amazonLink:
+        product.marketplaceLinks?.find(
+          (link) => link.platform?.toLowerCase() === "amazon"
+        )?.url || "",
 
-  flipkartLink:
-    product.marketplaceLinks?.find(
-      (link) => link.platform?.toLowerCase() === "flipkart"
-    )?.url || "",
+      flipkartLink:
+        product.marketplaceLinks?.find(
+          (link) => link.platform?.toLowerCase() === "flipkart"
+        )?.url || "",
 
-  otherMarketplaceName: otherMarketplace?.platform || "",
-  otherMarketplaceLink: otherMarketplace?.url || "",
+      otherMarketplaceName: otherMarketplace?.platform || "",
+      otherMarketplaceLink: otherMarketplace?.url || "",
 
-  specifications: Array.isArray(product.specifications)
-    ? product.specifications.map((spec) => ({
-        label: spec?.label || "",
-        value: spec?.value || "",
-      }))
-    : [],
+      specifications: Array.isArray(product.specifications)
+        ? product.specifications.map((spec) => ({
+            label: spec?.label || "",
+            value: spec?.value || "",
+          }))
+        : [],
 
-  highlights: Array.isArray(product.highlights)
-    ? product.highlights.filter((item) => String(item).trim())
-    : [],
-});
+      highlights: Array.isArray(product.highlights)
+        ? product.highlights.filter((item) => String(item).trim())
+        : [],
+    });
 
-// 👇 YE OBJECT KE BAHAR HONA CHAHIYE
-setSelectedImages(product.images || []);
+    setSelectedImages(product.images || []);
 
-window.scrollTo({
-  top: 0,
-  behavior: "smooth",
-});
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
- const cancelEdit = () => {
-  setEditingId("");
-  setForm(emptyForm);
-  setSelectedImages([]);
-};
+  const cancelEdit = () => {
+    setEditingId("");
+    setForm(emptyForm);
+    setSelectedImages([]);
+    setShowProductForm(false);
+  };
 
   // Set an image as the front/cover image (moves it to index 0)
   // selectedImages is the single source of truth — saveProduct uses it.
@@ -509,7 +550,7 @@ window.scrollTo({
       return updated;
     });
 
-    showToast("Set as front image — yeh image storefront par dikhegi");
+    showToast("Set as front image — this image will be shown on the storefront");
   };
 
   const removeImage = (index) => {
@@ -550,7 +591,7 @@ window.scrollTo({
   // AI screenshot extraction — shows a preview first, then Apply fills form
   const extractFromScreenshot = async () => {
     if (!screenshotFile) {
-      showToast("Pehle product ka screenshot choose karein");
+      showToast("Please choose a product screenshot first");
       return;
     }
 
@@ -585,7 +626,7 @@ window.scrollTo({
 
       if (specCount === 0 && highlightCount === 0 && !info.title) {
         showToast(
-          "⚠️ Screenshot me product info nahi mili — clear / close-up screenshot try karein"
+          "⚠️ No product info found in the screenshot — try a clear, close-up screenshot"
         );
         return;
       }
@@ -606,7 +647,7 @@ window.scrollTo({
         highlights: [...(info.highlights || [])],
       });
 
-      showToast("✨ Extract ho gaya — neeche preview review karke Save dabayein");
+      showToast("✨ Extracted — review the preview below and press Save");
     } catch (error) {
       showToast(error.message);
     } finally {
@@ -619,12 +660,12 @@ window.scrollTo({
     const url = extractLink.trim();
 
     if (!url) {
-      showToast("Pehle product ki link paste karein");
+      showToast("Please paste a product link first");
       return;
     }
 
     if (!/^https?:\/\//i.test(url)) {
-      showToast("Valid link paste karein (https://...)");
+      showToast("Please paste a valid link (https://...)");
       return;
     }
 
@@ -668,9 +709,9 @@ window.scrollTo({
       });
 
       showToast(
-        `✨ Link se ${(info.specifications || []).length} specs + ${
+        `✨ Got ${(info.specifications || []).length} specs + ${
           (info.highlights || []).length
-        } points + ${(data.images || []).length} images mili — review karke Save dabayein`
+        } points + ${(data.images || []).length} images from the link — review and press Save`
       );
     } catch (error) {
       showToast(error.message);
@@ -741,30 +782,29 @@ window.scrollTo({
       delete payload.otherMarketplaceName;
       delete payload.otherMarketplaceLink;
 
-await request(
-  editingId
-    ? `${apiUrl}/api/products/${editingId}`
-    : `${apiUrl}/api/products`,
-  {
-    method: editingId ? "PUT" : "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  }
-);
+      await request(
+        editingId
+          ? `${apiUrl}/api/products/${editingId}`
+          : `${apiUrl}/api/products`,
+        {
+          method: editingId ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
-setSelectedImages([]);
+      setSelectedImages([]);
 
-showToast(
-  editingId
-    ? "Product updated successfully"
-    : "Product added successfully"
-);
+      showToast(
+        editingId
+          ? "Product updated successfully"
+          : "Product added successfully"
+      );
 
-cancelEdit();
-loadProducts();
-
+      cancelEdit();
+      loadProducts();
     } catch (error) {
       showToast(error.message);
     } finally {
@@ -881,59 +921,63 @@ loadProducts();
   };
 
   const createCoupon = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    const data = await request(`${apiUrl}/api/coupons`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(couponForm),
-    });
+    try {
+      const data = await request(`${apiUrl}/api/coupons`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(couponForm),
+      });
 
-    showToast(data.message);
+      showToast(data.message);
 
-    setCouponForm({
-      code: "",
-      discountType: "percentage",
-      discountValue: "",
-      minimumOrder: "",
-      maximumDiscount: "",
-      expiryDate: "",
-    });
+      setCouponForm({
+        code: "",
+        discountType: "percentage",
+        discountValue: "",
+        minimumOrder: "",
+        maximumDiscount: "",
+        expiryDate: "",
+      });
 
-    loadCoupons();
-  } catch (error) {
-    showToast(error.message);
-  }
-};
+      loadCoupons();
+    } catch (error) {
+      showToast(error.message);
+    }
+  };
 
-const deleteCoupon = async (id) => {
-  if (!window.confirm("Delete this coupon?")) return;
+  const deleteCoupon = async (id) => {
+    if (!window.confirm("Delete this coupon?")) return;
 
-  try {
-    const data = await request(`${apiUrl}/api/coupons/${id}`, {
-      method: "DELETE",
-    });
+    try {
+      const data = await request(`${apiUrl}/api/coupons/${id}`, {
+        method: "DELETE",
+      });
 
-    showToast(data.message);
-    loadCoupons();
-  } catch (error) {
-    showToast(error.message);
-  }
-};
-
+      showToast(data.message);
+      loadCoupons();
+    } catch (error) {
+      showToast(error.message);
+    }
+  };
 
   if (!token) {
     return (
       <div className="admin-login-page">
         <form className="admin-login-card" onSubmit={logIn}>
+          <div className="admin-login-logo">
+            <span className="admin-login-bolt">⚡</span>
+            DEALROOT
+          </div>
+
           <button type="button" className="admin-back" onClick={onBack}>
-            ← Store
+            <FiArrowLeft /> Store
           </button>
 
-          <p>DEALROOT BEAUTY</p>
+          <p>DEALROOT BEAUTY · SECURE ACCESS</p>
           <h1>Admin sign in</h1>
           <span>
             Only authorized store administrators can manage products and orders.
@@ -971,7 +1015,7 @@ const deleteCoupon = async (id) => {
             />
           </label>
 
-          <button className="save-product" disabled={loggingIn}>
+          <button className="admin-login-btn" disabled={loggingIn}>
             {loggingIn ? "Signing in..." : "Secure sign in"}
           </button>
         </form>
@@ -988,1252 +1032,1671 @@ const deleteCoupon = async (id) => {
     (order) => !["delivered", "cancelled"].includes(order.orderStatus)
   ).length;
 
+  const outOfStock = products.filter(
+    (product) => Number(product.stock) === 0
+  ).length;
+
+  const lowStock = products.filter(
+    (product) =>
+      Number(product.stock) > 0 && Number(product.stock) <= 5
+  ).length;
+
+  const todayLabel = new Date().toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
+  const currentTab = adminTabs.find((item) => item.id === tab) || adminTabs[0];
+
+  const statCards = [
+    {
+      label: "Total products",
+      value: products.length,
+      sub: "Live in store",
+      icon: FiBox,
+      tone: "blue",
+    },
+    {
+      label: "Total stock",
+      value: totalStock,
+      sub: "Units across all products",
+      icon: FiLayers,
+      tone: "green",
+    },
+    {
+      label: "Out of stock",
+      value: outOfStock,
+      sub: lowStock > 0 ? `${lowStock} low stock (≤5)` : "All stocked",
+      icon: FiAlertTriangle,
+      tone: "red",
+    },
+    {
+      label: "Pending orders",
+      value: pendingOrders,
+      sub: "Awaiting fulfilment",
+      icon: FiShoppingCart,
+      tone: "pink",
+    },
+  ];
+
+  const quickActions = [
+    {
+      label: "Add product",
+      desc: "Upload a new product",
+      icon: FiPlus,
+      tone: "pink",
+      onClick: () => {
+        cancelEdit();
+        switchTab("products", { showForm: true });
+      },
+    },
+    {
+      label: "Manage orders",
+      desc: `${orders.length} orders total`,
+      icon: FiShoppingBag,
+      tone: "blue",
+      onClick: () => switchTab("orders"),
+    },
+    {
+      label: "Offer banner",
+      desc: "Create a home page banner",
+      icon: FiImage,
+      tone: "purple",
+      onClick: () => switchTab("banners"),
+    },
+    {
+      label: "Create coupon",
+      desc: "Create a discount coupon",
+      icon: FiPercent,
+      tone: "green",
+      onClick: () => switchTab("coupons"),
+    },
+    {
+      label: "Add category",
+      desc: "Create a new category",
+      icon: FiGrid,
+      tone: "amber",
+      onClick: () => switchTab("categories"),
+    },
+  ];
+
+  const statusBadge = (status = "placed") => {
+    const map = {
+      placed: "status-placed",
+      confirmed: "status-confirmed",
+      packed: "status-packed",
+      shipped: "status-shipped",
+      delivered: "status-delivered",
+      cancelled: "status-cancelled",
+    };
+
+    return map[status] || "status-placed";
+  };
+
   return (
-    <div className="admin-page">
-      <header className="admin-header">
-        <button className="admin-back" onClick={onBack}>
-          ← Store
-        </button>
-
-        <div>
-          <p>DEALROOT BEAUTY</p>
-          <h1>Product Admin Panel</h1>
+    <div className="admin-shell">
+      {/* ===================== SIDEBAR (desktop) ===================== */}
+      <aside className="admin-sidebar">
+        <div className="admin-sidebar-brand">
+          <span className="admin-brand-bolt">⚡</span>
+          <div>
+            <b>DEALROOT</b>
+            <small>Beauty Admin</small>
+          </div>
         </div>
 
-        <div className="admin-header-actions">
-          <button
-            className={`admin-refresh ${refreshing ? "refreshing" : ""}`}
-            onClick={refresh}
-            disabled={refreshing}
-          >
-            <span className="admin-refresh-icon">↻</span>{" "}
-            {refreshing ? "Refreshing…" : "Refresh"}
-          </button>
+        <nav className="admin-sidebar-nav">
+          {adminTabs.map((item) => {
+            const Icon = item.icon;
 
-          <button className="admin-back" onClick={() => logOut()}>
-            Logout
-          </button>
-        </div>
-      </header>
-
-      <main className="admin-content">
-        <section className="admin-stats">
-          <article>
-            <span>Total products</span>
-            <strong>{products.length}</strong>
-          </article>
-
-          <article>
-            <span>Total stock</span>
-            <strong>{totalStock}</strong>
-          </article>
-
-          <article>
-            <span>Out of stock</span>
-            <strong>
-              {products.filter((product) => Number(product.stock) === 0).length}
-            </strong>
-          </article>
-
-          <article>
-            <span>Pending orders</span>
-            <strong>{pendingOrders}</strong>
-          </article>
-        </section>
-<section className="admin-form-card">
-  <div className="admin-section-title">
-    <div>
-      <p>MARKETING</p>
-      <h2>Offer Banner</h2>
-    </div>
-  </div>
-
-  <div className="banner-size-hint">
-    📐 <b>Recommended banner size: 1080 × 1080 px</b> (square)
-    <br />
-    Square image sabse sahi dikhega. Iske alawa 800 × 800 ya 1024 × 1024
-    bhi chale ga. Text banner ke beech me rakhein taaki crop na ho.
-  </div>
-
-  <form className="product-form" onSubmit={saveBanner}>
-
-    <label className="full-field">
-      Banner Image
-
-      <input
-        type="file"
-        accept="image/*"
-        onChange={(e) => uploadBannerImage(e.target.files[0])}
-      />
-
-      {uploadingBanner && (
-        <small>Uploading banner...</small>
-      )}
-
-      {bannerForm.image && (
-        <img
-          src={bannerForm.image}
-          alt="Banner preview"
-          className="banner-preview-img"
-        />
-      )}
-    </label>
-
-    <label className="full-field">
-      Redirect Link
-      <input
-        value={bannerForm.buttonLink}
-        onChange={(e) =>
-          setBannerForm({
-            ...bannerForm,
-            buttonLink: e.target.value,
-          })
-        }
-        placeholder="e.g. /product/6a699b... ya https://yoursite.com/..."
-      />
-      <small>
-        Banner par click karne se log is link par pahuchenge. Khali chhod do to
-        products section par le jayega. App ka page ho to <b>/product/...</b>,
-        bahar ka link ho to <b>https://...</b> paste karein.
-      </small>
-    </label>
-
-    <label className="featured-check">
-      <input
-        type="checkbox"
-        checked={bannerForm.active}
-        onChange={(e) =>
-          setBannerForm({
-            ...bannerForm,
-            active: e.target.checked,
-          })
-        }
-      />
-      Active Banner (home page par dikhe)
-    </label>
-
-    <button className="save-product">
-      {editingBannerId ? "Update Banner" : "Save Banner"}
-    </button>
-
-  </form>
-</section>
-
-<section className="admin-products-card">
-  <div className="admin-section-title">
-    <div>
-      <p>LIVE BANNERS</p>
-      <h2>Manage Offer Banners</h2>
-    </div>
-  </div>
-
-  {banners.length === 0 ? (
-    <div className="admin-empty">No banners found.</div>
-  ) : (
-    <div className="admin-table-wrap">
-      <table className="admin-table">
-        <thead>
-          <tr>
-            <th>Image</th>
-            <th>Redirect Link</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {banners.map((banner) => (
-            <tr key={banner._id}>
-              <td>
-                <img
-                  src={banner.image}
-                  alt=""
-                  style={{
-                    width: 120,
-                    borderRadius: 8,
-                  }}
-                />
-              </td>
-
-              <td>
-                <b>{banner.buttonLink || "Products"}</b>
-                <br />
-                <small>
-                  {banner.buttonLink
-                    ? banner.buttonLink.startsWith("http")
-                      ? "External link (naya tab)"
-                      : "App ka page"
-                    : "Default — products section"}
-                </small>
-              </td>
-
-              <td>
-                {banner.active ? (
-                  <span className="stock-active">
-                    Active
-                  </span>
-                ) : (
-                  <span className="stock-empty">
-                    Inactive
-                  </span>
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`admin-nav-item ${
+                  tab === item.id ? "active" : ""
+                }`}
+                onClick={() => switchTab(item.id)}
+              >
+                <Icon />
+                <span>{item.label}</span>
+                {item.id === "orders" && pendingOrders > 0 && (
+                  <em className="admin-nav-badge">{pendingOrders}</em>
                 )}
-              </td>
-
-              <td>
-                <div className="admin-actions">
-                  <button
-                    onClick={() => editBanner(banner)}
-                  >
-                    Edit
-                  </button>
-
-                  <button
-                    className="delete-button"
-                    onClick={() =>
-                      deleteBanner(banner._id)
-                    }
-                  >
-                    Delete
-                  </button>
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )}
-</section>
-
-        <section className="admin-form-card">
-  <div className="admin-section-title">
-    <div>
-      <p>COUPON MANAGEMENT</p>
-      <h2>Create Discount Coupon</h2>
-    </div>
-  </div>
-
-  <form className="product-form" onSubmit={createCoupon}>
-
-    <label>
-      Coupon Code
-      <input
-        value={couponForm.code}
-        onChange={(e)=>
-          setCouponForm({
-            ...couponForm,
-            code:e.target.value.toUpperCase()
-          })
-        }
-      />
-    </label>
-
-    <label>
-      Discount Type
-      <select
-        value={couponForm.discountType}
-        onChange={(e)=>
-          setCouponForm({
-            ...couponForm,
-            discountType:e.target.value
-          })
-        }
-      >
-        <option value="percentage">Percentage</option>
-        <option value="flat">Flat</option>
-      </select>
-    </label>
-
-    <label>
-      Discount Value
-      <input
-        type="number"
-        value={couponForm.discountValue}
-        onChange={(e)=>
-          setCouponForm({
-            ...couponForm,
-            discountValue:e.target.value
-          })
-        }
-      />
-    </label>
-
-    <label>
-      Minimum Order
-      <input
-        type="number"
-        value={couponForm.minimumOrder}
-        onChange={(e)=>
-          setCouponForm({
-            ...couponForm,
-            minimumOrder:e.target.value
-          })
-        }
-      />
-    </label>
-
-    <label>
-      Maximum Discount
-      <input
-        type="number"
-        value={couponForm.maximumDiscount}
-        onChange={(e)=>
-          setCouponForm({
-            ...couponForm,
-            maximumDiscount:e.target.value
-          })
-        }
-      />
-    </label>
-
-    <label>
-      Expiry Date
-      <input
-        type="date"
-        value={couponForm.expiryDate}
-        onChange={(e)=>
-          setCouponForm({
-            ...couponForm,
-            expiryDate:e.target.value
-          })
-        }
-      />
-    </label>
-
-    <button className="save-product">
-      Create Coupon
-    </button>
-
-  </form>
-</section>
-
-<section className="admin-form-card">
-  <div className="admin-section-title">
-    <div>
-      <p>CATEGORY MANAGEMENT</p>
-      <h2>Add / Remove Store Categories</h2>
-    </div>
-  </div>
-
-  <form
-    className="product-form"
-    onSubmit={(e) => {
-      e.preventDefault();
-      onAddCategory(categoryForm.name, categoryForm.emoji, categoryForm.color);
-      setCategoryForm({ name: "", emoji: "✨", color: "#f5f5f5" });
-    }}
-  >
-    <label>
-      Category name *
-      <input
-        value={categoryForm.name}
-        onChange={(e) =>
-          setCategoryForm({ ...categoryForm, name: e.target.value })
-        }
-        placeholder="e.g. Wellness"
-        required
-      />
-    </label>
-
-    <label>
-      Emoji
-      <input
-        value={categoryForm.emoji}
-        onChange={(e) =>
-          setCategoryForm({ ...categoryForm, emoji: e.target.value })
-        }
-        placeholder="e.g. 🌿"
-        maxLength={4}
-      />
-    </label>
-
-    <label>
-      Circle colour
-      <input
-        type="color"
-        value={categoryForm.color}
-        onChange={(e) =>
-          setCategoryForm({ ...categoryForm, color: e.target.value })
-        }
-        style={{ height: 44, padding: 6, cursor: "pointer" }}
-      />
-    </label>
-
-    <div className="full-field">
-      <button className="save-product" disabled={!categoryForm.name.trim()}>
-        + Add Category
-      </button>
-      <small style={{ display: "block", marginTop: 8 }}>
-        Nayi category turant home page ke "Shop by Category" aur is product form
-        ke dropdown me dikhegi. Storage: is browser me save rehti hai.
-      </small>
-    </div>
-  </form>
-
-  <div className="category-list">
-    {(categories || []).map((category) => (
-      <div className="category-list-item" key={category.name}>
-        <span
-          className="category-list-emoji"
-          style={{ background: category.color }}
-        >
-          {category.emoji}
-        </span>
-        <b>{category.label || category.name}</b>
-        <small>{category.name}</small>
-        <button
-          type="button"
-          className="category-remove-btn"
-          onClick={() => onRemoveCategory(category.name)}
-          aria-label={`Remove ${category.name} category`}
-        >
-          ×
-        </button>
-      </div>
-    ))}
-  </div>
-</section>
-
-
-        <section className="admin-form-card">
-          <div className="admin-section-title">
-            <div>
-              <p>{editingId ? "EDIT PRODUCT" : "NEW PRODUCT"}</p>
-              <h2>
-                {editingId
-                  ? "Update product details"
-                  : "Add a product to DEALROOT"}
-              </h2>
-            </div>
-
-            {editingId && (
-              <button className="cancel-edit" type="button" onClick={cancelEdit}>
-                Cancel edit
               </button>
-            )}
+            );
+          })}
+        </nav>
+
+        <div className="admin-sidebar-foot">
+          <button type="button" className="admin-foot-btn" onClick={onBack}>
+            <FiArrowLeft /> Back to store
+          </button>
+          <button type="button" className="admin-foot-btn" onClick={() => logOut()}>
+            <FiLogOut /> Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* ===================== MAIN AREA ===================== */}
+      <div className="admin-main">
+        {/* Top bar */}
+        <header className="admin-topbar">
+          <div className="admin-topbar-title">
+            <p>DEALROOT BEAUTY · ADMIN</p>
+            <h1>
+              <currentTab.icon className="admin-topbar-icon" />
+              {currentTab.label}
+            </h1>
           </div>
 
-          <form className="product-form" onSubmit={saveProduct}>
-            {[
-              ["brand", "Brand *", "text"],
-              ["title", "Product title *", "text"],
-              ["stock", "Stock *", "number"],
-              ["price", "Selling price (₹) *", "number"],
-              ["mrp", "MRP (₹) *", "number"],
-              ["rating", "Rating", "number"],
-              ["reviews", "Number of reviews", "number"],
-              ["amazonLink", "Amazon product link", "url"],
-              ["flipkartLink", "Flipkart product link", "url"],
-              ["otherMarketplaceName", "Other platform name", "text"],
-              ["otherMarketplaceLink", "Other platform link", "url"],
-              ["badge", "Product badge", "text"],
-            ].map(([name, label, type]) => (
-              <label
-                key={name}
-                className={name === "image" ? "full-field" : ""}
-              >
-                {label}
-
-                <input
-                  name={name}
-                  type={type}
-                  min={type === "number" ? "0" : undefined}
-                  step={name === "rating" ? "0.1" : undefined}
-                  value={form[name]}
-                  onChange={updateForm}
-                  required={["brand", "title", "stock", "price", "mrp"].includes(
-                    name
-                  )}
-                />
-              </label>
-            ))}
-
-            <label>
-              Category *
-              <select
-                name="category"
-                value={form.category}
-                onChange={updateForm}
-              >
-                {(categories || []).map((category) => (
-                  <option key={category.name} value={category.name}>
-                    {category.label || category.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label>
-              Deal section
-              <select
-                name="dealType"
-                value={form.dealType}
-                onChange={updateForm}
-              >
-                <option value="none">Regular product (No deal)</option>
-                <option value="99">₹99 Deals</option>
-                <option value="199">₹199 Deals</option>
-              </select>
-              <small>
-                Selecting a deal automatically sets the selling price.
-              </small>
-            </label>
-
-            <label className="featured-check">
-              <input
-                name="isFeatured"
-                type="checkbox"
-                checked={form.isFeatured}
-                onChange={updateForm}
-              />
-              Show as featured product
-            </label>
-
-<label className="full-field">
-  Product Images
-
-  <input
-    type="file"
-    multiple
-    accept="image/*"
-    onChange={(e) => uploadImages(e.target.files)}
-  />
-
-  {uploadingImages && (
-    <small>Uploading images...</small>
-  )}
-
-  {selectedImages.length > 0 && (
-    <div className="image-front-preview">
-      <div className="front-preview-img">
-        <img src={selectedImages[0]} alt="Front image preview" />
-        <span className="front-preview-badge">⭐ FRONT IMAGE</span>
-      </div>
-      <p>
-        <b>First image = front/cover.</b> Yehi image storefront par show hogi —
-        products list, flash deals aur product page par sabse pehle dikhegi.
-        Neeche kisi bhi image par <b>"Set as Front"</b> dabayein.
-      </p>
-    </div>
-  )}
-
-  {selectedImages.length > 0 && (
-    <div className="image-thumb-grid">
-      {selectedImages.map((img, index) => (
-        <div
-          key={index}
-          className={`image-thumb ${index === 0 ? "is-front" : ""}`}
-        >
-          <img src={img} alt="" />
-
-          {index === 0 && (
-            <span className="front-badge">⭐ FRONT</span>
-          )}
-
-          <span className="thumb-index">#{index + 1}</span>
-
-          <div className="thumb-actions">
-            {index !== 0 && (
-              <button
-                type="button"
-                className="thumb-front-btn"
-                onClick={() => setAsFront(index)}
-                title="Set as front image"
-              >
-                Set as Front
-              </button>
-            )}
-
+          <div className="admin-topbar-actions">
             <button
-              type="button"
-              className="thumb-delete-btn"
-              onClick={() => removeImage(index)}
-              aria-label="Remove image"
+              className={`admin-refresh ${refreshing ? "refreshing" : ""}`}
+              onClick={refresh}
+              disabled={refreshing}
             >
-              ×
+              <FiRefreshCw className="admin-refresh-icon" />
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </button>
+
+            <button className="admin-back" onClick={() => logOut()}>
+              <FiLogOut /> Logout
             </button>
           </div>
-        </div>
-      ))}
-    </div>
-  )}
-</label>
+        </header>
 
-            <div className="full-field ai-extract-box">
-              <span className="ai-extract-title">🤖 AI Screenshot Extract</span>
-              <small className="ai-extract-hint">
-                Kisi bhi platform (Amazon, Flipkart, Myntra...) ka product screenshot
-                upload karo — AI usse specifications aur "About this item" points
-                automatically nikale aur neeche ke fields bhar dega.
-              </small>
+        {/* Mobile / tablet pill navigation */}
+        <nav className="admin-pillnav">
+          {adminTabs.map((item) => {
+            const Icon = item.icon;
 
-              <div className="ai-extract-controls">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setScreenshotFile(e.target.files[0] || null)}
-                />
-                <button
-                  type="button"
-                  className="ai-extract-btn"
-                  disabled={extractingInfo}
-                  onClick={extractFromScreenshot}
-                >
-                  {extractingInfo
-                    ? "⏳ Analyzing screenshot..."
-                    : "✨ Extract product info"}
-                </button>
-              </div>
-
-              {screenshotFile && (
-                <small className="ai-extract-selected">
-                  📎 {screenshotFile.name}
-                </small>
-              )}
-            </div>
-
-            <div className="full-field ai-extract-box ai-link-box">
-              <span className="ai-extract-title">🔗 Extract from Product Link</span>
-              <small className="ai-extract-hint">
-                Amazon / Flipkart / kisi bhi store ki product link paste karo —
-                info + product images dono extract hongi.
-              </small>
-
-              <div className="ai-extract-controls">
-                <input
-                  type="url"
-                  className="ai-link-input"
-                  value={extractLink}
-                  onChange={(e) => setExtractLink(e.target.value)}
-                  placeholder="https://www.amazon.in/... ya https://www.flipkart.com/..."
-                />
-                <button
-                  type="button"
-                  className="ai-extract-btn"
-                  disabled={extractingLink}
-                  onClick={extractFromLink}
-                >
-                  {extractingLink
-                    ? "⏳ Analyzing link..."
-                    : "🔗 Extract from link"}
-                </button>
-              </div>
-            </div>
-
-            {extractPreview && previewDraft && (
-              <div className="ai-preview-box">
-                <div className="ai-preview-header">
-                  <span>👀 Extract Preview — edit karke Save karein</span>
-                  <div className="ai-preview-actions">
-                    <button
-                      type="button"
-                      className="ai-preview-apply"
-                      onClick={() => {
-                        applyExtractedInfo(previewDraft, extractPreview.images);
-                        setExtractPreview(null);
-                        setPreviewDraft(null);
-                        showToast(
-                          "✅ Extract result form me save ho gaya"
-                        );
-                      }}
-                    >
-                      ✅ Save to form
-                    </button>
-                    <button
-                      type="button"
-                      className="ai-preview-discard"
-                      onClick={() => {
-                        setExtractPreview(null);
-                        setPreviewDraft(null);
-                      }}
-                    >
-                      ✖ Discard
-                    </button>
-                  </div>
-                </div>
-
-                {extractPreview.images.length > 0 && (
-                  <div className="ai-preview-images">
-                    {extractPreview.images.map((img, index) => (
-                      <img
-                        key={index}
-                        src={img}
-                        alt={`Product ${index + 1}`}
-                      />
-                    ))}
-                    <small>
-                      {extractPreview.images.length} product image(s) mili —
-                      Save par "Product Images" me add ho jayengi
-                    </small>
-                  </div>
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`admin-pill ${tab === item.id ? "active" : ""}`}
+                onClick={() => switchTab(item.id)}
+              >
+                <Icon />
+                <span>{item.label}</span>
+                {item.id === "orders" && pendingOrders > 0 && (
+                  <em className="admin-nav-badge">{pendingOrders}</em>
                 )}
+              </button>
+            );
+          })}
+        </nav>
 
-                <div className="ai-preview-fields">
-                  <label className="ai-edit-field">
-                    <span>Brand</span>
-                    <input
-                      value={previewDraft.brand || ""}
-                      onChange={(e) =>
-                        setPreviewDraft({
-                          ...previewDraft,
-                          brand: e.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                  <label className="ai-edit-field">
-                    <span>Title</span>
-                    <input
-                      value={previewDraft.title || ""}
-                      onChange={(e) =>
-                        setPreviewDraft({
-                          ...previewDraft,
-                          title: e.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                  <div className="ai-edit-row">
-                    <label className="ai-edit-field">
-                      <span>Price (₹)</span>
-                      <input
-                        type="number"
-                        value={previewDraft.price || ""}
-                        onChange={(e) =>
-                          setPreviewDraft({
-                            ...previewDraft,
-                            price: e.target.value,
-                          })
-                        }
-                      />
-                    </label>
-                    <label className="ai-edit-field">
-                      <span>MRP (₹)</span>
-                      <input
-                        type="number"
-                        value={previewDraft.mrp || ""}
-                        onChange={(e) =>
-                          setPreviewDraft({
-                            ...previewDraft,
-                            mrp: e.target.value,
-                          })
-                        }
-                      />
-                    </label>
-                  </div>
-                  <label className="ai-edit-field">
-                    <span>Description</span>
-                    <textarea
-                      rows="3"
-                      value={previewDraft.description || ""}
-                      onChange={(e) =>
-                        setPreviewDraft({
-                          ...previewDraft,
-                          description: e.target.value,
-                        })
-                      }
-                    />
-                  </label>
+        <main className="admin-content">
+          {/* ===================== DASHBOARD ===================== */}
+          {tab === "dashboard" && (
+            <div className="admin-dash">
+              <section className="admin-welcome">
+                <div>
+                  <p className="admin-welcome-date">{todayLabel}</p>
+                  <h2>Welcome Harsh 👋</h2>
+                  <span>
+                    See your store at a glance — add new products, manage
+                    orders, or run marketing campaigns.
+                  </span>
                 </div>
 
-                <div className="ai-preview-specs">
-                  <div className="ai-section-head">
-                    <b>Specifications ({previewDraft.specifications.length})</b>
+                <div className="admin-welcome-actions">
+                  <button
+                    className="admin-primary-btn"
+                    type="button"
+                    onClick={() => switchTab("products", { showForm: true })}
+                  >
+                    <FiPlus /> Add product
+                  </button>
+                  <button
+                    className="admin-ghost-btn"
+                    type="button"
+                    onClick={() => switchTab("orders")}
+                  >
+                    <FiShoppingBag /> View orders
+                  </button>
+                </div>
+              </section>
+
+              <section className="admin-stats">
+                {statCards.map((stat) => {
+                  const Icon = stat.icon;
+                  const openStatTab = () =>
+                    stat.label === "Pending orders"
+                      ? switchTab("orders")
+                      : switchTab("products");
+
+                  return (
+                    <article
+                      className="admin-stat"
+                      key={stat.label}
+                      role="button"
+                      tabIndex={0}
+                      onClick={openStatTab}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          openStatTab();
+                        }
+                      }}
+                    >
+                      <div className={`admin-stat-chip chip-${stat.tone}`}>
+                        <Icon />
+                      </div>
+                      <div className="admin-stat-meta">
+                        <span>{stat.label}</span>
+                        <strong>{stat.value}</strong>
+                        <small>{stat.sub}</small>
+                      </div>
+                    </article>
+                  );
+                })}
+              </section>
+
+              <section className="admin-quick">
+                <div className="admin-card-head">
+                  <h3>
+                    <FiZap className="head-icon" /> Quick actions
+                  </h3>
+                  <span>Most common tasks — in one click</span>
+                </div>
+
+                <div className="admin-quick-grid">
+                  {quickActions.map((action) => {
+                    const Icon = action.icon;
+
+                    return (
+                      <button
+                        key={action.label}
+                        type="button"
+                        className="admin-quick-card"
+                        onClick={action.onClick}
+                      >
+                        <span className={`qa-icon qa-${action.tone}`}>
+                          <Icon />
+                        </span>
+                        <b>{action.label}</b>
+                        <small>{action.desc}</small>
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+
+              <div className="admin-dash-grid">
+                <section className="admin-card">
+                  <div className="admin-card-head">
+                    <h3>
+                      <FiPackage className="head-icon" /> Recent products
+                    </h3>
                     <button
                       type="button"
-                      className="ai-add-row-btn"
-                      onClick={() =>
-                        setPreviewDraft({
-                          ...previewDraft,
-                          specifications: [
-                            ...previewDraft.specifications,
-                            { label: "", value: "" },
-                          ],
-                        })
-                      }
+                      className="admin-link-btn"
+                      onClick={() => switchTab("products")}
                     >
-                      + Add
+                      View all →
                     </button>
                   </div>
-                  {previewDraft.specifications.map((spec, index) => (
-                    <div className="ai-preview-spec-row" key={index}>
-                      <input
-                        value={spec.label}
-                        placeholder="Label"
-                        onChange={(e) => {
-                          const specs = [...previewDraft.specifications];
-                          specs[index] = {
-                            ...specs[index],
-                            label: e.target.value,
-                          };
-                          setPreviewDraft({ ...previewDraft, specifications: specs });
-                        }}
-                      />
-                      <input
-                        value={spec.value}
-                        placeholder="Value"
-                        onChange={(e) => {
-                          const specs = [...previewDraft.specifications];
-                          specs[index] = {
-                            ...specs[index],
-                            value: e.target.value,
-                          };
-                          setPreviewDraft({ ...previewDraft, specifications: specs });
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="ai-row-remove"
-                        onClick={() =>
-                          setPreviewDraft({
-                            ...previewDraft,
-                            specifications: previewDraft.specifications.filter(
-                              (_, i) => i !== index
-                            ),
-                          })
-                        }
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
 
-                <div className="ai-preview-highlights">
-                  <div className="ai-section-head">
-                    <b>About this item ({previewDraft.highlights.length})</b>
+                  {loading ? (
+                    <div className="admin-empty">Loading products...</div>
+                  ) : products.length === 0 ? (
+                    <div className="admin-empty">No products yet.</div>
+                  ) : (
+                    <div className="admin-dash-list">
+                      {products.slice(0, 5).map((product) => (
+                        <div className="admin-dash-row" key={product._id}>
+                          <img
+                            src={
+                              product.images?.[0] ||
+                              "https://placehold.co/80x80?text=Product"
+                            }
+                            alt={product.title}
+                          />
+                          <div className="adr-main">
+                            <b>{product.title}</b>
+                            <small>{product.brand}</small>
+                          </div>
+                          <div className="adr-side">
+                            <b>₹{product.price}</b>
+                            <span
+                              className={
+                                Number(product.stock) > 0
+                                  ? "stock-active"
+                                  : "stock-empty"
+                              }
+                            >
+                              {Number(product.stock) > 0
+                                ? `${product.stock} in stock`
+                                : "Out of stock"}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            className="admin-row-edit"
+                            onClick={() => {
+                              switchTab("products");
+                              startEdit(product);
+                            }}
+                            title="Edit product"
+                          >
+                            <FiEdit2 />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <section className="admin-card">
+                  <div className="admin-card-head">
+                    <h3>
+                      <FiShoppingBag className="head-icon" /> Recent orders
+                    </h3>
                     <button
                       type="button"
-                      className="ai-add-row-btn"
-                      onClick={() =>
-                        setPreviewDraft({
-                          ...previewDraft,
-                          highlights: [...previewDraft.highlights, ""],
-                        })
-                      }
+                      className="admin-link-btn"
+                      onClick={() => switchTab("orders")}
                     >
-                      + Add
+                      View all →
                     </button>
                   </div>
-                  {previewDraft.highlights.map((item, index) => (
-                    <div className="ai-highlight-row" key={index}>
-                      <span>•</span>
-                      <input
-                        value={item}
-                        placeholder="Bullet point"
-                        onChange={(e) => {
-                          const highlights = [...previewDraft.highlights];
-                          highlights[index] = e.target.value;
-                          setPreviewDraft({ ...previewDraft, highlights });
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="ai-row-remove"
-                        onClick={() =>
-                          setPreviewDraft({
-                            ...previewDraft,
-                            highlights: previewDraft.highlights.filter(
-                              (_, i) => i !== index
-                            ),
-                          })
-                        }
-                      >
-                        ×
-                      </button>
+
+                  {ordersLoading ? (
+                    <div className="admin-empty">Loading orders...</div>
+                  ) : orders.length === 0 ? (
+                    <div className="admin-empty">No orders placed yet.</div>
+                  ) : (
+                    <div className="admin-dash-list">
+                      {orders.slice(0, 5).map((order) => (
+                        <div className="admin-dash-row" key={order._id}>
+                          <div className="adr-main">
+                            <b>{order.orderNumber}</b>
+                            <small>{order.customer?.name}</small>
+                          </div>
+                          <div className="adr-side">
+                            <b>₹{order.totalAmount}</b>
+                            <span className={`order-badge ${statusBadge(order.orderStatus)}`}>
+                              {order.orderStatus}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  )}
+                </section>
               </div>
-            )}
+            </div>
+          )}
 
-            <div className="full-field specs-editor">
-              <span className="specs-editor-title">Product Specifications</span>
-              <small className="specs-editor-hint">
-                Amazon jaisi key-value specifications (jaise Hair Type → All, Scent →
-                Rosemary, Volume → 48 ml). Ye product page par table me dikhengi.
-              </small>
+          {/* ===================== PRODUCTS ===================== */}
+          {tab === "products" && (
+            <div className="admin-tab-page">
+              <section className="admin-tab-head">
+                <div>
+                  <p>LIVE INVENTORY</p>
+                  <h2>Manage your products</h2>
+                </div>
 
-              {(form.specifications || []).map((spec, index) => (
-                <div className="spec-row" key={index}>
+                <div className="admin-tab-head-actions">
                   <input
-                    value={spec.label}
-                    onChange={(e) => updateSpecRow(index, "label", e.target.value)}
-                    placeholder="Specification (e.g. Hair Type)"
-                  />
-                  <input
-                    value={spec.value}
-                    onChange={(e) => updateSpecRow(index, "value", e.target.value)}
-                    placeholder="Value (e.g. All)"
+                    className="admin-search"
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    placeholder="Search products..."
                   />
                   <button
                     type="button"
-                    className="spec-remove-btn"
-                    onClick={() => removeSpecRow(index)}
-                    aria-label="Remove specification"
+                    className="admin-primary-btn"
+                    onClick={() => {
+                      cancelEdit();
+                      switchTab("products", { showForm: true });
+                    }}
                   >
-                    ×
+                    <FiPlus /> Add product
                   </button>
                 </div>
-              ))}
+              </section>
 
-              <button
-                type="button"
-                className="spec-add-btn"
-                onClick={addSpecRow}
-              >
-                + Add specification
-              </button>
-            </div>
+              {showProductForm && (
+                <section className="admin-form-card admin-product-form-card">
+                  <div className="admin-section-title">
+                    <div>
+                      <p>{editingId ? "EDIT PRODUCT" : "NEW PRODUCT"}</p>
+                      <h2>
+                        {editingId
+                          ? "Update product details"
+                          : "Add a product to DEALROOT"}
+                      </h2>
+                    </div>
 
-            <div className="full-field specs-editor">
-              <span className="specs-editor-title">About this item (bullet points)</span>
-              <small className="specs-editor-hint">
-                Amazon ke "About this item" jaisa — har line ek bullet banegi. Product
-                page par click karke expand/collapse ho sakti hai.
-              </small>
+                    <button
+                      className="cancel-edit"
+                      type="button"
+                      onClick={cancelEdit}
+                    >
+                      <FiX /> Close form
+                    </button>
+                  </div>
 
-              <textarea
-                className="highlights-textarea"
-                rows="4"
-                placeholder={
-                  "Ek line = ek bullet point:\nImproves blood circulation to the scalp\nDeeply nourishes the scalp\nStrengthens hair follicles reducing breakage"
-                }
-                value={(form.highlights || []).join("\n")}
-                onChange={(e) =>
-                  setForm((current) => ({
-                    ...current,
-                    highlights: e.target.value
-                      .split("\n")
-                      .map((line) => line.trim())
-                      .filter(Boolean),
-                  }))
-                }
-              />
-            </div>
+                  <form className="product-form" onSubmit={saveProduct}>
+                    {[
+                      ["brand", "Brand *", "text"],
+                      ["title", "Product title *", "text"],
+                      ["stock", "Stock *", "number"],
+                      ["price", "Selling price (₹) *", "number"],
+                      ["mrp", "MRP (₹) *", "number"],
+                      ["rating", "Rating", "number"],
+                      ["reviews", "Number of reviews", "number"],
+                      ["amazonLink", "Amazon product link", "url"],
+                      ["flipkartLink", "Flipkart product link", "url"],
+                      ["otherMarketplaceName", "Other platform name", "text"],
+                      ["otherMarketplaceLink", "Other platform link", "url"],
+                      ["badge", "Product badge", "text"],
+                    ].map(([name, label, type]) => (
+                      <label
+                        key={name}
+                        className={name === "image" ? "full-field" : ""}
+                      >
+                        {label}
 
-            <label className="full-field">
-              Description
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={updateForm}
-                rows="3"
-              />
-            </label>
+                        <input
+                          name={name}
+                          type={type}
+                          min={type === "number" ? "0" : undefined}
+                          step={name === "rating" ? "0.1" : undefined}
+                          value={form[name]}
+                          onChange={updateForm}
+                          required={["brand", "title", "stock", "price", "mrp"].includes(
+                            name
+                          )}
+                        />
+                      </label>
+                    ))}
 
-            <button className="save-product" disabled={saving}>
-              {saving
-                ? "Saving..."
-                : editingId
-                  ? "Save changes"
-                  : "Add product"}
-            </button>
-          </form>
-        </section>
-<section className="admin-products-card">
-  <div className="admin-section-title">
-    <h2>Coupons</h2>
-  </div>
-  
+                    <label>
+                      Category *
+                      <select
+                        name="category"
+                        value={form.category}
+                        onChange={updateForm}
+                      >
+                        {(categories || []).map((category) => (
+                          <option key={category.name} value={category.name}>
+                            {category.label || category.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
 
-  <table className="admin-table">
-    <thead>
-      <tr>
-        <th>Code</th>
-        <th>Type</th>
-        <th>Discount</th>
-        <th>Min Order</th>
-        <th>Expiry</th>
-        <th>Action</th>
-      </tr>
-    </thead>
+                    <label>
+                      Deal section
+                      <select
+                        name="dealType"
+                        value={form.dealType}
+                        onChange={updateForm}
+                      >
+                        <option value="none">Regular product (No deal)</option>
+                        <option value="99">₹99 Deals</option>
+                        <option value="199">₹199 Deals</option>
+                      </select>
+                      <small>
+                        Selecting a deal automatically sets the selling price.
+                      </small>
+                    </label>
 
-    <tbody>
-      {coupons.map((coupon) => (
-        <tr key={coupon._id}>
-          <td>{coupon.code}</td>
-          <td>{coupon.discountType}</td>
-          <td>{coupon.discountValue}</td>
-          <td>₹{coupon.minimumOrder}</td>
-          <td>
-            {coupon.expiryDate
-              ? new Date(coupon.expiryDate).toLocaleDateString()
-              : "-"}
-          </td>
-          <td>
-            <button
-              className="delete-product"
-              onClick={() => deleteCoupon(coupon._id)}
-            >
-              Delete
-            </button>
-          </td>
-        </tr>
-      ))}
-    </tbody>
-  </table>
-</section>
+                    <label className="featured-check">
+                      <input
+                        name="isFeatured"
+                        type="checkbox"
+                        checked={form.isFeatured}
+                        onChange={updateForm}
+                      />
+                      Show as featured product
+                    </label>
 
-        <section className="admin-products-card">
-          <div className="admin-section-title">
-            <div>
-              <p>LIVE INVENTORY</p>
-              <h2>Manage your products</h2>
-            </div>
+                    <label className="full-field">
+                      Product Images
 
-            <input
-              className="admin-search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search products..."
-            />
-          </div>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={(e) => uploadImages(e.target.files)}
+                      />
 
-          {loading ? (
-            <div className="admin-empty">Loading products...</div>
-          ) : visibleProducts.length === 0 ? (
-            <div className="admin-empty">No products found.</div>
-          ) : (
-            <div className="admin-table-wrap">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Product</th>
-                    <th>Category</th>
-                    <th>Deal</th>
-                    <th>Price</th>
-                    <th>Stock</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
+                      {uploadingImages && (
+                        <small>Uploading images...</small>
+                      )}
 
-                <tbody>
-                  {visibleProducts.map((product) => (
-                    <tr key={product._id}>
-                      <td>
-                        <div className="admin-product-name">
-                         <img
-  src={
-    product.images?.[0] ||
-    "https://placehold.co/80x80?text=Product"
-  }
-  alt={product.title}
-/>
+                      {selectedImages.length > 0 && (
+                        <div className="image-front-preview">
+                          <div className="front-preview-img">
+                            <img src={selectedImages[0]} alt="Front image preview" />
+                            <span className="front-preview-badge">⭐ FRONT IMAGE</span>
+                          </div>
+                          <p>
+                            <b>First image = front/cover.</b> This is the image shown on the
+                            storefront — it appears first in the products list, flash deals
+                            and the product page. Click <b>"Set as Front"</b> on any image below.
+                          </p>
+                        </div>
+                      )}
 
-                          <div>
-                            <b>{product.title}</b>
-                            <span>{product.brand}</span>
+                      {selectedImages.length > 0 && (
+                        <div className="image-thumb-grid">
+                          {selectedImages.map((img, index) => (
+                            <div
+                              key={index}
+                              className={`image-thumb ${index === 0 ? "is-front" : ""}`}
+                            >
+                              <img src={img} alt="" />
+
+                              {index === 0 && (
+                                <span className="front-badge">⭐ FRONT</span>
+                              )}
+
+                              <span className="thumb-index">#{index + 1}</span>
+
+                              <div className="thumb-actions">
+                                {index !== 0 && (
+                                  <button
+                                    type="button"
+                                    className="thumb-front-btn"
+                                    onClick={() => setAsFront(index)}
+                                    title="Set as front image"
+                                  >
+                                    Set as Front
+                                  </button>
+                                )}
+
+                                <button
+                                  type="button"
+                                  className="thumb-delete-btn"
+                                  onClick={() => removeImage(index)}
+                                  aria-label="Remove image"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </label>
+
+                    <div className="full-field ai-extract-box">
+                      <span className="ai-extract-title">🤖 AI Screenshot Extract</span>
+                      <small className="ai-extract-hint">
+                        Upload a product screenshot from any platform (Amazon, Flipkart,
+                        Myntra...) — the AI will automatically extract specifications and
+                        "About this item" points and fill the fields below.
+                      </small>
+
+                      <div className="ai-extract-controls">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => setScreenshotFile(e.target.files[0] || null)}
+                        />
+                        <button
+                          type="button"
+                          className="ai-extract-btn"
+                          disabled={extractingInfo}
+                          onClick={extractFromScreenshot}
+                        >
+                          {extractingInfo
+                            ? "⏳ Analyzing screenshot..."
+                            : "✨ Extract product info"}
+                        </button>
+                      </div>
+
+                      {screenshotFile && (
+                        <small className="ai-extract-selected">
+                          📎 {screenshotFile.name}
+                        </small>
+                      )}
+                    </div>
+
+                    <div className="full-field ai-extract-box ai-link-box">
+                      <span className="ai-extract-title">🔗 Extract from Product Link</span>
+                      <small className="ai-extract-hint">
+                        Paste a product link from Amazon / Flipkart / any store —
+                        both info and product images will be extracted.
+                      </small>
+
+                      <div className="ai-extract-controls">
+                        <input
+                          type="url"
+                          className="ai-link-input"
+                          value={extractLink}
+                          onChange={(e) => setExtractLink(e.target.value)}
+                          placeholder="https://www.amazon.in/... or https://www.flipkart.com/..."
+                        />
+                        <button
+                          type="button"
+                          className="ai-extract-btn"
+                          disabled={extractingLink}
+                          onClick={extractFromLink}
+                        >
+                          {extractingLink
+                            ? "⏳ Analyzing link..."
+                            : "🔗 Extract from link"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {extractPreview && previewDraft && (
+                      <div className="ai-preview-box">
+                        <div className="ai-preview-header">
+                          <span>👀 Extract Preview — edit and press Save</span>
+                          <div className="ai-preview-actions">
+                            <button
+                              type="button"
+                              className="ai-preview-apply"
+                              onClick={() => {
+                                applyExtractedInfo(previewDraft, extractPreview.images);
+                                setExtractPreview(null);
+                                setPreviewDraft(null);
+                                showToast(
+                                  "✅ Extract result saved to the form"
+                                );
+                              }}
+                            >
+                              ✅ Save to form
+                            </button>
+                            <button
+                              type="button"
+                              className="ai-preview-discard"
+                              onClick={() => {
+                                setExtractPreview(null);
+                                setPreviewDraft(null);
+                              }}
+                            >
+                              ✖ Discard
+                            </button>
                           </div>
                         </div>
-                      </td>
 
-                      <td>{product.category}</td>
-
-                      <td>
-                        {product.dealType === "99" ? (
-                          <span className="stock-active">₹99 Deals</span>
-                        ) : product.dealType === "199" ? (
-                          <span className="stock-active">₹199 Deals</span>
-                        ) : (
-                          <small>Regular</small>
+                        {extractPreview.images.length > 0 && (
+                          <div className="ai-preview-images">
+                            {extractPreview.images.map((img, index) => (
+                              <img
+                                key={index}
+                                src={img}
+                                alt={`Product ${index + 1}`}
+                              />
+                            ))}
+                            <small>
+                              {extractPreview.images.length} product image(s) found —
+                              they will be added to "Product Images" on Save
+                            </small>
+                          </div>
                         )}
-                      </td>
 
-                      <td>
-                        <b>₹{product.price}</b>
-                        <small>MRP ₹{product.mrp}</small>
-                      </td>
-
-                      <td>
-                        <div className="stock-editor">
-                          <input
-                            key={`${product._id}-${product.stock}`}
-                            type="number"
-                            min="0"
-                            defaultValue={product.stock}
-                            onKeyDown={(event) => {
-                              if (event.key === "Enter") {
-                                event.preventDefault();
-                                updateStock(product, event.currentTarget.value);
+                        <div className="ai-preview-fields">
+                          <label className="ai-edit-field">
+                            <span>Brand</span>
+                            <input
+                              value={previewDraft.brand || ""}
+                              onChange={(e) =>
+                                setPreviewDraft({
+                                  ...previewDraft,
+                                  brand: e.target.value,
+                                })
                               }
-                            }}
-                          />
-
-                          <button
-                            type="button"
-                            onClick={(event) =>
-                              updateStock(
-                                product,
-                                event.currentTarget.previousElementSibling.value
-                              )
-                            }
-                          >
-                            Save
-                          </button>
+                            />
+                          </label>
+                          <label className="ai-edit-field">
+                            <span>Title</span>
+                            <input
+                              value={previewDraft.title || ""}
+                              onChange={(e) =>
+                                setPreviewDraft({
+                                  ...previewDraft,
+                                  title: e.target.value,
+                                })
+                              }
+                            />
+                          </label>
+                          <div className="ai-edit-row">
+                            <label className="ai-edit-field">
+                              <span>Price (₹)</span>
+                              <input
+                                type="number"
+                                value={previewDraft.price || ""}
+                                onChange={(e) =>
+                                  setPreviewDraft({
+                                    ...previewDraft,
+                                    price: e.target.value,
+                                  })
+                                }
+                              />
+                            </label>
+                            <label className="ai-edit-field">
+                              <span>MRP (₹)</span>
+                              <input
+                                type="number"
+                                value={previewDraft.mrp || ""}
+                                onChange={(e) =>
+                                  setPreviewDraft({
+                                    ...previewDraft,
+                                    mrp: e.target.value,
+                                  })
+                                }
+                              />
+                            </label>
+                          </div>
+                          <label className="ai-edit-field">
+                            <span>Description</span>
+                            <textarea
+                              rows="3"
+                              value={previewDraft.description || ""}
+                              onChange={(e) =>
+                                setPreviewDraft({
+                                  ...previewDraft,
+                                  description: e.target.value,
+                                })
+                              }
+                            />
+                          </label>
                         </div>
-                      </td>
 
-                      <td>
-                        <span
-                          className={
-                            Number(product.stock) > 0
-                              ? "stock-active"
-                              : "stock-empty"
-                          }
-                        >
-                          {Number(product.stock) > 0
-                            ? "In stock"
-                            : "Out of stock"}
-                        </span>
-                      </td>
-
-                      <td>
-                        <div className="admin-actions">
-                          <button type="button" onClick={() => startEdit(product)}>
-                            Edit
-                          </button>
-
-                          <button
-                            type="button"
-                            className="delete-button"
-                            onClick={() => deleteProduct(product)}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-
-        <section className="admin-products-card">
-          <div className="admin-section-title">
-            <div>
-              <p>CUSTOMER ORDERS</p>
-              <h2>Manage COD orders</h2>
-            </div>
-
-            <button className="admin-refresh" onClick={loadOrders}>
-              ↻ Refresh orders
-            </button>
-          </div>
-
-          {ordersLoading ? (
-            <div className="admin-empty">Loading orders...</div>
-          ) : orders.length === 0 ? (
-            <div className="admin-empty">No orders have been placed yet.</div>
-          ) : (
-            <div className="admin-table-wrap">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Order</th>
-                    <th>Customer & delivery</th>
-                    <th>Items</th>
-                    <th>Amount</th>
-                    <th>Payment</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {orders.map((order) => (
-                    <tr key={order._id}>
-                      <td>
-                        <b>{order.orderNumber}</b>
-                        <small>
-                          {new Date(order.createdAt).toLocaleString("en-IN")}
-                        </small>
-                      </td>
-
-                      <td>
-                        <b>{order.customer?.name}</b>
-                        <small>{order.customer?.phone}</small>
-                        <small>
-                          {order.customer?.address}, {order.customer?.city} -{" "}
-                          {order.customer?.pincode}
-                        </small>
-                      </td>
-
-                      <td>
-                        {order.items?.map((item) => (
-                          <small key={item._id || item.product}>
-                            {item.title} × {item.quantity} — ₹{item.subtotal}
-                          </small>
-                        ))}
-                      </td>
-
-                      <td>
-                        <b>₹{order.totalAmount}</b>
-                        {Number(order.deliveryFee) > 0 && (
-                          <small>Delivery: ₹{order.deliveryFee}</small>
-                        )}
-                      </td>
-
-                      <td>
-                        <b>Cash on Delivery</b>
-                        <small>
-                          {order.paymentStatus === "paid"
-                            ? "Paid"
-                            : "Payment pending"}
-                        </small>
-                      </td>
-
-                      <td>
-                        {order.orderStatus === "cancelled" ? (
-                          <span className="stock-empty">
-                            Cancelled · stock restored
-                          </span>
-                        ) : (
-                          <div className="order-actions">
-                            <select
-                              value={order.orderStatus}
-                              disabled={updatingOrderId === order._id}
-                              onChange={(event) =>
-                                updateOrderStatus(
-                                  order._id,
-                                  event.target.value
-                                )
+                        <div className="ai-preview-specs">
+                          <div className="ai-section-head">
+                            <b>Specifications ({previewDraft.specifications.length})</b>
+                            <button
+                              type="button"
+                              className="ai-add-row-btn"
+                              onClick={() =>
+                                setPreviewDraft({
+                                  ...previewDraft,
+                                  specifications: [
+                                    ...previewDraft.specifications,
+                                    { label: "", value: "" },
+                                  ],
+                                })
                               }
                             >
-                              {orderStatuses.map((status) => (
-                                <option key={status} value={status}>
-                                  {status[0].toUpperCase() + status.slice(1)}
-                                </option>
-                              ))}
-                            </select>
-
-                            {!["shipped", "delivered"].includes(
-                              order.orderStatus
-                            ) && (
+                              + Add
+                            </button>
+                          </div>
+                          {previewDraft.specifications.map((spec, index) => (
+                            <div className="ai-preview-spec-row" key={index}>
+                              <input
+                                value={spec.label}
+                                placeholder="Label"
+                                onChange={(e) => {
+                                  const specs = [...previewDraft.specifications];
+                                  specs[index] = {
+                                    ...specs[index],
+                                    label: e.target.value,
+                                  };
+                                  setPreviewDraft({ ...previewDraft, specifications: specs });
+                                }}
+                              />
+                              <input
+                                value={spec.value}
+                                placeholder="Value"
+                                onChange={(e) => {
+                                  const specs = [...previewDraft.specifications];
+                                  specs[index] = {
+                                    ...specs[index],
+                                    value: e.target.value,
+                                  };
+                                  setPreviewDraft({ ...previewDraft, specifications: specs });
+                                }}
+                              />
                               <button
                                 type="button"
-                                className="cancel-order"
-                                disabled={updatingOrderId === order._id}
-                                onClick={() => cancelOrder(order)}
+                                className="ai-row-remove"
+                                onClick={() =>
+                                  setPreviewDraft({
+                                    ...previewDraft,
+                                    specifications: previewDraft.specifications.filter(
+                                      (_, i) => i !== index
+                                    ),
+                                  })
+                                }
                               >
-                                {updatingOrderId === order._id
-                                  ? "Updating..."
-                                  : "Cancel + restore stock"}
+                                ×
                               </button>
-                            )}
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="ai-preview-highlights">
+                          <div className="ai-section-head">
+                            <b>About this item ({previewDraft.highlights.length})</b>
+                            <button
+                              type="button"
+                              className="ai-add-row-btn"
+                              onClick={() =>
+                                setPreviewDraft({
+                                  ...previewDraft,
+                                  highlights: [...previewDraft.highlights, ""],
+                                })
+                              }
+                            >
+                              + Add
+                            </button>
                           </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                          {previewDraft.highlights.map((item, index) => (
+                            <div className="ai-highlight-row" key={index}>
+                              <span>•</span>
+                              <input
+                                value={item}
+                                placeholder="Bullet point"
+                                onChange={(e) => {
+                                  const highlights = [...previewDraft.highlights];
+                                  highlights[index] = e.target.value;
+                                  setPreviewDraft({ ...previewDraft, highlights });
+                                }}
+                              />
+                              <button
+                                type="button"
+                                className="ai-row-remove"
+                                onClick={() =>
+                                  setPreviewDraft({
+                                    ...previewDraft,
+                                    highlights: previewDraft.highlights.filter(
+                                      (_, i) => i !== index
+                                    ),
+                                  })
+                                }
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="full-field specs-editor">
+                      <span className="specs-editor-title">Product Specifications</span>
+                      <small className="specs-editor-hint">
+                        Amazon-style key-value specifications (e.g. Hair Type → All, Scent →
+                        Rosemary, Volume → 48 ml). These will be shown as a table on the product page.
+                      </small>
+
+                      {(form.specifications || []).map((spec, index) => (
+                        <div className="spec-row" key={index}>
+                          <input
+                            value={spec.label}
+                            onChange={(e) => updateSpecRow(index, "label", e.target.value)}
+                            placeholder="Specification (e.g. Hair Type)"
+                          />
+                          <input
+                            value={spec.value}
+                            onChange={(e) => updateSpecRow(index, "value", e.target.value)}
+                            placeholder="Value (e.g. All)"
+                          />
+                          <button
+                            type="button"
+                            className="spec-remove-btn"
+                            onClick={() => removeSpecRow(index)}
+                            aria-label="Remove specification"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+
+                      <button
+                        type="button"
+                        className="spec-add-btn"
+                        onClick={addSpecRow}
+                      >
+                        + Add specification
+                      </button>
+                    </div>
+
+                    <div className="full-field specs-editor">
+                      <span className="specs-editor-title">About this item (bullet points)</span>
+                      <small className="specs-editor-hint">
+                        Like Amazon's "About this item" — each line becomes a bullet point.
+                        They can be expanded/collapsed by clicking on the product page.
+                      </small>
+
+                      <textarea
+                        className="highlights-textarea"
+                        rows="4"
+                        placeholder={
+                          "One line = one bullet point:\nImproves blood circulation to the scalp\nDeeply nourishes the scalp\nStrengthens hair follicles reducing breakage"
+                        }
+                        value={(form.highlights || []).join("\n")}
+                        onChange={(e) =>
+                          setForm((current) => ({
+                            ...current,
+                            highlights: e.target.value
+                              .split("\n")
+                              .map((line) => line.trim())
+                              .filter(Boolean),
+                          }))
+                        }
+                      />
+                    </div>
+
+                    <label className="full-field">
+                      Description
+                      <textarea
+                        name="description"
+                        value={form.description}
+                        onChange={updateForm}
+                        rows="3"
+                      />
+                    </label>
+
+                    <div className="product-form-actions">
+                      <button className="save-product" disabled={saving}>
+                        {saving
+                          ? "Saving..."
+                          : editingId
+                            ? "Save changes"
+                            : "Add product"}
+                      </button>
+
+                      {editingId && (
+                        <button
+                          type="button"
+                          className="cancel-edit"
+                          onClick={cancelEdit}
+                        >
+                          Cancel edit
+                        </button>
+                      )}
+                    </div>
+                  </form>
+                </section>
+              )}
+
+              <section className="admin-products-card">
+                <div className="admin-section-title">
+                  <div>
+                    <p>LIVE INVENTORY</p>
+                    <h2>All products ({visibleProducts.length})</h2>
+                  </div>
+                </div>
+
+                {loading ? (
+                  <div className="admin-empty">Loading products...</div>
+                ) : visibleProducts.length === 0 ? (
+                  <div className="admin-empty">No products found.</div>
+                ) : (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>Category</th>
+                          <th>Deal</th>
+                          <th>Price</th>
+                          <th>Stock</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {visibleProducts.map((product) => (
+                          <tr key={product._id}>
+                            <td data-label="Product">
+                              <div className="admin-product-name">
+                                <img
+                                  src={
+                                    product.images?.[0] ||
+                                    "https://placehold.co/80x80?text=Product"
+                                  }
+                                  alt={product.title}
+                                />
+
+                                <div>
+                                  <b>{product.title}</b>
+                                  <span>{product.brand}</span>
+                                </div>
+                              </div>
+                            </td>
+
+                            <td data-label="Category">{product.category}</td>
+
+                            <td data-label="Deal">
+                              {product.dealType === "99" ? (
+                                <span className="stock-active">₹99 Deals</span>
+                              ) : product.dealType === "199" ? (
+                                <span className="stock-active">₹199 Deals</span>
+                              ) : (
+                                <small>Regular</small>
+                              )}
+                            </td>
+
+                            <td data-label="Price">
+                              <b>₹{product.price}</b>
+                              <small>MRP ₹{product.mrp}</small>
+                            </td>
+
+                            <td data-label="Stock">
+                              <div className="stock-editor">
+                                <input
+                                  key={`${product._id}-${product.stock}`}
+                                  type="number"
+                                  min="0"
+                                  defaultValue={product.stock}
+                                  onKeyDown={(event) => {
+                                    if (event.key === "Enter") {
+                                      event.preventDefault();
+                                      updateStock(product, event.currentTarget.value);
+                                    }
+                                  }}
+                                />
+
+                                <button
+                                  type="button"
+                                  onClick={(event) =>
+                                    updateStock(
+                                      product,
+                                      event.currentTarget.previousElementSibling.value
+                                    )
+                                  }
+                                >
+                                  Save
+                                </button>
+                              </div>
+                            </td>
+
+                            <td data-label="Status">
+                              <span
+                                className={
+                                  Number(product.stock) > 0
+                                    ? "stock-active"
+                                    : "stock-empty"
+                                }
+                              >
+                                {Number(product.stock) > 0
+                                  ? "In stock"
+                                  : "Out of stock"}
+                              </span>
+                            </td>
+
+                            <td data-label="Actions">
+                              <div className="admin-actions">
+                                <button type="button" onClick={() => startEdit(product)}>
+                                  <FiEdit2 /> Edit
+                                </button>
+
+                                <button
+                                  type="button"
+                                  className="delete-button"
+                                  onClick={() => deleteProduct(product)}
+                                >
+                                  <FiTrash2 /> Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
             </div>
           )}
-        </section>
-      </main>
+
+          {/* ===================== ORDERS ===================== */}
+          {tab === "orders" && (
+            <div className="admin-tab-page">
+              <section className="admin-tab-head">
+                <div>
+                  <p>CUSTOMER ORDERS</p>
+                  <h2>Manage COD orders</h2>
+                </div>
+
+                <button className="admin-refresh" onClick={loadOrders}>
+                  <FiRefreshCw /> Refresh orders
+                </button>
+              </section>
+
+              <section className="admin-products-card">
+                {ordersLoading ? (
+                  <div className="admin-empty">Loading orders...</div>
+                ) : orders.length === 0 ? (
+                  <div className="admin-empty">No orders have been placed yet.</div>
+                ) : (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Order</th>
+                          <th>Customer & delivery</th>
+                          <th>Items</th>
+                          <th>Amount</th>
+                          <th>Payment</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {orders.map((order) => (
+                          <tr key={order._id}>
+                            <td data-label="Order">
+                              <b>{order.orderNumber}</b>
+                              <small>
+                                {new Date(order.createdAt).toLocaleString("en-IN")}
+                              </small>
+                            </td>
+
+                            <td data-label="Customer">
+                              <b>{order.customer?.name}</b>
+                              <small>{order.customer?.phone}</small>
+                              <small>
+                                {order.customer?.address}, {order.customer?.city} -{" "}
+                                {order.customer?.pincode}
+                              </small>
+                            </td>
+
+                            <td data-label="Items">
+                              {order.items?.map((item) => (
+                                <small key={item._id || item.product}>
+                                  {item.title} × {item.quantity} — ₹{item.subtotal}
+                                </small>
+                              ))}
+                            </td>
+
+                            <td data-label="Amount">
+                              <b>₹{order.totalAmount}</b>
+                              {Number(order.deliveryFee) > 0 && (
+                                <small>Delivery: ₹{order.deliveryFee}</small>
+                              )}
+                            </td>
+
+                            <td data-label="Payment">
+                              <b>Cash on Delivery</b>
+                              <small>
+                                {order.paymentStatus === "paid"
+                                  ? "Paid"
+                                  : "Payment pending"}
+                              </small>
+                            </td>
+
+                            <td data-label="Action">
+                              {order.orderStatus === "cancelled" ? (
+                                <span className="stock-empty">
+                                  Cancelled · stock restored
+                                </span>
+                              ) : (
+                                <div className="order-actions">
+                                  <select
+                                    value={order.orderStatus}
+                                    disabled={updatingOrderId === order._id}
+                                    onChange={(event) =>
+                                      updateOrderStatus(
+                                        order._id,
+                                        event.target.value
+                                      )
+                                    }
+                                  >
+                                    {orderStatuses.map((status) => (
+                                      <option key={status} value={status}>
+                                        {status[0].toUpperCase() + status.slice(1)}
+                                      </option>
+                                    ))}
+                                  </select>
+
+                                  {!["shipped", "delivered"].includes(
+                                    order.orderStatus
+                                  ) && (
+                                    <button
+                                      type="button"
+                                      className="cancel-order"
+                                      disabled={updatingOrderId === order._id}
+                                      onClick={() => cancelOrder(order)}
+                                    >
+                                      {updatingOrderId === order._id
+                                        ? "Updating..."
+                                        : "Cancel + restore stock"}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
+
+          {/* ===================== BANNERS ===================== */}
+          {tab === "banners" && (
+            <div className="admin-tab-page">
+              <section className="admin-tab-head">
+                <div>
+                  <p>MARKETING</p>
+                  <h2>Offer Banner</h2>
+                </div>
+              </section>
+
+              <section className="admin-form-card">
+                <div className="banner-size-hint">
+                  📐 <b>Recommended banner size: 1080 × 1080 px</b> (square)
+                  <br />
+                  A square image looks best. 800 × 800 or 1024 × 1024 also works.
+                  Keep the text in the centre of the banner so it doesn't get cropped.
+                </div>
+
+                <form className="admin-mini-form" onSubmit={saveBanner}>
+                  <label className="full-field">
+                    Banner Image
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => uploadBannerImage(e.target.files[0])}
+                    />
+
+                    {uploadingBanner && <small>Uploading banner...</small>}
+
+                    {bannerForm.image && (
+                      <img
+                        src={bannerForm.image}
+                        alt="Banner preview"
+                        className="banner-preview-img"
+                      />
+                    )}
+                  </label>
+
+                  <label className="full-field">
+                    Redirect Link
+                    <input
+                      value={bannerForm.buttonLink}
+                      onChange={(e) =>
+                        setBannerForm({
+                          ...bannerForm,
+                          buttonLink: e.target.value,
+                        })
+                      }
+                      placeholder="e.g. /product/6a699b... or https://yoursite.com/..."
+                    />
+                    <small>
+                      Clicking the banner will take customers to this link. If left empty,
+                      it scrolls to the products section. For an in-app page use <b>/product/...</b>,
+                      for an external link paste <b>https://...</b>.
+                    </small>
+                  </label>
+
+                  <label className="featured-check">
+                    <input
+                      type="checkbox"
+                      checked={bannerForm.active}
+                      onChange={(e) =>
+                        setBannerForm({
+                          ...bannerForm,
+                          active: e.target.checked,
+                        })
+                      }
+                    />
+                    Active Banner (shown on the home page)
+                  </label>
+
+                  <button className="save-product">
+                    {editingBannerId ? "Update Banner" : "Save Banner"}
+                  </button>
+                </form>
+              </section>
+
+              <section className="admin-products-card">
+                <div className="admin-section-title">
+                  <div>
+                    <p>LIVE BANNERS</p>
+                    <h2>Manage Offer Banners</h2>
+                  </div>
+                </div>
+
+                {banners.length === 0 ? (
+                  <div className="admin-empty">No banners found.</div>
+                ) : (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Image</th>
+                          <th>Redirect Link</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {banners.map((banner) => (
+                          <tr key={banner._id}>
+                            <td data-label="Image">
+                              <img
+                                src={banner.image}
+                                alt=""
+                                style={{
+                                  width: 120,
+                                  borderRadius: 8,
+                                }}
+                              />
+                            </td>
+
+                            <td data-label="Redirect Link">
+                              <b>{banner.buttonLink || "Products"}</b>
+                              <br />
+                              <small>
+                                {banner.buttonLink
+                                  ? banner.buttonLink.startsWith("http")
+                                    ? "External link (opens in a new tab)"
+                                    : "App page"
+                                  : "Default — products section"}
+                              </small>
+                            </td>
+
+                            <td data-label="Status">
+                              {banner.active ? (
+                                <span className="stock-active">Active</span>
+                              ) : (
+                                <span className="stock-empty">Inactive</span>
+                              )}
+                            </td>
+
+                            <td data-label="Actions">
+                              <div className="admin-actions">
+                                <button onClick={() => editBanner(banner)}>
+                                  <FiEdit2 /> Edit
+                                </button>
+
+                                <button
+                                  className="delete-button"
+                                  onClick={() => deleteBanner(banner._id)}
+                                >
+                                  <FiTrash2 /> Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
+
+          {/* ===================== COUPONS ===================== */}
+          {tab === "coupons" && (
+            <div className="admin-tab-page">
+              <section className="admin-tab-head">
+                <div>
+                  <p>COUPON MANAGEMENT</p>
+                  <h2>Create Discount Coupon</h2>
+                </div>
+              </section>
+
+              <section className="admin-form-card">
+                <form className="admin-mini-form" onSubmit={createCoupon}>
+                  <label>
+                    Coupon Code
+                    <input
+                      value={couponForm.code}
+                      onChange={(e) =>
+                        setCouponForm({
+                          ...couponForm,
+                          code: e.target.value.toUpperCase(),
+                        })
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    Discount Type
+                    <select
+                      value={couponForm.discountType}
+                      onChange={(e) =>
+                        setCouponForm({
+                          ...couponForm,
+                          discountType: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="percentage">Percentage</option>
+                      <option value="flat">Flat</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Discount Value
+                    <input
+                      type="number"
+                      value={couponForm.discountValue}
+                      onChange={(e) =>
+                        setCouponForm({
+                          ...couponForm,
+                          discountValue: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    Minimum Order
+                    <input
+                      type="number"
+                      value={couponForm.minimumOrder}
+                      onChange={(e) =>
+                        setCouponForm({
+                          ...couponForm,
+                          minimumOrder: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    Maximum Discount
+                    <input
+                      type="number"
+                      value={couponForm.maximumDiscount}
+                      onChange={(e) =>
+                        setCouponForm({
+                          ...couponForm,
+                          maximumDiscount: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+
+                  <label>
+                    Expiry Date
+                    <input
+                      type="date"
+                      value={couponForm.expiryDate}
+                      onChange={(e) =>
+                        setCouponForm({
+                          ...couponForm,
+                          expiryDate: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+
+                  <button className="save-product">Create Coupon</button>
+                </form>
+              </section>
+
+              <section className="admin-products-card">
+                <div className="admin-section-title">
+                  <div>
+                    <p>LIVE COUPONS</p>
+                    <h2>All coupons ({coupons.length})</h2>
+                  </div>
+                </div>
+
+                {coupons.length === 0 ? (
+                  <div className="admin-empty">No coupons created yet.</div>
+                ) : (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Code</th>
+                          <th>Type</th>
+                          <th>Discount</th>
+                          <th>Min Order</th>
+                          <th>Expiry</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {coupons.map((coupon) => (
+                          <tr key={coupon._id}>
+                            <td data-label="Code">
+                              <span className="coupon-code">{coupon.code}</span>
+                            </td>
+                            <td data-label="Type">{coupon.discountType}</td>
+                            <td data-label="Discount">{coupon.discountValue}</td>
+                            <td data-label="Min Order">₹{coupon.minimumOrder}</td>
+                            <td data-label="Expiry">
+                              {coupon.expiryDate
+                                ? new Date(coupon.expiryDate).toLocaleDateString()
+                                : "-"}
+                            </td>
+                            <td data-label="Action">
+                              <div className="admin-actions">
+                                <button
+                                  className="delete-button"
+                                  onClick={() => deleteCoupon(coupon._id)}
+                                >
+                                  <FiTrash2 /> Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
+
+          {/* ===================== CATEGORIES ===================== */}
+          {tab === "categories" && (
+            <div className="admin-tab-page">
+              <section className="admin-tab-head">
+                <div>
+                  <p>CATEGORY MANAGEMENT</p>
+                  <h2>Add / Remove Store Categories</h2>
+                </div>
+              </section>
+
+              <section className="admin-form-card">
+                <form
+                  className="admin-mini-form"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    onAddCategory(categoryForm.name, categoryForm.emoji, categoryForm.color);
+                    setCategoryForm({ name: "", emoji: "✨", color: "#f5f5f5" });
+                  }}
+                >
+                  <label>
+                    Category name *
+                    <input
+                      value={categoryForm.name}
+                      onChange={(e) =>
+                        setCategoryForm({ ...categoryForm, name: e.target.value })
+                      }
+                      placeholder="e.g. Wellness"
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Emoji
+                    <input
+                      value={categoryForm.emoji}
+                      onChange={(e) =>
+                        setCategoryForm({ ...categoryForm, emoji: e.target.value })
+                      }
+                      placeholder="e.g. 🌿"
+                      maxLength={4}
+                    />
+                  </label>
+
+                  <label>
+                    Circle colour
+                    <input
+                      type="color"
+                      value={categoryForm.color}
+                      onChange={(e) =>
+                        setCategoryForm({ ...categoryForm, color: e.target.value })
+                      }
+                      style={{ height: 44, padding: 6, cursor: "pointer" }}
+                    />
+                  </label>
+
+                  <div className="full-field">
+                    <button className="save-product" disabled={!categoryForm.name.trim()}>
+                      <FiPlus /> Add Category
+                    </button>
+                    <small style={{ display: "block", marginTop: 8 }}>
+                      New categories appear immediately in the "Shop by Category"
+                      section on the home page and in this product form's dropdown.
+                      Storage: saved in this browser.
+                    </small>
+                  </div>
+                </form>
+              </section>
+
+              <section className="admin-products-card">
+                <div className="admin-section-title">
+                  <div>
+                    <p>ALL CATEGORIES</p>
+                    <h2>Store categories ({categories.length})</h2>
+                  </div>
+                </div>
+
+                {categories.length === 0 ? (
+                  <div className="admin-empty">No categories yet.</div>
+                ) : (
+                  <div className="category-list">
+                    {(categories || []).map((category) => (
+                      <div className="category-list-item" key={category.name}>
+                        <span
+                          className="category-list-emoji"
+                          style={{ background: category.color }}
+                        >
+                          {category.emoji}
+                        </span>
+                        <b>{category.label || category.name}</b>
+                        <small>{category.name}</small>
+                        <button
+                          type="button"
+                          className="category-remove-btn"
+                          onClick={() => onRemoveCategory(category.name)}
+                          aria-label={`Remove ${category.name} category`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
+        </main>
+      </div>
     </div>
   );
 }
