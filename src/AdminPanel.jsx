@@ -114,6 +114,11 @@ function AdminPanel({
   // Lightbox for previewing + downloading member-uploaded proofs.
   const [tryoutImagePreview, setTryoutImagePreview] = useState(null);
   const [tryoutImageDownloading, setTryoutImageDownloading] = useState(false);
+  // Admin-adjustable shipping fee per refund form (non-refundable), used to
+  // compute the expected refund amount.
+  const [refundShippingFees, setRefundShippingFees] = useState({});
+  // Processing a withdrawal request (paid / rejected).
+  const [tryoutWithdrawId, setTryoutWithdrawId] = useState("");
   const [tryoutProductForm, setTryoutProductForm] = useState({
     brand: "",
     title: "",
@@ -1336,6 +1341,36 @@ function AdminPanel({
   const verifyRefundForm = (item, formId) => {
     setTryoutVerifyForm({ appId: item._id, formId, kind: "refund" });
     setTryoutCashbackForm({ open: item._id, amount: "", note: "" });
+  };
+
+  // Admin processes a member's withdrawal request (paid or rejected).
+  const processWithdrawal = async (item, entryId, nextStatus) => {
+    try {
+      setTryoutWithdrawId(`${item._id}-${entryId}`);
+
+      const data = await request(
+        `${apiUrl}/api/tryouts/withdraw/${entryId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ status: nextStatus }),
+        }
+      );
+
+      setApplications((current) =>
+        current.map((a) =>
+          a._id === item._id ? data.application : a
+        )
+      );
+      showToast(
+        nextStatus === "paid"
+          ? "Withdrawal marked as paid"
+          : "Withdrawal rejected — amount returned to available"
+      );
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setTryoutWithdrawId("");
+    }
   };
 
   const closeCashbackForm = () => {
@@ -3023,6 +3058,51 @@ function AdminPanel({
                                             {form.otherInfo}
                                           </span>
                                         )}
+                                      </div>
+                                      <div className="tryout-refund-calc">
+                                        <label>
+                                          <span>
+                                            Shipping fee (non-refundable)
+                                          </span>
+                                          <input
+                                            type="number"
+                                            min="0"
+                                            step="1"
+                                            value={
+                                              refundShippingFees[form._id] ??
+                                              (form.orderAmount >= 499 ? 0 : 49)
+                                            }
+                                            onChange={(event) =>
+                                              setRefundShippingFees((current) => ({
+                                                ...current,
+                                                [form._id]: Math.max(
+                                                  0,
+                                                  Number(event.target.value) || 0
+                                                ),
+                                              }))
+                                            }
+                                          />
+                                        </label>
+                                        <div className="tryout-refund-expected">
+                                          <span>Expected refund</span>
+                                          <b>
+                                            ₹
+                                            {Math.max(
+                                              0,
+                                              (form.orderAmount || 0) -
+                                                (refundShippingFees[
+                                                  form._id
+                                                ] ??
+                                                  (form.orderAmount >= 499
+                                                    ? 0
+                                                    : 49))
+                                            ).toLocaleString("en-IN")}
+                                          </b>
+                                        </div>
+                                        <small>
+                                          ⚠️ Shipping fee is not refundable —
+                                          refund = order amount − shipping fee
+                                        </small>
                                         {(form.reviewFiles || []).length >
                                           0 && (
                                           <span>
@@ -3196,6 +3276,92 @@ function AdminPanel({
                                           </button>
                                         )}
                                       </div>
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+
+                            {(item.withdrawals || []).length > 0 && (
+                              <div className="tryout-pf-section">
+                                <b className="tryout-pf-title">
+                                  💳 Withdrawals
+                                </b>
+                                {(item.withdrawals || [])
+                                  .slice()
+                                  .reverse()
+                                  .map((entry) => (
+                                    <div
+                                      className="tryout-withdraw-admin"
+                                      key={entry._id}
+                                    >
+                                      <div className="tryout-pf-top">
+                                        <span
+                                          className={`tryout-responses-badge ${entry.status}`}
+                                        >
+                                          {String(
+                                            entry.status || "requested"
+                                          ).toUpperCase()}
+                                        </span>
+                                        <small>
+                                          {new Date(
+                                            entry.requestedAt
+                                          ).toLocaleString("en-IN")}
+                                        </small>
+                                      </div>
+                                      <div className="tryout-pf-details">
+                                        <span>
+                                          <b>Ref:</b>{" "}
+                                          {entry.referenceId ||
+                                            `REQ_${String(entry._id)
+                                              .slice(-8)
+                                              .toUpperCase()}`}
+                                        </span>
+                                        <span>
+                                          <b>Amount:</b> ₹
+                                          {entry.amount}
+                                        </span>
+                                        <span>
+                                          <b>UPI:</b> {entry.upiId || "—"}
+                                        </span>
+                                      </div>
+                                      {entry.status === "requested" && (
+                                        <div className="tryout-withdraw-admin-actions">
+                                          <button
+                                            type="button"
+                                            className="return-approve-btn"
+                                            disabled={
+                                              tryoutWithdrawId ===
+                                              `${item._id}-${entry._id}`
+                                            }
+                                            onClick={() =>
+                                              processWithdrawal(
+                                                item,
+                                                entry._id,
+                                                "paid"
+                                              )
+                                            }
+                                          >
+                                            ✓ Mark paid
+                                          </button>
+                                          <button
+                                            type="button"
+                                            className="return-reject-btn"
+                                            disabled={
+                                              tryoutWithdrawId ===
+                                              `${item._id}-${entry._id}`
+                                            }
+                                            onClick={() =>
+                                              processWithdrawal(
+                                                item,
+                                                entry._id,
+                                                "rejected"
+                                              )
+                                            }
+                                          >
+                                            ✕ Reject
+                                          </button>
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                               </div>

@@ -1,8 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-
-// Owner contact for Tryout forms / withdrawals.
-const OWNER_EMAIL = "dealroot.store@gmail.com";
+import { useCallback, useEffect, useState } from "react";
 
 // Status: loading | none | pending | approved | rejected | disqualified
 const INITIAL_DASHBOARD = {
@@ -46,6 +43,11 @@ export default function TryoutDashboard({
   const [refundError, setRefundError] = useState("");
   const [refundSubmitted, setRefundSubmitted] = useState(false);
   const [responsesOpen, setResponsesOpen] = useState(false);
+  const [withdrawOpen, setWithdrawOpen] = useState(false);
+  const [withdrawForm, setWithdrawForm] = useState({ amount: "", upiId: "" });
+  const [withdrawSubmitting, setWithdrawSubmitting] = useState(false);
+  const [withdrawError, setWithdrawError] = useState("");
+  const [withdrawSubmitted, setWithdrawSubmitted] = useState(false);
 
   const tryoutApproved = tryoutStatus === "approved";
 
@@ -59,6 +61,59 @@ export default function TryoutDashboard({
     setPurchaseError("");
     setPurchaseSubmitted(false);
     setPurchaseOpen(true);
+  };
+
+  const openWithdrawForm = () => {
+    setWithdrawForm({ amount: "", upiId: "" });
+    setWithdrawError("");
+    setWithdrawSubmitted(false);
+    setWithdrawOpen(true);
+  };
+
+  const submitWithdraw = async (event) => {
+    event.preventDefault();
+    setWithdrawSubmitting(true);
+    setWithdrawError("");
+
+    try {
+      const response = await fetch(`${apiUrl}/api/tryouts/withdraw`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${userToken}`,
+        },
+        body: JSON.stringify({
+          amount: withdrawForm.amount,
+          upiId: withdrawForm.upiId,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Could not submit the withdrawal");
+      }
+
+      setDashboard((current) => ({
+        ...current,
+        cashbackAvailable:
+          data.application?.cashbackAvailable ??
+          current.cashbackAvailable,
+        cashbackPending:
+          data.application?.cashbackPending ?? current.cashbackPending,
+        withdrawals: (data.application?.withdrawals || [])
+          .slice()
+          .reverse(),
+      }));
+      setWithdrawSubmitted(true);
+    } catch (error) {
+      setWithdrawError(
+        error instanceof TypeError
+          ? "Could not connect to the server. Please try again."
+          : error.message
+      );
+    } finally {
+      setWithdrawSubmitting(false);
+    }
   };
 
   const openRefundForm = () => {
@@ -151,42 +206,46 @@ export default function TryoutDashboard({
     }
   };
 
+  const loadDashboard = useCallback(async () => {
+    if (!user || !userToken) return;
+
+    try {
+      const response = await fetch(`${apiUrl}/api/tryouts/my`, {
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+        },
+      });
+      const data = await response.json();
+
+      if (!response.ok) return;
+
+      setTryoutStatus(
+        data.application ? data.application.status : "none"
+      );
+      setDashboard(data.dashboard || INITIAL_DASHBOARD);
+    } catch {
+      // Silent — keep whatever is currently shown.
+    }
+  }, [apiUrl, user, userToken]);
+
   useEffect(() => {
     if (!user || !userToken) {
       setTryoutStatus("none");
       return undefined;
     }
 
-    let requestCancelled = false;
-
-    const loadDashboard = async () => {
-      try {
-        const response = await fetch(`${apiUrl}/api/tryouts/my`, {
-          headers: {
-            Authorization: `Bearer ${userToken}`,
-          },
-        });
-        const data = await response.json();
-
-        if (!requestCancelled) {
-          setTryoutStatus(
-            data.application ? data.application.status : "none"
-          );
-          setDashboard(data.dashboard || INITIAL_DASHBOARD);
-        }
-      } catch {
-        if (!requestCancelled) {
-          setTryoutStatus("none");
-        }
-      }
-    };
-
     loadDashboard();
 
+    // Poll every 15s + on focus so admin approvals / payouts update live.
+    const pollTimer = window.setInterval(loadDashboard, 15000);
+    const refocus = () => loadDashboard();
+    window.addEventListener("focus", refocus);
+
     return () => {
-      requestCancelled = true;
+      window.clearInterval(pollTimer);
+      window.removeEventListener("focus", refocus);
     };
-  }, [apiUrl, user, userToken]);
+  }, [loadDashboard, user, userToken]);
 
   // Not signed in → ask the visitor to sign in first.
   if (!user) {
@@ -346,20 +405,7 @@ export default function TryoutDashboard({
             <button
               type="button"
               className="tryout-action-btn tryout-action-dark"
-              onClick={() =>
-                window.open(
-                  `mailto:${OWNER_EMAIL}?subject=${encodeURIComponent(
-                    "Tryout Withdrawal Request — " + (user.name || "Member")
-                  )}&body=${encodeURIComponent(
-                    `Hello DealRoot team,\n\nI am a Tryout member (${
-                      user.name || ""
-                    }, ${user.email || ""}) and I want to withdraw my cashback.\n\nAvailable cashback: ₹${
-                      dashboard.cashbackAvailable || 0
-                    }\nUPI / payment details: \n\nThank you!`
-                  )}`,
-                  "_blank"
-                )
-              }
+              onClick={openWithdrawForm}
             >
               💳 Withdrawal
             </button>
@@ -423,6 +469,84 @@ export default function TryoutDashboard({
                     <small className="tryout-cashback-date">
                       {new Date(entry.createdAt).toLocaleString("en-IN")}
                     </small>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* Withdrawal history — every payout request, newest first */}
+          <section className="tryout-withdraw-section">
+            <div className="tryout-cashback-head">
+              <div>
+                <h3>💳 Withdrawal History</h3>
+                <p>
+                  Every cashback payout you requested, with its live
+                  status.
+                </p>
+              </div>
+            </div>
+
+            {(dashboard.withdrawals || []).length === 0 ? (
+              <div className="tryout-cashback-empty">
+                <span>💳</span>
+                <b>No withdrawals yet</b>
+                <p>
+                  When you request a cashback payout, it will appear here
+                  with its status.
+                </p>
+              </div>
+            ) : (
+              <div className="tryout-withdraw-list">
+                {(dashboard.withdrawals || []).map((entry) => (
+                  <div
+                    className="tryout-withdraw-item"
+                    key={entry._id}
+                  >
+                    <div className="tryout-withdraw-item-ref">
+                      <small>REFERENCE ID</small>
+                      <b>
+                        {entry.referenceId ||
+                          `REQ_${String(entry._id)
+                            .slice(-8)
+                            .toUpperCase()}`}
+                      </b>
+                    </div>
+                    <div className="tryout-withdraw-item-upi">
+                      <small>WITHDRAWAL UPI</small>
+                      <b>{entry.upiId || "—"}</b>
+                    </div>
+                    <div className="tryout-withdraw-item-amt">
+                      <small>AMOUNT</small>
+                      <b>
+                        ₹
+                        {(entry.amount || 0).toLocaleString("en-IN")}
+                      </b>
+                    </div>
+                    <div className="tryout-withdraw-item-status">
+                      <small>STATUS</small>
+                      <span
+                        className={`tryout-withdraw-badge ${entry.status}`}
+                      >
+                        {entry.status === "paid"
+                          ? "SUCCESSFUL"
+                          : entry.status === "rejected"
+                          ? "REJECTED"
+                          : "PROCESSING"}
+                      </span>
+                    </div>
+                    <div className="tryout-withdraw-item-date">
+                      <small>DATE</small>
+                      <b>
+                        {new Date(
+                          entry.processedAt || entry.requestedAt
+                        ).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </b>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1042,6 +1166,150 @@ export default function TryoutDashboard({
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Withdrawal modal — request cashback payout to UPI */}
+      {withdrawOpen && (
+        <div
+          className="tryout-modal-overlay"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !withdrawSubmitting) {
+              setWithdrawOpen(false);
+            }
+          }}
+        >
+          <div
+            className="tryout-purchase-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Withdraw Cashback"
+          >
+            <header className="tryout-purchase-head">
+              <div>
+                <span className="tryout-purchase-eyebrow">
+                  DEALROOT TRYOUTS
+                </span>
+                <h3>💳 Withdraw Cashback</h3>
+                <p>
+                  Transfer your available cashback to your UPI account.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="tryout-modal-close"
+                onClick={() => setWithdrawOpen(false)}
+                disabled={withdrawSubmitting}
+                aria-label="Close withdrawal"
+              >
+                &times;
+              </button>
+            </header>
+
+            {withdrawSubmitted ? (
+              <div className="tryout-purchase-success">
+                <span className="tryout-purchase-success-icon">💳</span>
+                <h4>Withdrawal request submitted!</h4>
+                <p>
+                  Our team will pay ₹
+                  {(withdrawForm.amount || 0).toLocaleString("en-IN")}{" "}
+                  to <b>{withdrawForm.upiId}</b> shortly. You will be
+                  notified once it is processed.
+                </p>
+                <button
+                  type="button"
+                  className="tryout-purchase-done"
+                  onClick={() => setWithdrawOpen(false)}
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <form
+                className="tryout-purchase-form"
+                onSubmit={submitWithdraw}
+              >
+                <div className="tryout-withdraw-balance">
+                  <span>Available cashback</span>
+                  <b>
+                    ₹
+                    {(dashboard.cashbackAvailable || 0).toLocaleString(
+                      "en-IN"
+                    )}
+                  </b>
+                </div>
+
+                <label>
+                  Amount to withdraw (₹) *
+                  <input
+                    name="amount"
+                    type="number"
+                    min="1"
+                    max={dashboard.cashbackAvailable || 0}
+                    step="1"
+                    inputMode="numeric"
+                    value={withdrawForm.amount}
+                    onChange={(event) =>
+                      setWithdrawForm((current) => ({
+                        ...current,
+                        amount: event.target.value,
+                      }))
+                    }
+                    placeholder={`Your answer (max ₹${
+                      dashboard.cashbackAvailable || 0
+                    })`}
+                    required
+                  />
+                </label>
+
+                <label>
+                  UPI ID *
+                  <input
+                    name="upiId"
+                    type="text"
+                    value={withdrawForm.upiId}
+                    onChange={(event) =>
+                      setWithdrawForm((current) => ({
+                        ...current,
+                        upiId: event.target.value,
+                      }))
+                    }
+                    placeholder="yourname@upi"
+                    required
+                  />
+                </label>
+
+                {withdrawError && (
+                  <div className="tryout-purchase-error" role="alert">
+                    {withdrawError}
+                  </div>
+                )}
+
+                <div className="tryout-purchase-actions">
+                  <button
+                    type="button"
+                    className="tryout-purchase-clear"
+                    onClick={() =>
+                      setWithdrawForm({ amount: "", upiId: "" })
+                    }
+                  >
+                    Clear
+                  </button>
+                  <button
+                    type="submit"
+                    className="tryout-purchase-submit"
+                    disabled={
+                      withdrawSubmitting ||
+                      (dashboard.cashbackAvailable || 0) <= 0
+                    }
+                  >
+                    {withdrawSubmitting ? "Submitting..." : "Withdraw"}
+                  </button>
+                </div>
+
+              </form>
+            )}
           </div>
         </div>
       )}

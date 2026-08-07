@@ -2377,12 +2377,89 @@ img { max-width: 100%; display: block; }
   font-size: 13px;
   color: #8b93a7;
 }
+
+/* Withdrawal history — TryBoxes-style rows in the dashboard */
+.tryout-withdraw-section {
+  max-width: 880px;
+  margin: 18px auto 0;
+  background: #fff;
+  border: 1px solid #e8e4f2;
+  border-radius: 20px;
+  padding: 22px 24px;
+}
+.tryout-withdraw-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tryout-withdraw-item {
+  display: grid;
+  grid-template-columns: 1.4fr 1.7fr 0.9fr 1.1fr 1fr;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #eeeaf6;
+  border-radius: 14px;
+  padding: 12px 16px;
+  background: #fcfbff;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.tryout-withdraw-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(80, 60, 160, 0.1);
+}
+.tryout-withdraw-item small {
+  display: block;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  color: #9ca3af;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+.tryout-withdraw-item b {
+  font-size: 13px;
+  color: #1f2a4d;
+  word-break: break-word;
+}
+.tryout-withdraw-item-amt b {
+  font-size: 16px;
+  font-weight: 900;
+  color: #4c1d95;
+}
+.tryout-withdraw-badge {
+  display: inline-block;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+.tryout-withdraw-badge.requested {
+  background: #fff7e6;
+  color: #b45309;
+}
+.tryout-withdraw-badge.paid {
+  background: #ecfdf5;
+  color: #059669;
+}
+.tryout-withdraw-badge.rejected {
+  background: #fee2e2;
+  color: #dc2626;
+}
 @media (max-width: 720px) {
   .tryout-stat-grid {
     grid-template-columns: repeat(2, 1fr);
   }
   .tryout-action-row {
     flex-direction: column;
+  }
+  .tryout-withdraw-item {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 14px;
+  }
+  .tryout-withdraw-item-status {
+    grid-column: 1 / -1;
   }
 }
 .tryout-dash-page-head h1 {
@@ -2621,6 +2698,26 @@ img { max-width: 100%; display: block; }
   display: flex;
   flex-wrap: wrap;
   gap: 6px 14px;
+}
+
+/* Withdrawal modal */
+.tryout-withdraw-balance {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f4f1ff;
+  border: 1px solid #e4defc;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.tryout-withdraw-balance span {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+.tryout-withdraw-balance b {
+  font-size: 20px;
+  color: #4c1d95;
 }
 .tryout-purchase-file input[type="file"] {
   padding: 10px;
