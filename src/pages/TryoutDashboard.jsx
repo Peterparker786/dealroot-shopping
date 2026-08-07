@@ -34,6 +34,18 @@ export default function TryoutDashboard({
   const [purchaseSubmitting, setPurchaseSubmitting] = useState(false);
   const [purchaseError, setPurchaseError] = useState("");
   const [purchaseSubmitted, setPurchaseSubmitted] = useState(false);
+  const [refundOpen, setRefundOpen] = useState(false);
+  const [refundForm, setRefundForm] = useState({
+    orderId: "",
+    orderAmount: "",
+    otherInfo: "",
+  });
+  const [refundDeliveryFile, setRefundDeliveryFile] = useState(null);
+  const [refundReviewFiles, setRefundReviewFiles] = useState([]);
+  const [refundSubmitting, setRefundSubmitting] = useState(false);
+  const [refundError, setRefundError] = useState("");
+  const [refundSubmitted, setRefundSubmitted] = useState(false);
+  const [responsesOpen, setResponsesOpen] = useState(false);
 
   const tryoutApproved = tryoutStatus === "approved";
 
@@ -47,6 +59,57 @@ export default function TryoutDashboard({
     setPurchaseError("");
     setPurchaseSubmitted(false);
     setPurchaseOpen(true);
+  };
+
+  const openRefundForm = () => {
+    setRefundForm({ orderId: "", orderAmount: "", otherInfo: "" });
+    setRefundDeliveryFile(null);
+    setRefundReviewFiles([]);
+    setRefundError("");
+    setRefundSubmitted(false);
+    setRefundOpen(true);
+  };
+
+  const submitRefundForm = async (event) => {
+    event.preventDefault();
+    setRefundSubmitting(true);
+    setRefundError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("orderId", refundForm.orderId);
+      formData.append("orderAmount", refundForm.orderAmount);
+      formData.append("otherInfo", refundForm.otherInfo);
+      if (refundDeliveryFile) {
+        formData.append("deliveryScreenshot", refundDeliveryFile);
+      }
+      refundReviewFiles.forEach((file) => {
+        formData.append("reviewFiles", file);
+      });
+
+      const response = await fetch(`${apiUrl}/api/tryouts/refund-form`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+        },
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Could not submit the form");
+      }
+
+      setRefundSubmitted(true);
+    } catch (error) {
+      setRefundError(
+        error instanceof TypeError
+          ? "Could not connect to the server. Please try again."
+          : error.message
+      );
+    } finally {
+      setRefundSubmitting(false);
+    }
   };
 
   const submitPurchaseForm = async (event) => {
@@ -269,32 +332,14 @@ export default function TryoutDashboard({
             <button
               type="button"
               className="tryout-action-btn tryout-action-ghost"
-              onClick={() =>
-                window.open(
-                  `mailto:${OWNER_EMAIL}?subject=${encodeURIComponent(
-                    "Tryout Refund Form — " + (user.name || "Member")
-                  )}&body=${encodeURIComponent(
-                    `Hello DealRoot team,\n\nI am a Tryout member (${
-                      user.name || ""
-                    }, ${user.email || ""}) and I want to submit a refund request:\n\nProduct: \nOrder ID: \nReason: \n\nThank you!`
-                  )}`,
-                  "_blank"
-                )
-              }
+              onClick={openRefundForm}
             >
               📋 Submit Refund Form
             </button>
             <button
               type="button"
               className="tryout-action-btn tryout-action-ghost"
-              onClick={() =>
-                window.open(
-                  `mailto:${OWNER_EMAIL}?subject=${encodeURIComponent(
-                    "Form Response History — " + (user.name || "Member")
-                  )}`,
-                  "_blank"
-                )
-              }
+              onClick={() => setResponsesOpen(true)}
             >
               🕒 Form Response History
             </button>
@@ -602,6 +647,401 @@ export default function TryoutDashboard({
                 </p>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Refund form modal — Google Forms style */}
+      {refundOpen && (
+        <div
+          className="tryout-modal-overlay"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !refundSubmitting) {
+              setRefundOpen(false);
+            }
+          }}
+        >
+          <div
+            className="tryout-purchase-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Submit Refund Form"
+          >
+            <header className="tryout-purchase-head">
+              <div>
+                <span className="tryout-purchase-eyebrow">
+                  DEALROOT TRYOUTS
+                </span>
+                <h3>Submit Refund Form</h3>
+                <p>
+                  Received your product? Submit your delivery and review
+                  proof so we can verify and process your refund.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="tryout-modal-close"
+                onClick={() => setRefundOpen(false)}
+                disabled={refundSubmitting}
+                aria-label="Close form"
+              >
+                &times;
+              </button>
+            </header>
+
+            {refundSubmitted ? (
+              <div className="tryout-purchase-success">
+                <span className="tryout-purchase-success-icon">✅</span>
+                <h4>Form submitted!</h4>
+                <p>
+                  Your refund form has been filled.{" "}
+                  <b>Please do not cancel your order</b> — our team will
+                  verify your delivery and review, then process your
+                  refund / cashback. A confirmation email is on its way to
+                  you.
+                </p>
+                <button
+                  type="button"
+                  className="tryout-purchase-done"
+                  onClick={() => setRefundOpen(false)}
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <form
+                className="tryout-purchase-form"
+                onSubmit={submitRefundForm}
+              >
+                <label>
+                  Email *
+                  <input
+                    type="email"
+                    value={user?.email || ""}
+                    readOnly
+                    disabled
+                    className="tryout-refund-email"
+                  />
+                  <small className="tryout-purchase-file-name">
+                    ✉️ Email from your account — not editable
+                  </small>
+                </label>
+
+                <label>
+                  Order Id (Fill Correct Id Only) *
+                  <input
+                    name="orderId"
+                    type="text"
+                    value={refundForm.orderId}
+                    onChange={(event) =>
+                      setRefundForm((current) => ({
+                        ...current,
+                        orderId: event.target.value,
+                      }))
+                    }
+                    placeholder="Your answer"
+                    required
+                  />
+                </label>
+
+                <label>
+                  Order Amount (₹) *
+                  <input
+                    name="orderAmount"
+                    type="number"
+                    min="1"
+                    step="1"
+                    inputMode="numeric"
+                    value={refundForm.orderAmount}
+                    onChange={(event) =>
+                      setRefundForm((current) => ({
+                        ...current,
+                        orderAmount: event.target.value,
+                      }))
+                    }
+                    placeholder="Your answer"
+                    required
+                  />
+                </label>
+
+                <label className="tryout-purchase-file">
+                  Delivery Screenshot (should have clear order id and order
+                  status) *
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) =>
+                      setRefundDeliveryFile(
+                        event.target.files?.[0] || null
+                      )
+                    }
+                    required
+                  />
+                  {refundDeliveryFile && (
+                    <span className="tryout-purchase-file-name">
+                      📎 {refundDeliveryFile.name}
+                    </span>
+                  )}
+                </label>
+
+                <label className="tryout-purchase-file">
+                  Review (Product, 5 Star Rating, Written Content) *
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(event) =>
+                      setRefundReviewFiles(
+                        Array.from(event.target.files || []).slice(0, 5)
+                      )
+                    }
+                    required
+                  />
+                  {refundReviewFiles.length > 0 && (
+                    <span className="tryout-purchase-file-name">
+                      📎 {refundReviewFiles.length} file(s) selected
+                    </span>
+                  )}
+                </label>
+
+                <label>
+                  Other Information (Live review link or something
+                  important)
+                  <textarea
+                    name="otherInfo"
+                    rows="3"
+                    value={refundForm.otherInfo}
+                    onChange={(event) =>
+                      setRefundForm((current) => ({
+                        ...current,
+                        otherInfo: event.target.value,
+                      }))
+                    }
+                    placeholder="Live review link or something important"
+                  />
+                </label>
+
+                {refundError && (
+                  <div className="tryout-purchase-error" role="alert">
+                    {refundError}
+                  </div>
+                )}
+
+                <div className="tryout-purchase-actions">
+                  <button
+                    type="button"
+                    className="tryout-purchase-clear"
+                    onClick={() => {
+                      setRefundForm({
+                        orderId: "",
+                        orderAmount: "",
+                        otherInfo: "",
+                      });
+                      setRefundDeliveryFile(null);
+                      setRefundReviewFiles([]);
+                      setRefundError("");
+                    }}
+                  >
+                    Clear form
+                  </button>
+                  <button
+                    type="submit"
+                    className="tryout-purchase-submit"
+                    disabled={refundSubmitting}
+                  >
+                    {refundSubmitting ? "Submitting..." : "Submit"}
+                  </button>
+                </div>
+
+                <p className="tryout-purchase-note">
+                  A confirmation email will be sent to you after
+                  submitting. Never share passwords.
+                </p>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Form Response History modal — every submission the member made */}
+      {responsesOpen && (
+        <div
+          className="tryout-modal-overlay"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setResponsesOpen(false);
+            }
+          }}
+        >
+          <div
+            className="tryout-purchase-modal tryout-responses-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Form Response History"
+          >
+            <header className="tryout-purchase-head">
+              <div>
+                <span className="tryout-purchase-eyebrow">
+                  DEALROOT TRYOUTS
+                </span>
+                <h3>🕒 Form Response History</h3>
+                <p>
+                  Every purchase and refund form you have submitted, with
+                  their verification status.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="tryout-modal-close"
+                onClick={() => setResponsesOpen(false)}
+                aria-label="Close history"
+              >
+                &times;
+              </button>
+            </header>
+
+            <div className="tryout-responses-body">
+              {(dashboard.purchaseForms || []).length === 0 &&
+              (dashboard.refundForms || []).length === 0 ? (
+                <div className="tryout-responses-empty">
+                  <span>📭</span>
+                  <b>No form responses yet</b>
+                  <p>
+                    When you submit a purchase or refund form, it will
+                    appear here with its status.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {(dashboard.purchaseForms || []).length > 0 && (
+                    <div className="tryout-responses-group">
+                      <b className="tryout-pf-title">
+                        📋 Purchase Forms (
+                        {(dashboard.purchaseForms || []).length})
+                      </b>
+                      {dashboard.purchaseForms.map((form) => (
+                        <div
+                          className="tryout-responses-card"
+                          key={form._id}
+                        >
+                          <div className="tryout-pf-top">
+                            <span
+                              className={`tryout-responses-badge ${form.status}`}
+                            >
+                              {String(
+                                form.status || "submitted"
+                              ).toUpperCase()}
+                            </span>
+                            <small>
+                              {new Date(
+                                form.submittedAt
+                              ).toLocaleString("en-IN")}
+                            </small>
+                          </div>
+                          <div className="tryout-pf-details">
+                            <span>
+                              <b>Phone:</b> {form.phoneAtStore || "—"}
+                            </span>
+                            <span>
+                              <b>Profile:</b>{" "}
+                              {form.profileName || "—"}
+                            </span>
+                            {form.otherInfo && (
+                              <span>
+                                <b>Info:</b> {form.otherInfo}
+                              </span>
+                            )}
+                          </div>
+                          {form.screenshotUrl && (
+                            <div className="tryout-responses-actions">
+                              <a
+                                href={form.screenshotUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="tryout-pf-shot"
+                              >
+                                🖼️ View screenshot
+                              </a>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {(dashboard.refundForms || []).length > 0 && (
+                    <div className="tryout-responses-group">
+                      <b className="tryout-pf-title">
+                        📦 Refund Forms ({(dashboard.refundForms || []).length})
+                      </b>
+                      {dashboard.refundForms.map((form) => (
+                        <div
+                          className="tryout-responses-card"
+                          key={form._id}
+                        >
+                          <div className="tryout-pf-top">
+                            <span
+                              className={`tryout-responses-badge ${form.status}`}
+                            >
+                              {String(
+                                form.status || "submitted"
+                              ).toUpperCase()}
+                            </span>
+                            <small>
+                              {new Date(
+                                form.submittedAt
+                              ).toLocaleString("en-IN")}
+                            </small>
+                          </div>
+                          <div className="tryout-pf-details">
+                            <span>
+                              <b>Order id:</b> {form.orderId || "—"}
+                            </span>
+                            <span>
+                              <b>Order amount:</b> ₹
+                              {(form.orderAmount || 0).toLocaleString(
+                                "en-IN"
+                              )}
+                            </span>
+                            {form.otherInfo && (
+                              <span>
+                                <b>Info:</b> {form.otherInfo}
+                              </span>
+                            )}
+                          </div>
+                          {(form.deliveryScreenshotUrl ||
+                            (form.reviewFiles || []).length > 0) && (
+                            <div className="tryout-responses-actions">
+                              {form.deliveryScreenshotUrl && (
+                                <a
+                                  href={form.deliveryScreenshotUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="tryout-pf-shot"
+                                >
+                                  🖼️ Delivery shot
+                                </a>
+                              )}
+                              {(form.reviewFiles || []).map((url, index) => (
+                                <a
+                                  key={url}
+                                  href={url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="tryout-pf-shot"
+                                >
+                                  Review {index + 1}
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

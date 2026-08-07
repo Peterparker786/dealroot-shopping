@@ -2490,6 +2490,142 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+.tryout-pf-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.tryout-pf-thumb {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 84px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.tryout-pf-thumb:hover {
+  border-color: #7c3aed;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.18);
+}
+.tryout-pf-thumb img {
+  width: 72px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+}
+.tryout-pf-thumb span {
+  font-size: 10px;
+  font-weight: 700;
+  color: #374151;
+}
+
+/* Lightbox for previewing + downloading proof images */
+.admin-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(15, 12, 35, 0.82);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: adminFadeIn 0.18s ease;
+}
+.admin-lightbox {
+  background: #fff;
+  border-radius: 14px;
+  max-width: 92vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
+}
+.admin-lightbox-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eee;
+}
+.admin-lightbox-top b {
+  font-size: 13px;
+  color: #1f2a4d;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-lightbox-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-shrink: 0;
+}
+.admin-lightbox-download,
+.admin-lightbox-open {
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.admin-lightbox-download {
+  background: #7c3aed;
+  color: #fff;
+}
+.admin-lightbox-download:hover:not(:disabled) {
+  background: #6d28d9;
+}
+.admin-lightbox-download:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.admin-lightbox-open {
+  background: #f1efff;
+  color: #4c1d95;
+}
+.admin-lightbox-open:hover {
+  background: #e4dcff;
+}
+.admin-lightbox-close {
+  border: none;
+  background: #f1efff;
+  color: #4c1d95;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+.admin-lightbox-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  background: #0f0c23;
+}
+.admin-lightbox-image img {
+  max-width: 100%;
+  max-height: 72vh;
+  border-radius: 8px;
+  object-fit: contain;
+}
+@keyframes adminFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 .tryout-pf-shot {
   font-size: 12px;
   font-weight: 700;

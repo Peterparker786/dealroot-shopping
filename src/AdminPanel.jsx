@@ -103,12 +103,17 @@ function AdminPanel({
     amount: "",
     note: "",
   });
-  // When the admin verifies a purchase form via "Verify & Add Cashback",
-  // we mark that form verified right after the cashback is added.
+  // When the admin verifies a purchase/refund form via "Verify & Add
+  // Cashback", we mark that form verified right after the cashback is added.
+  // kind: "purchase" | "refund"
   const [tryoutVerifyForm, setTryoutVerifyForm] = useState({
     appId: "",
     formId: "",
+    kind: "",
   });
+  // Lightbox for previewing + downloading member-uploaded proofs.
+  const [tryoutImagePreview, setTryoutImagePreview] = useState(null);
+  const [tryoutImageDownloading, setTryoutImageDownloading] = useState(false);
   const [tryoutProductForm, setTryoutProductForm] = useState({
     brand: "",
     title: "",
@@ -1285,19 +1290,57 @@ function AdminPanel({
   // -------- Tryout cashback management --------
   const openCashbackForm = (item) => {
     setTryoutCashbackForm({ open: item._id, amount: "", note: "" });
-    setTryoutVerifyForm({ appId: "", formId: "" });
+    setTryoutVerifyForm({ appId: "", formId: "", kind: "" });
   };
 
-  // Open the cashback form for a specific purchase-form submission and
+  // Lightbox preview for a member-uploaded proof image.
+  const openImagePreview = (url, name) => {
+    setTryoutImagePreview({ url, name });
+  };
+
+  // Download the proof image (fetch → blob → save). Falls back to opening
+  // the image in a new tab if the browser blocks the fetch.
+  const downloadPreviewImage = async () => {
+    if (!tryoutImagePreview) return undefined;
+
+    const { url, name } = tryoutImagePreview;
+    setTryoutImageDownloading(true);
+
+    try {
+      const response = await fetch(url, { mode: "cors" });
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = name || "proof.jpg";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 4000);
+    } catch {
+      window.open(url, "_blank", "noopener");
+    } finally {
+      setTryoutImageDownloading(false);
+    }
+
+    return undefined;
+  };
+
+  // Open the cashback form for a specific purchase/refund submission and
   // remember to mark that submission as verified once cashback is added.
   const verifyPurchaseForm = (item, formId) => {
-    setTryoutVerifyForm({ appId: item._id, formId });
+    setTryoutVerifyForm({ appId: item._id, formId, kind: "purchase" });
+    setTryoutCashbackForm({ open: item._id, amount: "", note: "" });
+  };
+
+  const verifyRefundForm = (item, formId) => {
+    setTryoutVerifyForm({ appId: item._id, formId, kind: "refund" });
     setTryoutCashbackForm({ open: item._id, amount: "", note: "" });
   };
 
   const closeCashbackForm = () => {
     setTryoutCashbackForm({ open: "", amount: "", note: "" });
-    setTryoutVerifyForm({ appId: "", formId: "" });
+    setTryoutVerifyForm({ appId: "", formId: "", kind: "" });
   };
 
   const addTryoutCashback = async (item) => {
@@ -1321,14 +1364,16 @@ function AdminPanel({
         }
       );
 
-      // If this cashback was added while verifying a purchase-form
+      // If this cashback was added while verifying a purchase/refund-form
       // submission, mark that submission as verified too.
       let verifyFailed = false;
 
       if (tryoutVerifyForm.appId === item._id && tryoutVerifyForm.formId) {
         try {
           const verify = await request(
-            `${apiUrl}/api/tryouts/${item._id}/purchase-form/${tryoutVerifyForm.formId}`,
+            `${apiUrl}/api/tryouts/${item._id}/${
+              tryoutVerifyForm.kind === "refund" ? "refund-form" : "purchase-form"
+            }/${tryoutVerifyForm.formId}`,
             {
               method: "PATCH",
               body: JSON.stringify({ status: "verified" }),
@@ -1347,7 +1392,7 @@ function AdminPanel({
           a._id === item._id ? data.application : a
         )
       );
-      setTryoutVerifyForm({ appId: "", formId: "" });
+      setTryoutVerifyForm({ appId: "", formId: "", kind: "" });
       closeCashbackForm();
       showToast(
         verifyFailed
@@ -2934,6 +2979,135 @@ function AdminPanel({
 
                         {item.status === "approved" && (
                           <footer className="return-card-actions">
+                            {(item.refundForms || []).length > 0 && (
+                              <div className="tryout-pf-section">
+                                <b className="tryout-pf-title">
+                                  📦 Refund Forms
+                                </b>
+                                {(item.refundForms || [])
+                                  .slice()
+                                  .reverse()
+                                  .map((form) => (
+                                    <div
+                                      className="tryout-pf-card"
+                                      key={form._id}
+                                    >
+                                      <div className="tryout-pf-top">
+                                        <span
+                                          className={`tryout-pf-badge ${form.status}`}
+                                        >
+                                          {String(
+                                            form.status || "submitted"
+                                          ).toUpperCase()}
+                                        </span>
+                                        <small>
+                                          {new Date(
+                                            form.submittedAt
+                                          ).toLocaleString("en-IN")}
+                                        </small>
+                                      </div>
+                                      <div className="tryout-pf-details">
+                                        <span>
+                                          <b>Order id:</b>{" "}
+                                          {form.orderId || "—"}
+                                        </span>
+                                        <span>
+                                          <b>Order amount:</b> ₹
+                                          {(form.orderAmount || 0).toLocaleString(
+                                            "en-IN"
+                                          )}
+                                        </span>
+                                        {form.otherInfo && (
+                                          <span>
+                                            <b>Info:</b>{" "}
+                                            {form.otherInfo}
+                                          </span>
+                                        )}
+                                        {(form.reviewFiles || []).length >
+                                          0 && (
+                                          <span>
+                                            <b>Review files:</b>{" "}
+                                            {form.reviewFiles.length}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="tryout-pf-actions">
+                                        <div className="tryout-pf-links">
+                                          {form.deliveryScreenshotUrl ? (
+                                            <button
+                                              type="button"
+                                              className="tryout-pf-thumb"
+                                              onClick={() =>
+                                                openImagePreview(
+                                                  form.deliveryScreenshotUrl,
+                                                  `delivery-${form.orderId || "proof"}.png`
+                                                )
+                                              }
+                                              title="Preview delivery screenshot"
+                                            >
+                                              <img
+                                                src={
+                                                  form.deliveryScreenshotUrl
+                                                }
+                                                alt="Delivery screenshot"
+                                                loading="lazy"
+                                              />
+                                              <span>🖼️ Delivery</span>
+                                            </button>
+                                          ) : (
+                                            <span className="tryout-pf-noshot">
+                                              No delivery shot
+                                            </span>
+                                          )}
+                                          {(form.reviewFiles || []).map(
+                                            (url, index) => (
+                                              <button
+                                                type="button"
+                                                key={url}
+                                                className="tryout-pf-thumb"
+                                                onClick={() =>
+                                                  openImagePreview(
+                                                    url,
+                                                    `review-${index + 1}-${form.orderId || "proof"}.png`
+                                                  )
+                                                }
+                                                title={`Preview review file ${index + 1}`}
+                                              >
+                                                <img
+                                                  src={url}
+                                                  alt={`Review file ${index + 1}`}
+                                                  loading="lazy"
+                                                />
+                                                <span>Review {index + 1}</span>
+                                              </button>
+                                            )
+                                          )}
+                                        </div>
+                                        {form.status === "submitted" && (
+                                          <button
+                                            type="button"
+                                            className="return-approve-btn"
+                                            disabled={
+                                              tryoutProcessingId ===
+                                              item._id
+                                            }
+                                            onClick={() =>
+                                              verifyRefundForm(
+                                                item,
+                                                form._id
+                                              )
+                                            }
+                                          >
+                                            ✅ Verify & Add
+                                            Cashback
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+
                             {(item.purchaseForms || []).length > 0 && (
                               <div className="tryout-pf-section">
                                 <b className="tryout-pf-title">
@@ -2979,14 +3153,24 @@ function AdminPanel({
                                       </div>
                                       <div className="tryout-pf-actions">
                                         {form.screenshotUrl ? (
-                                          <a
-                                            href={form.screenshotUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="tryout-pf-shot"
+                                          <button
+                                            type="button"
+                                            className="tryout-pf-thumb"
+                                            onClick={() =>
+                                              openImagePreview(
+                                                form.screenshotUrl,
+                                                `purchase-${form.profileName || "proof"}.png`
+                                              )
+                                            }
+                                            title="Preview order screenshot"
                                           >
-                                            🖼️ View screenshot
-                                          </a>
+                                            <img
+                                              src={form.screenshotUrl}
+                                              alt="Order screenshot"
+                                              loading="lazy"
+                                            />
+                                            <span>🖼️ Screenshot</span>
+                                          </button>
                                         ) : (
                                           <span className="tryout-pf-noshot">
                                             No screenshot
@@ -4101,6 +4285,61 @@ function AdminPanel({
           )}
         </main>
       </div>
+
+      {/* Lightbox — preview + download member-uploaded proof images */}
+      {tryoutImagePreview && (
+        <div
+          className="admin-lightbox-overlay"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setTryoutImagePreview(null);
+            }
+          }}
+        >
+          <div className="admin-lightbox">
+            <div className="admin-lightbox-top">
+              <b>{tryoutImagePreview.name}</b>
+              <div className="admin-lightbox-actions">
+                <button
+                  type="button"
+                  className="admin-lightbox-download"
+                  onClick={downloadPreviewImage}
+                  disabled={tryoutImageDownloading}
+                >
+                  {tryoutImageDownloading ? "⏳ ..." : "⬇ Download"}
+                </button>
+                <button
+                  type="button"
+                  className="admin-lightbox-open"
+                  onClick={() =>
+                    window.open(
+                      tryoutImagePreview.url,
+                      "_blank",
+                      "noopener"
+                    )
+                  }
+                >
+                  ↗ Open full
+                </button>
+                <button
+                  type="button"
+                  className="admin-lightbox-close"
+                  onClick={() => setTryoutImagePreview(null)}
+                  aria-label="Close preview"
+                >
+                  &times;
+                </button>
+              </div>
+            </div>
+            <div className="admin-lightbox-image">
+              <img
+                src={tryoutImagePreview.url}
+                alt={tryoutImagePreview.name}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

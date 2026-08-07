@@ -2540,6 +2540,88 @@ img { max-width: 100%; display: block; }
   resize: vertical;
   min-height: 56px;
 }
+.tryout-refund-email {
+  border: none;
+  border-bottom: 1.5px solid #d1d5db;
+  background: #f3f4f6;
+  padding: 8px 2px;
+  font-size: 14px;
+  color: #6b7280;
+  border-radius: 0;
+  cursor: not-allowed;
+}
+
+/* Form Response History modal */
+.tryout-responses-modal {
+  max-width: 620px;
+}
+.tryout-responses-body {
+  padding: 16px 24px 22px;
+  max-height: 62vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.tryout-responses-empty {
+  text-align: center;
+  padding: 30px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.tryout-responses-empty span {
+  font-size: 40px;
+}
+.tryout-responses-empty b {
+  color: #1f2a4d;
+  font-size: 16px;
+}
+.tryout-responses-empty p {
+  margin: 0;
+  color: #6b7280;
+  font-size: 13px;
+  max-width: 320px;
+}
+.tryout-responses-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tryout-responses-card {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tryout-responses-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.tryout-responses-badge.submitted {
+  background: #fef3c7;
+  color: #92400e;
+}
+.tryout-responses-badge.verified {
+  background: #d1fae5;
+  color: #065f46;
+}
+.tryout-responses-badge.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.tryout-responses-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
 .tryout-purchase-file input[type="file"] {
   padding: 10px;
   border: 1.5px dashed #cbd5e1;
