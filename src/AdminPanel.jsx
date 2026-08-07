@@ -52,6 +52,9 @@ const emptyForm = {
   flipkartLink: "",
   otherMarketplaceName: "",
   otherMarketplaceLink: "",
+  buyLink: "",
+  buyLinkLabel: "",
+  buyLinkTerms: "",
 
   specifications: [],
   highlights: [],
@@ -100,6 +103,12 @@ function AdminPanel({
     amount: "",
     note: "",
   });
+  // When the admin verifies a purchase form via "Verify & Add Cashback",
+  // we mark that form verified right after the cashback is added.
+  const [tryoutVerifyForm, setTryoutVerifyForm] = useState({
+    appId: "",
+    formId: "",
+  });
   const [tryoutProductForm, setTryoutProductForm] = useState({
     brand: "",
     title: "",
@@ -108,6 +117,9 @@ function AdminPanel({
     mrp: "",
     stock: "10",
     image: "",
+    buyLink: "",
+    buyLinkLabel: "",
+    buyLinkTerms: "",
   });
   const [tryoutProductSaving, setTryoutProductSaving] = useState(false);
   const [returnProcessingId, setReturnProcessingId] = useState("");
@@ -573,6 +585,9 @@ function AdminPanel({
 
       otherMarketplaceName: otherMarketplace?.platform || "",
       otherMarketplaceLink: otherMarketplace?.url || "",
+      buyLink: product.buyLink || "",
+      buyLinkLabel: product.buyLinkLabel || "",
+      buyLinkTerms: product.buyLinkTerms || "",
 
       specifications: Array.isArray(product.specifications)
         ? product.specifications.map((spec) => ({
@@ -838,14 +853,17 @@ function AdminPanel({
         ...form,
         marketplaceLinks,
       };
-      console.log("FORM IMAGES:", form.images);
-      console.log("SELECTED IMAGES:", selectedImages);
       payload.images = selectedImages;
 
       delete payload.amazonLink;
       delete payload.flipkartLink;
       delete payload.otherMarketplaceName;
       delete payload.otherMarketplaceLink;
+
+      // buy-link fields ride along inside form — trim before sending.
+      payload.buyLink = String(payload.buyLink || "").trim();
+      payload.buyLinkLabel = String(payload.buyLinkLabel || "").trim();
+      payload.buyLinkTerms = String(payload.buyLinkTerms || "").trim();
 
       await request(
         editingId
@@ -1213,6 +1231,9 @@ function AdminPanel({
           dealType: "none",
           tryoutOnly: true,
           description: "Exclusive Tryout member deal",
+          buyLink: tryoutProductForm.buyLink.trim(),
+          buyLinkLabel: tryoutProductForm.buyLinkLabel.trim(),
+          buyLinkTerms: tryoutProductForm.buyLinkTerms.trim(),
         }),
       });
 
@@ -1224,6 +1245,9 @@ function AdminPanel({
         mrp: "",
         stock: "10",
         image: "",
+        buyLink: "",
+        buyLinkLabel: "",
+        buyLinkTerms: "",
       });
       showToast("Tryout product added — only Tryout members will see it");
       loadProducts();
@@ -1261,10 +1285,19 @@ function AdminPanel({
   // -------- Tryout cashback management --------
   const openCashbackForm = (item) => {
     setTryoutCashbackForm({ open: item._id, amount: "", note: "" });
+    setTryoutVerifyForm({ appId: "", formId: "" });
+  };
+
+  // Open the cashback form for a specific purchase-form submission and
+  // remember to mark that submission as verified once cashback is added.
+  const verifyPurchaseForm = (item, formId) => {
+    setTryoutVerifyForm({ appId: item._id, formId });
+    setTryoutCashbackForm({ open: item._id, amount: "", note: "" });
   };
 
   const closeCashbackForm = () => {
     setTryoutCashbackForm({ open: "", amount: "", note: "" });
+    setTryoutVerifyForm({ appId: "", formId: "" });
   };
 
   const addTryoutCashback = async (item) => {
@@ -1277,7 +1310,7 @@ function AdminPanel({
     try {
       setTryoutProcessingId(item._id);
 
-      const data = await request(
+      let data = await request(
         `${apiUrl}/api/tryouts/${item._id}/cashback`,
         {
           method: "POST",
@@ -1288,13 +1321,39 @@ function AdminPanel({
         }
       );
 
+      // If this cashback was added while verifying a purchase-form
+      // submission, mark that submission as verified too.
+      let verifyFailed = false;
+
+      if (tryoutVerifyForm.appId === item._id && tryoutVerifyForm.formId) {
+        try {
+          const verify = await request(
+            `${apiUrl}/api/tryouts/${item._id}/purchase-form/${tryoutVerifyForm.formId}`,
+            {
+              method: "PATCH",
+              body: JSON.stringify({ status: "verified" }),
+            }
+          );
+          data = verify;
+        } catch {
+          // The cashback is already added — just warn so the admin does not
+          // re-verify (and accidentally double-add) the same submission.
+          verifyFailed = true;
+        }
+      }
+
       setApplications((current) =>
         current.map((a) =>
           a._id === item._id ? data.application : a
         )
       );
+      setTryoutVerifyForm({ appId: "", formId: "" });
       closeCashbackForm();
-      showToast("Cashback added to member");
+      showToast(
+        verifyFailed
+          ? "Cashback added, but the form could not be marked verified — please re-check it"
+          : "Cashback added to member"
+      );
     } catch (error) {
       showToast(error.message);
     } finally {
@@ -1962,6 +2021,9 @@ function AdminPanel({
                       ["flipkartLink", "Flipkart product link", "url"],
                       ["otherMarketplaceName", "Other platform name", "text"],
                       ["otherMarketplaceLink", "Other platform link", "url"],
+                      ["buyLink", "Buy link (Amazon / Flipkart / any URL)", "url"],
+                      ["buyLinkLabel", "Buy button name", "text"],
+                      ["buyLinkTerms", "Terms & conditions note", "text"],
                       ["badge", "Product badge", "text"],
                     ].map(([name, label, type]) => (
                       <label
@@ -2872,6 +2934,89 @@ function AdminPanel({
 
                         {item.status === "approved" && (
                           <footer className="return-card-actions">
+                            {(item.purchaseForms || []).length > 0 && (
+                              <div className="tryout-pf-section">
+                                <b className="tryout-pf-title">
+                                  📋 Purchase Forms
+                                </b>
+                                {(item.purchaseForms || [])
+                                  .slice()
+                                  .reverse()
+                                  .map((form) => (
+                                    <div
+                                      className="tryout-pf-card"
+                                      key={form._id}
+                                    >
+                                      <div className="tryout-pf-top">
+                                        <span
+                                          className={`tryout-pf-badge ${form.status}`}
+                                        >
+                                          {String(
+                                            form.status || "submitted"
+                                          ).toUpperCase()}
+                                        </span>
+                                        <small>
+                                          {new Date(
+                                            form.submittedAt
+                                          ).toLocaleString("en-IN")}
+                                        </small>
+                                      </div>
+                                      <div className="tryout-pf-details">
+                                        <span>
+                                          <b>Phone:</b>{" "}
+                                          {form.phoneAtStore || "—"}
+                                        </span>
+                                        <span>
+                                          <b>Profile:</b>{" "}
+                                          {form.profileName || "—"}
+                                        </span>
+                                        {form.otherInfo && (
+                                          <span>
+                                            <b>Info:</b>{" "}
+                                            {form.otherInfo}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <div className="tryout-pf-actions">
+                                        {form.screenshotUrl ? (
+                                          <a
+                                            href={form.screenshotUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="tryout-pf-shot"
+                                          >
+                                            🖼️ View screenshot
+                                          </a>
+                                        ) : (
+                                          <span className="tryout-pf-noshot">
+                                            No screenshot
+                                          </span>
+                                        )}
+                                        {form.status === "submitted" && (
+                                          <button
+                                            type="button"
+                                            className="return-approve-btn"
+                                            disabled={
+                                              tryoutProcessingId ===
+                                              item._id
+                                            }
+                                            onClick={() =>
+                                              verifyPurchaseForm(
+                                                item,
+                                                form._id
+                                              )
+                                            }
+                                          >
+                                            ✅ Verify & Add
+                                            Cashback
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+
                             <div className="tryout-cashback-summary">
                               <span>
                                 <b>
@@ -3126,6 +3271,36 @@ function AdminPanel({
                         updateTryoutProductForm("image", e.target.value)
                       }
                       placeholder="https://... (optional — upload from Products tab instead)"
+                    />
+                  </label>
+                  <label className="tryout-product-form-full">
+                    Buy link (Amazon / Flipkart / any URL)
+                    <input
+                      value={tryoutProductForm.buyLink}
+                      onChange={(e) =>
+                        updateTryoutProductForm("buyLink", e.target.value)
+                      }
+                      placeholder="https://www.amazon.in/... — product name + Buy button redirect here"
+                    />
+                  </label>
+                  <label className="tryout-product-form-full">
+                    Buy button name
+                    <input
+                      value={tryoutProductForm.buyLinkLabel}
+                      onChange={(e) =>
+                        updateTryoutProductForm("buyLinkLabel", e.target.value)
+                      }
+                      placeholder="e.g. Buy on Amazon / Buy on Flipkart / Shop Now (default: Buy Now)"
+                    />
+                  </label>
+                  <label className="tryout-product-form-full">
+                    Terms &amp; conditions note (shown under the buy button)
+                    <input
+                      value={tryoutProductForm.buyLinkTerms}
+                      onChange={(e) =>
+                        updateTryoutProductForm("buyLinkTerms", e.target.value)
+                      }
+                      placeholder="e.g. Price & availability may vary on the marketplace"
                     />
                   </label>
                   <div className="tryout-product-form-actions">

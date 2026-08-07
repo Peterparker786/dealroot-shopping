@@ -2420,6 +2420,89 @@
 }
 
 /* ---------- Tryout cashback management ---------- */
+/* Admin: purchase form submissions inside approved member cards */
+.tryout-pf-section {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #e8e2fb;
+  border-radius: 12px;
+  background: #faf9ff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tryout-pf-title {
+  font-size: 13px;
+  color: #4c1d95;
+}
+.tryout-pf-card {
+  background: #fff;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tryout-pf-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.tryout-pf-top small {
+  font-size: 11px;
+  color: #9ca3af;
+}
+.tryout-pf-badge {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.tryout-pf-badge.submitted {
+  background: #fef3c7;
+  color: #92400e;
+}
+.tryout-pf-badge.verified {
+  background: #d1fae5;
+  color: #065f46;
+}
+.tryout-pf-badge.rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.tryout-pf-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  color: #374151;
+}
+.tryout-pf-details b {
+  color: #1f2a4d;
+}
+.tryout-pf-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.tryout-pf-shot {
+  font-size: 12px;
+  font-weight: 700;
+  color: #246bfd;
+  text-decoration: none;
+}
+.tryout-pf-shot:hover {
+  text-decoration: underline;
+}
+.tryout-pf-noshot {
+  font-size: 12px;
+  color: #b45309;
+}
 .tryout-cashback-summary {
   display: flex;
   gap: 10px;

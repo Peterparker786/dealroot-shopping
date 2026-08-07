@@ -2435,6 +2435,221 @@ img { max-width: 100%; display: block; }
 .tryout-dash-help a:hover {
   text-decoration: underline;
 }
+
+/* Purchase form modal — Google Forms style */
+.tryout-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(20, 16, 45, 0.55);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 28px 14px;
+  overflow-y: auto;
+  animation: fadeIn 0.2s ease;
+}
+.tryout-purchase-modal {
+  width: 100%;
+  max-width: 560px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgba(20, 16, 45, 0.35);
+  overflow: hidden;
+  animation: slideUp 0.25s ease;
+}
+.tryout-purchase-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 22px 24px 14px;
+  border-bottom: 1px solid #eee;
+}
+.tryout-purchase-head h3 {
+  margin: 4px 0 6px;
+  font-size: 20px;
+  color: #1f2a4d;
+}
+.tryout-purchase-head p {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+.tryout-purchase-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: #7c3aed;
+}
+.tryout-modal-close {
+  border: none;
+  background: #f1efff;
+  color: #4c1d95;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+.tryout-modal-close:hover:not(:disabled) {
+  background: #e4dcff;
+}
+.tryout-modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.tryout-purchase-form {
+  padding: 18px 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.tryout-purchase-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333;
+}
+.tryout-purchase-form input[type="text"],
+.tryout-purchase-form input[type="tel"],
+.tryout-purchase-form textarea {
+  border: none;
+  border-bottom: 1.5px solid #cbd5e1;
+  background: transparent;
+  padding: 8px 2px;
+  font-size: 14px;
+  color: #111827;
+  outline: none;
+  transition: border-color 0.2s;
+  border-radius: 0;
+}
+.tryout-purchase-form input[type="text"]:focus,
+.tryout-purchase-form input[type="tel"]:focus,
+.tryout-purchase-form textarea:focus {
+  border-bottom-color: #7c3aed;
+}
+.tryout-purchase-form textarea {
+  resize: vertical;
+  min-height: 56px;
+}
+.tryout-purchase-file input[type="file"] {
+  padding: 10px;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #374151;
+  background: #faf9ff;
+  cursor: pointer;
+}
+.tryout-purchase-file-name {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+.tryout-purchase-error {
+  padding: 11px 13px;
+  border: 1px solid #fda29b;
+  border-radius: 10px;
+  background: #fef3f2;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 600;
+}
+.tryout-purchase-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 4px;
+}
+.tryout-purchase-clear {
+  border: none;
+  background: none;
+  color: #7c3aed;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 8px 4px;
+}
+.tryout-purchase-submit {
+  border: none;
+  background: #7c3aed;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 11px 30px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+.tryout-purchase-submit:hover:not(:disabled) {
+  background: #6d28d9;
+  transform: translateY(-1px);
+}
+.tryout-purchase-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.tryout-purchase-note {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #9ca3af;
+  text-align: center;
+}
+.tryout-purchase-success {
+  padding: 40px 28px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.tryout-purchase-success-icon {
+  font-size: 46px;
+}
+.tryout-purchase-success h4 {
+  margin: 0;
+  font-size: 20px;
+  color: #1f2a4d;
+}
+.tryout-purchase-success p {
+  margin: 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+  max-width: 380px;
+}
+.tryout-purchase-done {
+  margin-top: 8px;
+  border: none;
+  background: #7c3aed;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 11px 34px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.tryout-purchase-done:hover {
+  background: #6d28d9;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 @media (max-width: 560px) {
   .tryout-dash-stats {
     grid-template-columns: 1fr;
@@ -2442,6 +2657,256 @@ img { max-width: 100%; display: block; }
   .tryout-dash-actions {
     flex-direction: column;
   }
+}
+
+/* ---- Browse Offers page ---- */
+.tryout-offers-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 980px;
+  margin: 0 auto 22px;
+  padding: 14px 18px;
+  background: #fff;
+  border: 1px solid #e8e4f2;
+  border-radius: 14px;
+}
+.tryout-offers-toolbar b {
+  font-size: 20px;
+  font-weight: 900;
+  color: #1f2a4d;
+}
+.tryout-offers-toolbar span {
+  font-size: 12px;
+  color: #8b93a7;
+  font-weight: 600;
+}
+.tryout-offers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+.tryout-offer-card {
+  background: #fff;
+  border: 1px solid #e8e4f2;
+  border-radius: 18px;
+  overflow: hidden;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+.tryout-offer-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 36px rgba(80, 60, 160, 0.14);
+}
+.tryout-offer-card.is-locked {
+  border-color: #eee7d8;
+}
+.tryout-offer-img {
+  position: relative;
+  height: 230px;
+  background: linear-gradient(160deg, #faf9ff, #fdf0f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+.tryout-offer-img img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+.tryout-offer-discount {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: #e11d48;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.tryout-offer-body {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tryout-offer-body h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2a4d;
+  line-height: 1.35;
+  margin: 0;
+}
+.tryout-offer-body h3 a {
+  color: inherit;
+}
+.tryout-offer-features {
+  margin: 2px 0;
+  flex-wrap: wrap;
+}
+.tryout-offer-price-row {
+  margin: 2px 0;
+}
+.tryout-offer-view {
+  text-align: center;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #7c3aed;
+}
+.tryout-offer-view:hover {
+  text-decoration: underline;
+}
+.tryout-buy-link {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  background: linear-gradient(135deg, #5135ff, #7c3aed);
+}
+.tryout-buy-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(81, 53, 255, 0.35);
+}
+.tryout-offer-terms {
+  display: block;
+  text-align: center;
+  font-size: 11px;
+  color: #b45309;
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  border-radius: 8px;
+  padding: 6px 10px;
+  line-height: 1.45;
+}
+@media (max-width: 640px) {
+  .tryout-offers-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---- Tryout policy / Terms & Conditions page ---- */
+.tryout-policy-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+}
+.tryout-policy-head {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.tryout-policy-head h1 {
+  font-size: clamp(28px, 4vw, 38px);
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: #1a1a2e;
+  margin: 8px 0 10px;
+}
+.tryout-policy-head p {
+  color: #5b6478;
+  font-size: 14.5px;
+  max-width: 540px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+.tryout-policy-card {
+  background: #fff;
+  border: 1px solid #e8e4f2;
+  border-radius: 22px;
+  padding: 28px;
+  box-shadow: 0 14px 40px rgba(80, 60, 160, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tryout-policy-section {
+  display: flex;
+  gap: 14px;
+  padding: 16px 14px;
+  border-radius: 14px;
+  transition: background 0.2s var(--ease);
+}
+.tryout-policy-section:hover {
+  background: #faf8ff;
+}
+.tryout-policy-icon {
+  flex-shrink: 0;
+  margin-top: 3px;
+  color: #7c3aed;
+  font-size: 18px;
+}
+.tryout-policy-section h3 {
+  font-size: 15.5px;
+  font-weight: 800;
+  color: #1f2a4d;
+  margin: 0 0 4px;
+}
+.tryout-policy-section p {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: #5b6478;
+}
+.tryout-policy-contact {
+  text-align: center;
+  margin-top: 26px;
+  color: #5b6478;
+  font-size: 14px;
+}
+.tryout-policy-contact a {
+  color: #7c3aed;
+  font-weight: 700;
+}
+.tryout-policy-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: 1.5px solid #1f2a4d;
+  color: #1f2a4d;
+  font-size: 13px;
+  font-weight: 800;
+  transition: all 0.15s var(--ease);
+}
+.tryout-policy-back:hover {
+  background: #1f2a4d;
+  color: #fff;
+}
+@media (max-width: 640px) {
+  .tryout-policy-card {
+    padding: 18px;
+  }
+}
+
+/* Tryout apply agreement checkbox */
+.tryout-agree {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 12.5px;
+  color: #5b6478;
+  line-height: 1.5;
+  font-weight: 500;
+}
+.tryout-agree input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  accent-color: #7c3aed;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.tryout-agree a {
+  color: #7c3aed;
+  font-weight: 700;
+}
+.tryout-agree a:hover {
+  text-decoration: underline;
 }
 
 /* ---- How It Works (3 steps) ---- */

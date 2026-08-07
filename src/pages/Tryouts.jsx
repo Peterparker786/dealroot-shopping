@@ -36,6 +36,7 @@ export default function Tryouts({
   });
   const [tryoutSubmitting, setTryoutSubmitting] = useState(false);
   const [tryoutError, setTryoutError] = useState("");
+  const [tryoutAgreed, setTryoutAgreed] = useState(false);
   const [tryoutIndex, setTryoutIndex] = useState(0);
   const navigate = useNavigate();
 
@@ -128,6 +129,13 @@ export default function Tryouts({
     event.preventDefault();
     setTryoutError("");
 
+    if (!tryoutAgreed) {
+      setTryoutError(
+        "Please accept the Terms & Conditions to continue"
+      );
+      return;
+    }
+
     try {
       setTryoutSubmitting(true);
 
@@ -151,6 +159,7 @@ export default function Tryouts({
 
       setTryoutStatus("pending");
       setTryoutApplyOpen(false);
+      setTryoutAgreed(false);
       setTryoutForm({
         name: "",
         phone: "",
@@ -559,6 +568,21 @@ export default function Tryouts({
               onChange={(e) => updateTryoutForm("reason", e.target.value)}
               placeholder="e.g. I love trying new skincare and sharing honest reviews..."
             />
+          </label>
+
+          <label className="tryout-agree">
+            <input
+              type="checkbox"
+              checked={tryoutAgreed}
+              onChange={(e) => setTryoutAgreed(e.target.checked)}
+            />
+            <span>
+              I have read and agree to the{" "}
+              <Link to="/tryout-policy" target="_blank">
+                Terms &amp; Conditions
+              </Link>{" "}
+              of the Dealroot Tryouts program.
+            </span>
           </label>
 
           {tryoutError && <div className="tryout-error">{tryoutError}</div>}

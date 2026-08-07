@@ -24,8 +24,69 @@ export default function TryoutDashboard({
   const [dashboard, setDashboard] = useState(INITIAL_DASHBOARD);
   const [historyFilter, setHistoryFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const [purchaseForm, setPurchaseForm] = useState({
+    phoneAtStore: user?.phone || "",
+    profileName: "",
+    otherInfo: "",
+  });
+  const [purchaseFile, setPurchaseFile] = useState(null);
+  const [purchaseSubmitting, setPurchaseSubmitting] = useState(false);
+  const [purchaseError, setPurchaseError] = useState("");
+  const [purchaseSubmitted, setPurchaseSubmitted] = useState(false);
 
   const tryoutApproved = tryoutStatus === "approved";
+
+  const openPurchaseForm = () => {
+    setPurchaseForm({
+      phoneAtStore: user?.phone || "",
+      profileName: "",
+      otherInfo: "",
+    });
+    setPurchaseFile(null);
+    setPurchaseError("");
+    setPurchaseSubmitted(false);
+    setPurchaseOpen(true);
+  };
+
+  const submitPurchaseForm = async (event) => {
+    event.preventDefault();
+    setPurchaseSubmitting(true);
+    setPurchaseError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("phoneAtStore", purchaseForm.phoneAtStore);
+      formData.append("profileName", purchaseForm.profileName);
+      formData.append("otherInfo", purchaseForm.otherInfo);
+      if (purchaseFile) {
+        formData.append("screenshot", purchaseFile);
+      }
+
+      const response = await fetch(`${apiUrl}/api/tryouts/purchase-form`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+        },
+        body: formData,
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Could not submit the form");
+      }
+
+      setPurchaseSubmitted(true);
+    } catch (error) {
+      setPurchaseError(
+        error instanceof TypeError
+          ? "Could not connect to the server. Please try again."
+          : error.message
+      );
+    } finally {
+      setPurchaseSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     if (!user || !userToken) {
@@ -194,25 +255,14 @@ export default function TryoutDashboard({
             <button
               type="button"
               className="tryout-action-btn tryout-action-primary"
-              onClick={() => navigate("/tryouts")}
+              onClick={() => navigate("/tryouts/offers")}
             >
               🛍️ Browse Offers
             </button>
             <button
               type="button"
               className="tryout-action-btn tryout-action-ghost"
-              onClick={() =>
-                window.open(
-                  `mailto:${OWNER_EMAIL}?subject=${encodeURIComponent(
-                    "Tryout Purchase Form — " + (user.name || "Member")
-                  )}&body=${encodeURIComponent(
-                    `Hello DealRoot team,\n\nI am a Tryout member (${
-                      user.name || ""
-                    }, ${user.email || ""}) and I want to submit my purchase details:\n\nProduct: \nOrder ID: \nAmount: \n\nThank you!`
-                  )}`,
-                  "_blank"
-                )
-              }
+              onClick={openPurchaseForm}
             >
               📝 Submit Purchase Form
             </button>
@@ -356,7 +406,7 @@ export default function TryoutDashboard({
             <button
               type="button"
               className="tryout-browse-offers"
-              onClick={() => navigate("/tryouts")}
+              onClick={() => navigate("/tryouts/offers")}
             >
               Browse Offers →
             </button>
@@ -374,6 +424,187 @@ export default function TryoutDashboard({
       <div className="tryout-dash-help">
         <Link to="/tryouts">← Back to Tryout deals</Link>
       </div>
+
+      {/* Purchase form modal — Google Forms style */}
+      {purchaseOpen && (
+        <div
+          className="tryout-modal-overlay"
+          onMouseDown={(event) => {
+            if (
+              event.target === event.currentTarget &&
+              !purchaseSubmitting
+            ) {
+              setPurchaseOpen(false);
+            }
+          }}
+        >
+          <div
+            className="tryout-purchase-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Submit Purchase Form"
+          >
+            <header className="tryout-purchase-head">
+              <div>
+                <span className="tryout-purchase-eyebrow">
+                  DEALROOT TRYOUTS
+                </span>
+                <h3>Submit Purchase Form</h3>
+                <p>
+                  Tell us about the product you bought so we can verify it
+                  and add it to your dashboard.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="tryout-modal-close"
+                onClick={() => setPurchaseOpen(false)}
+                disabled={purchaseSubmitting}
+                aria-label="Close form"
+              >
+                &times;
+              </button>
+            </header>
+
+            {purchaseSubmitted ? (
+              <div className="tryout-purchase-success">
+                <span className="tryout-purchase-success-icon">✅</span>
+                <h4>Form submitted!</h4>
+                <p>
+                  Your cashback form has been filled.{" "}
+                  <b>Please do not cancel your order</b> — our team will
+                  verify it and add it to your dashboard. A confirmation
+                  email is on its way to you.
+                </p>
+                <button
+                  type="button"
+                  className="tryout-purchase-done"
+                  onClick={() => setPurchaseOpen(false)}
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <form
+                className="tryout-purchase-form"
+                onSubmit={submitPurchaseForm}
+              >
+                <label>
+                  Phone Number At Purchase Store *
+                  <input
+                    name="phoneAtStore"
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength="10"
+                    value={purchaseForm.phoneAtStore}
+                    onChange={(event) =>
+                      setPurchaseForm((current) => ({
+                        ...current,
+                        phoneAtStore: event.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 10),
+                      }))
+                    }
+                    placeholder="Your answer"
+                    required
+                  />
+                </label>
+
+                <label>
+                  Profile Name On Amazon / Flipkart / Myntra / Meesho /{" "}
+                  Blinkit *
+                  <input
+                    name="profileName"
+                    type="text"
+                    value={purchaseForm.profileName}
+                    onChange={(event) =>
+                      setPurchaseForm((current) => ({
+                        ...current,
+                        profileName: event.target.value,
+                      }))
+                    }
+                    placeholder="Your answer"
+                    required
+                  />
+                </label>
+
+                <label className="tryout-purchase-file">
+                  Order Screenshot (order id, order date, order amount,
+                  product — should be visible) *
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) =>
+                      setPurchaseFile(event.target.files?.[0] || null)
+                    }
+                    required
+                  />
+                  {purchaseFile && (
+                    <span className="tryout-purchase-file-name">
+                      📎 {purchaseFile.name}
+                    </span>
+                  )}
+                </label>
+
+                <label>
+                  Other Informations
+                  <textarea
+                    name="otherInfo"
+                    rows="3"
+                    value={purchaseForm.otherInfo}
+                    onChange={(event) =>
+                      setPurchaseForm((current) => ({
+                        ...current,
+                        otherInfo: event.target.value,
+                      }))
+                    }
+                    placeholder="Order ID, amount, anything else..."
+                  />
+                </label>
+
+                {purchaseError && (
+                  <div
+                    className="tryout-purchase-error"
+                    role="alert"
+                  >
+                    {purchaseError}
+                  </div>
+                )}
+
+                <div className="tryout-purchase-actions">
+                  <button
+                    type="button"
+                    className="tryout-purchase-clear"
+                    onClick={() => {
+                      setPurchaseForm({
+                        phoneAtStore: user?.phone || "",
+                        profileName: "",
+                        otherInfo: "",
+                      });
+                      setPurchaseFile(null);
+                      setPurchaseError("");
+                    }}
+                  >
+                    Clear form
+                  </button>
+                  <button
+                    type="submit"
+                    className="tryout-purchase-submit"
+                    disabled={purchaseSubmitting}
+                  >
+                    {purchaseSubmitting ? "Submitting..." : "Submit"}
+                  </button>
+                </div>
+
+                <p className="tryout-purchase-note">
+                  A confirmation email will be sent to you after
+                  submitting. Never share passwords.
+                </p>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

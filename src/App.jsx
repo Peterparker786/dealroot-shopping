@@ -43,6 +43,7 @@ const Terms = lazy(() => import("./pages/Terms"));  const ShippingPolicy = lazy(
   const TryoutPolicy = lazy(() => import("./pages/TryoutPolicy"));
   const Tryouts = lazy(() => import("./pages/Tryouts"));
   const TryoutDashboard = lazy(() => import("./pages/TryoutDashboard"));
+  const TryoutOffers = lazy(() => import("./pages/TryoutOffers"));
 const ProductDetails = lazy(() => import("./pages/ProductDetails"));
 const CheckoutModal = lazy(() => import("./CheckoutModal"));
 const AdminPanel = lazy(() => import("./AdminPanel"));
@@ -401,6 +402,9 @@ function App() {
                 (link) => link?.platform && link?.url
               )
             : [],
+          buyLink: product.buyLink || "",
+          buyLinkLabel: product.buyLinkLabel || "",
+          buyLinkTerms: product.buyLinkTerms || "",
         }))
       );
     } catch {
@@ -911,6 +915,21 @@ function App() {
     path="/tryouts/dashboard"
     element={
       <TryoutDashboard
+        user={user}
+        userToken={userToken}
+        apiUrl={API_URL}
+        setAccountOpen={setAccountOpen}
+      />
+    }
+  />
+  <Route
+    path="/tryouts/offers"
+    element={
+      <TryoutOffers
+        fallbackImage={fallbackImage}
+        filteredProducts={filteredProducts}
+        products={products}
+        addToCart={addToCart}
         user={user}
         userToken={userToken}
         apiUrl={API_URL}
