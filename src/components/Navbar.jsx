@@ -196,10 +196,12 @@ export default function Navbar({
             <span className="deliver-to-copy">
               <small>Deliver to</small>
               <b>
-                {defaultAddress
-                  ? `${defaultAddress.city}, ${defaultAddress.pincode}`
-                  : deliveryLocation?.city
+                {deliveryLocation?.city
                   ? `${deliveryLocation.city}, ${deliveryLocation.stateLabel}`
+                  : defaultAddress
+                  ? `${defaultAddress.city}, ${defaultAddress.pincode}`
+                  : deliveryLocation?.stateLabel
+                  ? deliveryLocation.stateLabel
                   : user
                   ? "Select address"
                   : "Login to choose"}

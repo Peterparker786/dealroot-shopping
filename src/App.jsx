@@ -172,6 +172,12 @@ function App() {
       }
 
       setUser(data.user);
+
+      // Choosing a saved address supersedes any GPS-detected location, so
+      // the navbar switches back to showing this saved address.
+      setDeliveryLocation(null);
+      localStorage.removeItem("dealroot_delivery_location");
+
       showToast?.("Delivery address updated");
       return true;
     } catch {
