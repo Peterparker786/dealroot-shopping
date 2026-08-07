@@ -10,15 +10,6 @@ import { INDIAN_STATES, CITIES_BY_STATE } from "../utils/indianAddressData";
 
 import TryoutCharacter3D from "../components/TryoutCharacter3D";
 
-// Sample deals shown when no Tryout products have been added yet, so the
-// page never looks empty.
-const SAMPLE_TRYOUT_DEALS = [
-  { name: "Glow Serum Trial Kit", brand: "DEALROOT", price: 49, originalPrice: 149 },
-  { name: "Lip Tint Duo", brand: "DEALROOT", price: 29, originalPrice: 99 },
-  { name: "Hair Oil Sample", brand: "DEALROOT", price: 99, originalPrice: 249 },
-  { name: "Face Mask Combo", brand: "DEALROOT", price: 79, originalPrice: 199 },
-];
-
 export default function Tryouts({
   fallbackImage,
   filteredProducts,
@@ -619,55 +610,13 @@ export default function Tryouts({
       </div>
 
       {tryoutProducts.length === 0 ? (
-        <div className="tryout-grid">
-          {SAMPLE_TRYOUT_DEALS.map((sample) => {
-            const cta = {
-              label: tryoutApproved
-                ? "Go to dashboard →"
-                : "Apply for Tryout member",
-              onClick: tryoutApproved
-                ? goToDashboard
-                : () =>
-                    user ? openTryoutApply() : setAccountOpen?.(true),
-            };
-            const discount = Math.round(
-              ((sample.originalPrice - sample.price) / sample.originalPrice) *
-                100
-            );
-
-            return (
-              <div className="tryout-card is-locked" key={sample.name}>
-                <div className="tryout-card-img tryout-sample-img">
-                  <span className="tryout-badge">SAMPLE</span>
-                  <span className="tryout-sample-emoji">🛍️</span>
-                  {!tryoutApproved && (
-                    <div className="tryout-lock-overlay">
-                      <span>🔒</span>
-                      <b>Not eligible</b>
-                      <small>Kindly apply for Tryout member</small>
-                    </div>
-                  )}
-                </div>
-
-                <div className="tryout-card-body">
-                  <p className="tryout-brand">{sample.brand}</p>
-                  <h4>{sample.name}</h4>
-                  <div className="tryout-price">
-                    <strong>₹{sample.price}</strong>
-                    <del>₹{sample.originalPrice}</del>
-                    <span className="tryout-discount">{discount}% off</span>
-                  </div>
-                  <button
-                    type="button"
-                    className="tryout-buy-btn tryout-buy-locked"
-                    onClick={cta.onClick}
-                  >
-                    {cta.label}
-                  </button>
-                </div>
-              </div>
-            );
-          })}
+        <div className="tryout-empty">
+          <span>🛍️</span>
+          <b>No Tryout deals yet</b>
+          <p>
+            The DealRoot team is preparing exclusive Tryout products. New
+            member deals will appear here soon.
+          </p>
         </div>
       ) : (
         <div className="tryout-grid">

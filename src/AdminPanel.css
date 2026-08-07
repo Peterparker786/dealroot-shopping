@@ -2410,32 +2410,6 @@
   margin: -4px 0 16px;
   max-width: 760px;
 }
-.tryout-toggle-btn {
-  padding: 8px 14px;
-  border: 1.5px solid #7c3aed;
-  border-radius: 999px;
-  background: #fff;
-  color: #7c3aed;
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
-}
-.tryout-toggle-btn:hover:not(:disabled) {
-  background: #f3e8ff;
-}
-.tryout-toggle-btn.on {
-  background: #7c3aed;
-  color: #fff;
-}
-.tryout-toggle-btn.on:hover:not(:disabled) {
-  background: #6d28d9;
-}
-.tryout-toggle-btn:disabled {
-  opacity: 0.6;
-  cursor: default;
-}
 .chip-purple {
   background: #f3e8ff;
   color: #7c3aed;
@@ -2555,4 +2529,41 @@
 .tryout-cashback-form-actions .return-approve-btn,
 .tryout-cashback-form-actions .return-reject-btn {
   flex: 1;
+}
+
+/* ---------- Tryout product add form ---------- */
+.tryout-product-form {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 6px;
+}
+.tryout-product-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4b5563;
+}
+.tryout-product-form label.tryout-product-form-full {
+  grid-column: 1 / -1;
+}
+.tryout-product-form input,
+.tryout-product-form select {
+  padding: 10px 12px;
+  border: 1px solid #e2e0ec;
+  border-radius: 10px;
+  font-size: 13px;
+  background: #fff;
+}
+.tryout-product-form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+}
+@media (max-width: 720px) {
+  .tryout-product-form {
+    grid-template-columns: 1fr;
+  }
 }

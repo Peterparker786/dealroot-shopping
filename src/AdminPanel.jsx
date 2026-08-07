@@ -100,6 +100,16 @@ function AdminPanel({
     amount: "",
     note: "",
   });
+  const [tryoutProductForm, setTryoutProductForm] = useState({
+    brand: "",
+    title: "",
+    category: "Skincare",
+    price: "",
+    mrp: "",
+    stock: "10",
+    image: "",
+  });
+  const [tryoutProductSaving, setTryoutProductSaving] = useState(false);
   const [returnProcessingId, setReturnProcessingId] = useState("");
   const [reviewReturnId, setReviewReturnId] = useState(null);
   const [approveForm, setApproveForm] = useState({
@@ -1146,6 +1156,108 @@ function AdminPanel({
     }
   };
 
+  // -------- Tryout product management (dedicated add) --------
+  const updateTryoutProductForm = (field, value) => {
+    setTryoutProductForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const saveTryoutProduct = async (event) => {
+    event.preventDefault();
+
+    const title = tryoutProductForm.title.trim();
+    const brand = tryoutProductForm.brand.trim();
+    const price = Number(tryoutProductForm.price);
+    const mrp = Number(tryoutProductForm.mrp);
+    const stock = Number(tryoutProductForm.stock);
+
+    if (!title) {
+      showToast("Please enter the product name");
+      return;
+    }
+    if (!brand) {
+      showToast("Please enter the brand");
+      return;
+    }
+    if (!Number.isFinite(price) || price <= 0) {
+      showToast("Please enter a valid price");
+      return;
+    }
+    if (!Number.isFinite(mrp) || mrp <= 0) {
+      showToast("Please enter a valid MRP");
+      return;
+    }
+
+    try {
+      setTryoutProductSaving(true);
+
+      const images = tryoutProductForm.image.trim()
+        ? [tryoutProductForm.image.trim()]
+        : [];
+
+      await request(`${apiUrl}/api/products`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          brand,
+          title,
+          category: tryoutProductForm.category,
+          price,
+          mrp,
+          rating: "4.5",
+          reviews: "0",
+          images,
+          stock: Number.isFinite(stock) ? stock : 0,
+          isFeatured: false,
+          dealType: "none",
+          tryoutOnly: true,
+          description: "Exclusive Tryout member deal",
+        }),
+      });
+
+      setTryoutProductForm({
+        brand: "",
+        title: "",
+        category: "Skincare",
+        price: "",
+        mrp: "",
+        stock: "10",
+        image: "",
+      });
+      showToast("Tryout product added — only Tryout members will see it");
+      loadProducts();
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setTryoutProductSaving(false);
+    }
+  };
+
+  const deleteTryoutProduct = async (product) => {
+    const confirmDelete = window.confirm(
+      `Delete "${product.title}" permanently? This removes it from the Tryout deals and cannot be undone.`
+    );
+    if (!confirmDelete) return;
+
+    try {
+      setTryoutProcessingId(`p-${product._id}`);
+      await request(`${apiUrl}/api/products/${product._id}`, {
+        method: "DELETE",
+      });
+      showToast("Tryout product removed");
+      loadProducts();
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setTryoutProcessingId("");
+    }
+  };
+
+  const tryoutOnlyProducts = (products || []).filter(
+    (p) => p.tryoutOnly
+  );
+
   // -------- Tryout cashback management --------
   const openCashbackForm = (item) => {
     setTryoutCashbackForm({ open: item._id, amount: "", note: "" });
@@ -1208,39 +1320,6 @@ function AdminPanel({
         )
       );
       showToast("Cashback status updated");
-    } catch (error) {
-      showToast(error.message);
-    } finally {
-      setTryoutProcessingId("");
-    }
-  };
-
-  const toggleTryoutProduct = async (product) => {
-    try {
-      setTryoutProcessingId(`p-${product._id}`);
-
-      const data = await request(
-        `${apiUrl}/api/products/${product._id}/tryout`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ tryoutOnly: !product.tryoutOnly }),
-        }
-      );
-
-      setProducts((current) =>
-        current.map((p) =>
-          p._id === product._id ? data.product : p
-        )
-      );
-
-      showToast(
-        data.product.tryoutOnly
-          ? "Product added to Tryout deals"
-          : "Product removed from Tryout deals"
-      );
     } catch (error) {
       showToast(error.message);
     } finally {
@@ -2954,19 +3033,129 @@ function AdminPanel({
                 <div className="admin-section-title">
                   <div>
                     <p>TRYOUT MEMBER DEALS</p>
-                    <h2>Tryout products</h2>
+                    <h2>Add a Tryout product</h2>
                   </div>
                 </div>
                 <p className="admin-section-note">
-                  Toggle products to add or remove them from the Tryout
-                  member deals section. Only approved Tryout members can buy
-                  these products — everyone else sees them locked.
+                  Add products here that should be sold exclusively through
+                  the Tryout program. These products stay separate from your
+                  normal store catalogue — only approved Tryout members can
+                  see and buy them.
                 </p>
+
+                <form className="tryout-product-form" onSubmit={saveTryoutProduct}>
+                  <label>
+                    Product name
+                    <input
+                      value={tryoutProductForm.title}
+                      onChange={(e) =>
+                        updateTryoutProductForm("title", e.target.value)
+                      }
+                      required
+                      placeholder="e.g. Glow Serum Trial Kit"
+                    />
+                  </label>
+                  <label>
+                    Brand
+                    <input
+                      value={tryoutProductForm.brand}
+                      onChange={(e) =>
+                        updateTryoutProductForm("brand", e.target.value)
+                      }
+                      required
+                      placeholder="e.g. DEALROOT"
+                    />
+                  </label>
+                  <label>
+                    Category
+                    <select
+                      value={tryoutProductForm.category}
+                      onChange={(e) =>
+                        updateTryoutProductForm("category", e.target.value)
+                      }
+                    >
+                      {(categories || []).map((category) => (
+                        <option key={category.name} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Price (₹)
+                    <input
+                      type="number"
+                      min="1"
+                      value={tryoutProductForm.price}
+                      onChange={(e) =>
+                        updateTryoutProductForm("price", e.target.value)
+                      }
+                      required
+                      placeholder="49"
+                    />
+                  </label>
+                  <label>
+                    MRP (₹)
+                    <input
+                      type="number"
+                      min="1"
+                      value={tryoutProductForm.mrp}
+                      onChange={(e) =>
+                        updateTryoutProductForm("mrp", e.target.value)
+                      }
+                      required
+                      placeholder="149"
+                    />
+                  </label>
+                  <label>
+                    Stock
+                    <input
+                      type="number"
+                      min="0"
+                      value={tryoutProductForm.stock}
+                      onChange={(e) =>
+                        updateTryoutProductForm("stock", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label className="tryout-product-form-full">
+                    Image URL
+                    <input
+                      value={tryoutProductForm.image}
+                      onChange={(e) =>
+                        updateTryoutProductForm("image", e.target.value)
+                      }
+                      placeholder="https://... (optional — upload from Products tab instead)"
+                    />
+                  </label>
+                  <div className="tryout-product-form-actions">
+                    <button
+                      type="submit"
+                      className="return-approve-btn"
+                      disabled={tryoutProductSaving}
+                    >
+                      {tryoutProductSaving
+                        ? "Adding..."
+                        : "➕ Add Tryout product"}
+                    </button>
+                  </div>
+                </form>
+              </section>
+
+              <section className="admin-products-card">
+                <div className="admin-section-title">
+                  <div>
+                    <p>LIVE TRYOUT DEALS</p>
+                    <h2>Current Tryout products ({tryoutOnlyProducts.length})</h2>
+                  </div>
+                </div>
 
                 {loading ? (
                   <div className="admin-empty">Loading products...</div>
-                ) : products.length === 0 ? (
-                  <div className="admin-empty">No products yet.</div>
+                ) : tryoutOnlyProducts.length === 0 ? (
+                  <div className="admin-empty">
+                    No Tryout products yet — add one with the form above.
+                  </div>
                 ) : (
                   <div className="admin-table-wrap">
                     <table className="admin-table">
@@ -2974,12 +3163,12 @@ function AdminPanel({
                         <tr>
                           <th>Product</th>
                           <th>Price</th>
-                          <th>Tryout deal</th>
+                          <th>Stock</th>
                           <th>Action</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {products.map((product) => (
+                        {tryoutOnlyProducts.map((product) => (
                           <tr key={product._id}>
                             <td data-label="Product">
                               <div className="admin-product-name">
@@ -3001,32 +3190,35 @@ function AdminPanel({
                             </td>
                             <td data-label="Price">
                               <b>₹{product.price}</b>
-                            </td>
-                            <td data-label="Tryout deal">
-                              {product.tryoutOnly ? (
-                                <span className="stock-active">
-                                  🟣 Tryout deal
-                                </span>
-                              ) : (
-                                <small>Regular</small>
+                              {product.mrp > product.price && (
+                                <small> MRP ₹{product.mrp}</small>
                               )}
+                            </td>
+                            <td data-label="Stock">
+                              <span
+                                className={
+                                  product.stock > 0
+                                    ? "stock-active"
+                                    : "stock-out"
+                                }
+                              >
+                                {product.stock > 0
+                                  ? `In stock (${product.stock})`
+                                  : "Out of stock"}
+                              </span>
                             </td>
                             <td data-label="Action">
                               <button
                                 type="button"
-                                className={`tryout-toggle-btn ${
-                                  product.tryoutOnly ? "on" : ""
-                                }`}
+                                className="return-reject-btn"
                                 disabled={
                                   tryoutProcessingId === `p-${product._id}`
                                 }
-                                onClick={() => toggleTryoutProduct(product)}
+                                onClick={() => deleteTryoutProduct(product)}
                               >
                                 {tryoutProcessingId === `p-${product._id}`
-                                  ? "Updating..."
-                                  : product.tryoutOnly
-                                  ? "Remove from Tryout"
-                                  : "Add to Tryout"}
+                                  ? "Removing..."
+                                  : "🗑 Remove"}
                               </button>
                             </td>
                           </tr>
