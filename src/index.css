@@ -1625,6 +1625,17 @@ img { max-width: 100%; display: block; }
   opacity: 0.6;
   cursor: not-allowed;
 }
+.tryout-form input[readonly] {
+  background: #f1f0f6;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+.tryout-form .tryout-field-note {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #8b93a7;
+}
 .tryout-error {
   padding: 10px 12px;
   border-radius: 10px;

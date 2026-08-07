@@ -35,6 +35,7 @@ export default function Tryouts({
   const [tryoutForm, setTryoutForm] = useState({
     name: "",
     phone: "",
+    email: "",
     city: "",
     state: "",
     pincode: "",
@@ -118,6 +119,8 @@ export default function Tryouts({
     setTryoutForm((current) => ({
       ...current,
       name: current.name || user?.name || "",
+      phone: current.phone || user?.phone || "",
+      email: current.email || user?.email || "",
     }));
     setTryoutApplyOpen(true);
   };
@@ -160,6 +163,7 @@ export default function Tryouts({
       setTryoutForm({
         name: "",
         phone: "",
+        email: "",
         city: "",
         state: "",
         pincode: "",
@@ -446,6 +450,21 @@ export default function Tryouts({
           </label>
 
           <label>
+            Email address
+            <input
+              type="email"
+              value={tryoutForm.email}
+              onChange={(e) => updateTryoutForm("email", e.target.value)}
+              placeholder="you@example.com"
+              readOnly
+              title="Email from your account — cannot be changed here"
+            />
+            <small className="tryout-field-note">
+              ✉️ Email from your account — not editable
+            </small>
+          </label>
+
+          <label>
             Mobile number
             <input
               value={tryoutForm.phone}
@@ -453,7 +472,12 @@ export default function Tryouts({
               inputMode="numeric"
               maxLength="10"
               placeholder="10-digit mobile number"
+              readOnly
+              title="Mobile number from your account — cannot be changed here"
             />
+            <small className="tryout-field-note">
+              📱 Number from your account — not editable
+            </small>
           </label>
 
           <label>
