@@ -2179,3 +2179,220 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ===================== RETURNS & REFUNDS (admin) ===================== */
+.returns-list {
+  display: grid;
+  gap: 16px;
+}
+.return-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+}
+.return-card.is-pending {
+  border-color: #fbc9d4;
+  box-shadow: 0 4px 18px rgba(226, 28, 72, 0.08);
+}
+.return-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fbfcfe;
+}
+.return-card-head b {
+  display: block;
+  color: #193651;
+  font-size: 14px;
+}
+.return-card-head small {
+  color: #64748b;
+  font-size: 12px;
+}
+.return-badge {
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.return-badge-pending {
+  background: #fff7e6;
+  color: #ad6800;
+  border: 1px solid #ffd591;
+}
+.return-badge-approved {
+  background: #ecfdf3;
+  color: #067647;
+  border: 1px solid #a6f4c5;
+}
+.return-badge-rejected {
+  background: #fef3f2;
+  color: #b42318;
+  border: 1px solid #fda29b;
+}
+.return-card-body {
+  padding: 16px 18px;
+  display: grid;
+  gap: 14px;
+}
+.return-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+.return-meta-grid > div {
+  display: grid;
+  gap: 3px;
+}
+.return-meta-grid span {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #94a3b8;
+  font-weight: 700;
+}
+.return-meta-grid b {
+  font-size: 13px;
+  color: #0f172a;
+  line-height: 1.5;
+}
+.return-items {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+.return-items small {
+  color: #475569;
+  font-size: 12.5px;
+}
+.return-media {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.return-media a img {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.return-media a:hover img {
+  transform: scale(1.05);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.12);
+}
+.return-video-link {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #eef2ff;
+  color: #4338ca;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.return-card-actions {
+  display: grid;
+  gap: 12px;
+  padding: 14px 18px;
+  border-top: 1px solid #f1f5f9;
+  background: #fbfcfe;
+}
+.return-review-box,
+.return-reject-box {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+.return-review-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.return-review-title b {
+  color: #067647;
+  font-size: 14px;
+}
+.return-review-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+.return-review-box label,
+.return-reject-box label {
+  display: grid;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #334155;
+}
+.return-review-box input,
+.return-reject-box input {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  font-size: 13px;
+  background: #fff;
+  color: #0f172a;
+}
+.return-approve-btn {
+  padding: 11px 18px;
+  border: none;
+  border-radius: 999px;
+  background: #067647;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  justify-self: start;
+}
+.return-approve-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(6, 118, 71, 0.3);
+}
+.return-approve-btn:disabled,
+.return-reject-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.return-reject-btn {
+  padding: 11px 18px;
+  border: 1.5px solid #dc2626;
+  border-radius: 999px;
+  background: #fff;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  justify-self: start;
+}
+.return-reject-btn:hover:not(:disabled) {
+  background: #dc2626;
+  color: #fff;
+}
+.return-cancel-review {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}

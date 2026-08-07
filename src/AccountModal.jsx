@@ -310,6 +310,26 @@ export default function AccountModal({
   const [emailNotFound, setEmailNotFound] = useState(false);
   const [resendIn, setResendIn] = useState(0);
 
+  // Returns & refunds (Amazon-style: reasons + photo/video proof + UPI).
+  const RETURN_REASONS = [
+    "Product is defective / not working",
+    "Item arrived damaged or broken",
+    "Wrong item was delivered",
+    "Product quality not as expected",
+    "Missing parts / accessories",
+    "Change of mind (no longer needed)",
+  ];
+  const [returns, setReturns] = useState([]);
+  const [returnOrderId, setReturnOrderId] = useState(null);
+  const [returnReason, setReturnReason] = useState("");
+  const [returnDescription, setReturnDescription] = useState("");
+  const [returnImages, setReturnImages] = useState([]);
+  const [returnVideo, setReturnVideo] = useState(null);
+  const [returnUpi, setReturnUpi] = useState("");
+  const [returnErrors, setReturnErrors] = useState({});
+  const [returnConfirm, setReturnConfirm] = useState(false);
+  const [returnSubmitting, setReturnSubmitting] = useState(false);
+
   // Login & Security (Amazon-style) editor state.
   const [securityEdit, setSecurityEdit] = useState(null); // name | email | phone | password
   const [secForm, setSecForm] = useState({
@@ -375,6 +395,14 @@ export default function AccountModal({
       setSecSubmitting(false);
       setSecError("");
       setSecFieldErrors({});
+      setReturnOrderId(null);
+      setReturnReason("");
+      setReturnDescription("");
+      setReturnImages([]);
+      setReturnVideo(null);
+      setReturnUpi("");
+      setReturnErrors({});
+      setReturnConfirm(false);
       return undefined;
     }
 
@@ -434,6 +462,39 @@ export default function AccountModal({
       requestCancelled = true;
     };
   }, [apiUrl, isOpen, showToast, tab, token, user]);
+
+  // Load my return requests so order cards can show their status.
+  useEffect(() => {
+    if (!isOpen || !user || !token || tab !== "orders") {
+      return undefined;
+    }
+
+    let requestCancelled = false;
+
+    const loadReturns = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/api/returns/my`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!requestCancelled && data.success) {
+          setReturns(data.returns || []);
+        }
+      } catch {
+        // Ignore — return status is a bonus, not critical.
+      }
+    };
+
+    loadReturns();
+
+    return () => {
+      requestCancelled = true;
+    };
+  }, [apiUrl, isOpen, tab, token, user]);
 
   // 30s countdown before the user can request another OTP.
   useEffect(() => {
@@ -1061,6 +1122,99 @@ export default function AccountModal({
       showToast?.(err.message);
     } finally {
       setSecSubmitting(false);
+    }
+  };
+
+  // An order can be returned within 7 days of placing it (Amazon-style).
+  const canReturnOrder = (order) => {
+    if (order?.orderStatus === "cancelled") return false;
+
+    const placedAt = new Date(order?.createdAt || Date.now()).getTime();
+    return Date.now() - placedAt <= 7 * 24 * 60 * 60 * 1000;
+  };
+
+  const returnInfoFor = (order) =>
+    returns.find(
+      (item) =>
+        item.order === order._id || item.orderNumber === order.orderNumber
+    );
+
+  const submitReturn = async (event) => {
+    event.preventDefault();
+
+    const errors = {};
+
+    if (!returnReason) {
+      errors.reason = "Please choose a return reason";
+    }
+    if (!returnUpi.trim()) {
+      errors.upi = "Please enter your UPI ID to receive the refund";
+    } else if (!/^[^@\s]+@[^@\s]+$/.test(returnUpi.trim())) {
+      errors.upi = "Please enter a valid UPI ID (e.g. name@upi)";
+    }
+
+    if (!returnConfirm) {
+      errors.confirm =
+        "Please confirm that you understand the shipping fee is non-refundable";
+    }
+
+    if (Object.keys(errors).length) {
+      setReturnErrors(errors);
+      return;
+    }
+
+    try {
+      setReturnSubmitting(true);
+
+      const formData = new FormData();
+      formData.append("orderId", returnOrderId);
+      formData.append("reason", returnReason);
+      formData.append("description", returnDescription);
+      formData.append("upiId", returnUpi.trim());
+      returnImages.forEach((file) => formData.append("images", file));
+      if (returnVideo) {
+        formData.append("video", returnVideo);
+      }
+
+      const response = await fetch(`${apiUrl}/api/returns`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Could not submit return request");
+      }
+
+      showToast?.(data.message || "Return request submitted");
+
+      setReturnOrderId(null);
+      setReturnReason("");
+      setReturnDescription("");
+      setReturnImages([]);
+      setReturnVideo(null);
+      setReturnUpi("");
+      setReturnErrors({});
+      setReturnConfirm(false);
+
+      // Refresh the return list so the new status shows immediately.
+      try {
+        const res = await fetch(`${apiUrl}/api/returns/my`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const list = await res.json();
+        if (list.success) setReturns(list.returns || []);
+      } catch {
+        // ignore
+      }
+    } catch (error) {
+      showToast?.(error.message);
+    } finally {
+      setReturnSubmitting(false);
     }
   };
 
@@ -2299,6 +2453,244 @@ export default function AccountModal({
                             <span>Cash on Delivery</span>
                             <b>Total ₹{order.totalAmount}</b>
                           </footer>
+
+                          {(() => {
+                            const returnInfo = returnInfoFor(order);
+
+                            if (returnInfo) {
+                              return (
+                                <div
+                                  className={`return-status return-${returnInfo.status}`}
+                                >
+                                  {returnInfo.status === "pending"
+                                    ? "🔄 Return requested — under review (1-2 days)"
+                                    : returnInfo.status === "approved"
+                                    ? `✅ Refund approved — ₹${
+                                        returnInfo.refundAmount || 0
+                                      } will be sent to your UPI`
+                                    : "❌ Return request was not approved"}
+                                </div>
+                              );
+                            }
+
+                            if (!canReturnOrder(order)) {
+                              return (
+                                <div className="return-status return-expired">
+                                  ⌛ Return window closed (7 days from placing
+                                  your order)
+                                </div>
+                              );
+                            }
+
+                            return (
+                              <>
+                                <button
+                                  type="button"
+                                  className="return-open-btn"
+                                  onClick={() =>
+                                    setReturnOrderId(
+                                      returnOrderId === order._id
+                                        ? null
+                                        : order._id
+                                    )
+                                  }
+                                >
+                                  🔄 Return / Refund
+                                </button>
+
+                                {returnOrderId === order._id && (
+                                  <form
+                                    className="return-form"
+                                    onSubmit={submitReturn}
+                                  >
+                                    <div className="return-form-head">
+                                      <b>Return this order</b>
+                                      <small>
+                                        You can return within 7 days of
+                                        placing your order — just like
+                                        Amazon.
+                                      </small>
+                                    </div>
+
+                                    <label>
+                                      Return reason
+                                      <select
+                                        value={returnReason}
+                                        onChange={(e) => {
+                                          setReturnReason(e.target.value);
+                                          if (returnErrors.reason) {
+                                            setReturnErrors((c) => ({
+                                              ...c,
+                                              reason: "",
+                                            }));
+                                          }
+                                        }}
+                                      >
+                                        <option value="">
+                                          Select a reason...
+                                        </option>
+                                        {RETURN_REASONS.map((reason) => (
+                                          <option key={reason} value={reason}>
+                                            {reason}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      {returnErrors.reason && (
+                                        <span className="field-error">
+                                          {returnErrors.reason}
+                                        </span>
+                                      )}
+                                    </label>
+
+                                    <label>
+                                      Describe the issue (optional)
+                                      <textarea
+                                        rows="2"
+                                        value={returnDescription}
+                                        onChange={(e) =>
+                                          setReturnDescription(e.target.value)
+                                        }
+                                        placeholder="e.g. The product arrived damaged..."
+                                      />
+                                    </label>
+
+                                    <label>
+                                      Photos of the product (up to 5)
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        multiple
+                                        onChange={(e) =>
+                                          setReturnImages([
+                                            ...e.target.files,
+                                          ].slice(0, 5))
+                                        }
+                                      />
+                                      {returnImages.length > 0 && (
+                                        <small className="return-files-note">
+                                          📎 {returnImages.length} photo(s)
+                                          selected
+                                        </small>
+                                      )}
+                                    </label>
+
+                                    <label>
+                                      Video proof (optional)
+                                      <input
+                                        type="file"
+                                        accept="video/*"
+                                        onChange={(e) =>
+                                          setReturnVideo(
+                                            e.target.files[0] || null
+                                          )
+                                        }
+                                      />
+                                      {returnVideo && (
+                                        <small className="return-files-note">
+                                          🎬 {returnVideo.name}
+                                        </small>
+                                      )}
+                                    </label>
+
+                                    <label>
+                                      UPI ID for refund
+                                      <input
+                                        value={returnUpi}
+                                        onChange={(e) => {
+                                          setReturnUpi(e.target.value);
+                                          if (returnErrors.upi) {
+                                            setReturnErrors((c) => ({
+                                              ...c,
+                                              upi: "",
+                                            }));
+                                          }
+                                        }}
+                                        placeholder="yourname@upi"
+                                        autoComplete="off"
+                                      />
+                                      {returnErrors.upi ? (
+                                        <span className="field-error">
+                                          {returnErrors.upi}
+                                        </span>
+                                      ) : (
+                                        <small>
+                                          Your refund will be sent to this UPI
+                                          ID once approved.
+                                        </small>
+                                      )}
+                                    </label>
+
+                                    <div className="return-refund-box">
+                                      <b>Refund breakdown</b>
+                                      <div className="return-refund-row">
+                                        <span>Order total</span>
+                                        <span>₹{order.totalAmount}</span>
+                                      </div>
+                                      <div className="return-refund-row minus">
+                                        <span>
+                                          Shipping fee (non-refundable)
+                                        </span>
+                                        <span>
+                                          - ₹{Number(order.deliveryFee) || 0}
+                                        </span>
+                                      </div>
+                                      <div className="return-refund-total">
+                                        <span>
+                                          Total amount to be refunded after
+                                          approval
+                                        </span>
+                                        <b>
+                                          ₹
+                                          {Math.max(
+                                            0,
+                                            Number(order.totalAmount) -
+                                              (Number(order.deliveryFee) || 0)
+                                          )}
+                                        </b>
+                                      </div>
+                                    </div>
+
+                                    <label className="return-confirm">
+                                      <input
+                                        type="checkbox"
+                                        checked={returnConfirm}
+                                        onChange={(e) => {
+                                          setReturnConfirm(e.target.checked);
+                                          if (returnErrors.confirm) {
+                                            setReturnErrors((c) => ({
+                                              ...c,
+                                              confirm: "",
+                                            }));
+                                          }
+                                        }}
+                                      />
+                                      <span>
+                                        I understand that the shipping fee
+                                        (₹{Number(order.deliveryFee) || 0}) is
+                                        not refundable, and the final refund
+                                        amount will be confirmed after approval.
+                                      </span>
+                                    </label>
+                                    {returnErrors.confirm && (
+                                      <span className="field-error">
+                                        {returnErrors.confirm}
+                                      </span>
+                                    )}
+
+                                    <button
+                                      type="submit"
+                                      className="return-submit-btn"
+                                      disabled={returnSubmitting}
+                                    >
+                                      {returnSubmitting
+                                        ? "Submitting..."
+                                        : "✓ Confirm & submit return request"}
+                                    </button>
+                                  </form>
+                                )}
+                              </>
+                            );
+                          })()}
                         </article>
                       ))}
                     </div>

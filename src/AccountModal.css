@@ -1358,3 +1358,189 @@ border-radius:18px;
   font-weight: 700;
   line-height: 1.45;
 }
+
+/* ===================== RETURNS & REFUNDS (customer) ===================== */
+.return-open-btn {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1.5px solid #e21c48;
+  border-radius: 10px;
+  background: #fff;
+  color: #e21c48;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.return-open-btn:hover {
+  background: #e21c48;
+  color: #fff;
+}
+
+.return-status {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+.return-pending {
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  color: #ad6800;
+}
+.return-approved {
+  background: #ecfdf3;
+  border: 1px solid #a6f4c5;
+  color: #067647;
+}
+.return-rejected {
+  background: #fef3f2;
+  border: 1px solid #fda29b;
+  color: #b42318;
+}
+.return-expired {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.return-form {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fbfcfe;
+  display: grid;
+  gap: 12px;
+}
+.return-form-head b {
+  display: block;
+  color: #193651;
+  font-size: 14px;
+}
+.return-form-head small {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.return-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #334155;
+}
+.return-form select,
+.return-form textarea,
+.return-form input[type="text"],
+.return-form input[type="file"] {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  font-size: 13px;
+  background: #fff;
+  color: #0f172a;
+}
+.return-form textarea {
+  resize: vertical;
+}
+.return-files-note {
+  font-weight: 600;
+  color: #475569;
+}
+.return-form-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+.return-form-foot span {
+  font-size: 13px;
+  color: #334155;
+}
+.return-form-foot span b {
+  color: #e21c48;
+}
+.return-submit-btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 999px;
+  background: #e21c48;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.return-submit-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(226, 28, 72, 0.3);
+}
+.return-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* Refund breakdown + shipping-fee confirmation */
+.return-refund-box {
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  display: grid;
+  gap: 8px;
+}
+.return-refund-box > b {
+  color: #193651;
+  font-size: 13px;
+}
+.return-refund-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #334155;
+}
+.return-refund-row.minus span:last-child {
+  color: #c0392b;
+  font-weight: 700;
+}
+.return-refund-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed #cbd5e1;
+  font-size: 13px;
+  color: #193651;
+}
+.return-refund-total b {
+  color: #067647;
+  font-size: 15px;
+}
+.return-confirm {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: flex-start;
+  gap: 10px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+  font-size: 12.5px !important;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.return-confirm input {
+  width: 16px !important;
+  height: 16px;
+  margin-top: 1px;
+  accent-color: #e21c48;
+}

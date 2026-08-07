@@ -245,15 +245,11 @@ export default function ProductDetails({
   // Real reviews if any, otherwise genuine-looking placeholder reviews.
   const hasRealReviews = reviews.length > 0;
   const displayReviews = hasRealReviews ? reviews : getDefaultReviews(product);
-  const displayAverage =
-    displayReviews.reduce((sum, r) => sum + Number(r.rating || 0), 0) /
-    displayReviews.length;
-  const ratingShown = hasRealReviews
-    ? Number(product.rating || 0)
-    : displayAverage;
-  const reviewCountShown = hasRealReviews
-    ? Number(product.reviews || 0)
-    : displayReviews.length;
+
+  // Single source of truth for the rating header: the admin-set fields, so
+  // the storefront cards and the product page always show the same numbers.
+  const ratingShown = Number(product.rating || 0);
+  const reviewCountShown = Number(product.reviews || 0);
 
   return (
     <>

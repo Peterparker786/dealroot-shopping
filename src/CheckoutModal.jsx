@@ -1105,6 +1105,11 @@ const razorpayCheckout = new window.Razorpay({
   </>
 )}
 
+            <p className="checkout-shipping-note">
+              ℹ️ Shipping fee (if any) is non-refundable after the order is
+              placed.
+            </p>
+
             <button
               className="primary-button checkout-submit"
               type="submit"

@@ -75,6 +75,11 @@ function RouteSeo() {
   const path = location.pathname;
 
   useEffect(() => {
+    // Every route change opens the new page from the top — without this the
+    // browser keeps the previous scroll position, so a product page could
+    // open mid-way (e.g. at "About this item") on mobile.
+    window.scrollTo(0, 0);
+
     const isProduct = path.startsWith("/product/");
     const meta = isProduct ? PAGE_META.product : PAGE_META[path] || {};
 

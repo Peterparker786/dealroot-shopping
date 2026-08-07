@@ -18,6 +18,7 @@ import {
   FiEdit2,
   FiX,
   FiZap,
+  FiCornerUpLeft,
 } from "react-icons/fi";
 import "./AdminPanel.css";
 import { optimizeImage } from "./utils/cloudinary";
@@ -59,6 +60,7 @@ const adminTabs = [
   { id: "dashboard", label: "Dashboard", icon: FiHome },
   { id: "products", label: "Products", icon: FiPackage },
   { id: "orders", label: "Orders", icon: FiShoppingBag },
+  { id: "returns", label: "Returns", icon: FiCornerUpLeft },
   { id: "banners", label: "Offer Banners", icon: FiImage },
   { id: "coupons", label: "Coupons", icon: FiPercent },
   { id: "categories", label: "Categories", icon: FiGrid },
@@ -86,6 +88,18 @@ function AdminPanel({
   const [orders, setOrders] = useState([]);
   const [coupons, setCoupons] = useState([]);
   const [banners, setBanners] = useState([]);
+  const [returns, setReturns] = useState([]);
+  const [returnsLoading, setReturnsLoading] = useState(false);
+  const [returnProcessingId, setReturnProcessingId] = useState("");
+  const [reviewReturnId, setReviewReturnId] = useState(null);
+  const [approveForm, setApproveForm] = useState({
+    deductionAmount: "",
+    refundAmount: "",
+    adminNote: "",
+  });
+  const [rejectForm, setRejectForm] = useState({
+    rejectionReason: "",
+  });
 
   const [bannerForm, setBannerForm] = useState({
     buttonLink: "",
@@ -218,12 +232,26 @@ function AdminPanel({
     }
   };
 
+  const loadReturns = async () => {
+    try {
+      setReturnsLoading(true);
+
+      const data = await request(`${apiUrl}/api/returns`);
+      setReturns(data.returns || []);
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setReturnsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (token) {
       loadProducts();
       loadOrders();
       loadCoupons();
       loadBanners();
+      loadReturns();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
@@ -238,6 +266,7 @@ function AdminPanel({
       loadOrders(),
       loadCoupons(),
       loadBanners(),
+      loadReturns(),
     ]);
 
     setRefreshing(false);
@@ -921,6 +950,100 @@ function AdminPanel({
     }
   };
 
+  const startReviewReturn = (item) => {
+    if (reviewReturnId === item._id) {
+      setReviewReturnId(null);
+      return;
+    }
+
+    setReviewReturnId(item._id);
+    setApproveForm({
+      deductionAmount: "0",
+      refundAmount: String(
+        item.refundableAmount ?? Number(item.expectedAmount || 0)
+      ),
+      adminNote: "",
+    });
+    setRejectForm({ rejectionReason: "" });
+  };
+
+  const approveReturn = async (item) => {
+    const deductionAmount = Number(approveForm.deductionAmount);
+    const refundAmount = Number(approveForm.refundAmount);
+
+    if (!Number.isFinite(deductionAmount) || deductionAmount < 0) {
+      showToast("Deduction must be 0 or more");
+      return;
+    }
+    if (!Number.isFinite(refundAmount) || refundAmount <= 0) {
+      showToast("Refund amount must be greater than 0");
+      return;
+    }
+
+    try {
+      setReturnProcessingId(item._id);
+
+      const data = await request(`${apiUrl}/api/returns/${item._id}/approve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          deductionAmount,
+          refundAmount,
+          adminNote: approveForm.adminNote,
+        }),
+      });
+
+      setReturns((current) =>
+        current.map((r) =>
+          r._id === item._id ? data.returnRequest : r
+        )
+      );
+
+      setReviewReturnId(null);
+      showToast("Return approved — refund email sent to the customer");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setReturnProcessingId("");
+    }
+  };
+
+  const rejectReturn = async (item) => {
+    if (!rejectForm.rejectionReason.trim()) {
+      showToast("Please add a rejection reason");
+      return;
+    }
+
+    try {
+      setReturnProcessingId(item._id);
+
+      const data = await request(`${apiUrl}/api/returns/${item._id}/reject`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          rejectionReason: rejectForm.rejectionReason.trim(),
+        }),
+      });
+
+      setReturns((current) =>
+        current.map((r) =>
+          r._id === item._id ? data.returnRequest : r
+        )
+      );
+
+      setReviewReturnId(null);
+      showToast("Return rejected — the customer has been notified");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setReturnProcessingId("");
+    }
+  };
+
   const createCoupon = async (e) => {
     e.preventDefault();
 
@@ -1033,6 +1156,10 @@ function AdminPanel({
     (order) => !["delivered", "cancelled"].includes(order.orderStatus)
   ).length;
 
+  const pendingReturns = returns.filter(
+    (item) => item.status === "pending"
+  ).length;
+
   const outOfStock = products.filter(
     (product) => Number(product.stock) === 0
   ).length;
@@ -1079,6 +1206,13 @@ function AdminPanel({
       icon: FiShoppingCart,
       tone: "pink",
     },
+    {
+      label: "Pending returns",
+      value: pendingReturns,
+      sub: "Awaiting your review",
+      icon: FiCornerUpLeft,
+      tone: "amber",
+    },
   ];
 
   const quickActions = [
@@ -1119,6 +1253,13 @@ function AdminPanel({
       icon: FiGrid,
       tone: "amber",
       onClick: () => switchTab("categories"),
+    },
+    {
+      label: "Review returns",
+      desc: `${pendingReturns} request(s) pending`, 
+      icon: FiCornerUpLeft,
+      tone: "pink",
+      onClick: () => switchTab("returns"),
     },
   ];
 
@@ -1162,9 +1303,12 @@ function AdminPanel({
               >
                 <Icon />
                 <span>{item.label}</span>
-                {item.id === "orders" && pendingOrders > 0 && (
-                  <em className="admin-nav-badge">{pendingOrders}</em>
-                )}
+                {(item.id === "orders" && pendingOrders > 0) ||
+                (item.id === "returns" && pendingReturns > 0) ? (
+                  <em className="admin-nav-badge">
+                    {item.id === "orders" ? pendingOrders : pendingReturns}
+                  </em>
+                ) : null}
               </button>
             );
           })}
@@ -1222,9 +1366,12 @@ function AdminPanel({
               >
                 <Icon />
                 <span>{item.label}</span>
-                {item.id === "orders" && pendingOrders > 0 && (
-                  <em className="admin-nav-badge">{pendingOrders}</em>
-                )}
+                {(item.id === "orders" && pendingOrders > 0) ||
+                (item.id === "returns" && pendingReturns > 0) ? (
+                  <em className="admin-nav-badge">
+                    {item.id === "orders" ? pendingOrders : pendingReturns}
+                  </em>
+                ) : null}
               </button>
             );
           })}
@@ -1265,10 +1412,15 @@ function AdminPanel({
               <section className="admin-stats">
                 {statCards.map((stat) => {
                   const Icon = stat.icon;
-                  const openStatTab = () =>
-                    stat.label === "Pending orders"
-                      ? switchTab("orders")
-                      : switchTab("products");
+                  const openStatTab = () => {
+                    if (stat.label === "Pending orders") {
+                      return switchTab("orders");
+                    }
+                    if (stat.label === "Pending returns") {
+                      return switchTab("returns");
+                    }
+                    return switchTab("products");
+                  };
 
                   return (
                     <article
@@ -2268,6 +2420,277 @@ function AdminPanel({
                         ))}
                       </tbody>
                     </table>
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
+
+          {/* ===================== RETURNS ===================== */}
+          {tab === "returns" && (
+            <div className="admin-tab-page">
+              <section className="admin-tab-head">
+                <div>
+                  <p>RETURNS & REFUNDS</p>
+                  <h2>Review return / refund requests</h2>
+                </div>
+
+                <button className="admin-refresh" onClick={loadReturns}>
+                  <FiRefreshCw /> Refresh returns
+                </button>
+              </section>
+
+              <section className="admin-products-card">
+                {returnsLoading ? (
+                  <div className="admin-empty">Loading returns...</div>
+                ) : returns.length === 0 ? (
+                  <div className="admin-empty">
+                    No return requests yet — customers can file a return
+                    within 7 days of delivery.
+                  </div>
+                ) : (
+                  <div className="returns-list">
+                    {returns.map((item) => {
+                      const customer = item.order?.customer;
+                      const isPending = item.status === "pending";
+                      const reviewing = reviewReturnId === item._id;
+
+                      return (
+                        <article
+                          className={`return-card ${
+                            isPending ? "is-pending" : ""
+                          }`}
+                          key={item._id}
+                        >
+                          <header className="return-card-head">
+                            <div>
+                              <b>Order {item.orderNumber}</b>
+                              <small>
+                                Requested{" "}
+                                {new Date(
+                                  item.requestedAt
+                                ).toLocaleString("en-IN")}
+                              </small>
+                            </div>
+                            <span
+                              className={`return-badge return-badge-${item.status}`}
+                            >
+                              {item.status === "pending"
+                                ? "Pending review"
+                                : item.status === "approved"
+                                ? `Approved · ₹${item.refundAmount}`
+                                : "Rejected"}
+                            </span>
+                          </header>
+
+                          <div className="return-card-body">
+                            <div className="return-meta-grid">
+                              <div>
+                                <span>Customer</span>
+                                <b>
+                                  {customer?.name || "—"}{" "}
+                                  {customer?.phone
+                                    ? `(${customer.phone})`
+                                    : ""}
+                                </b>
+                              </div>
+                              <div>
+                                <span>Reason</span>
+                                <b>{item.reason}</b>
+                              </div>
+                              <div>
+                                <span>Description</span>
+                                <b>{item.description || "—"}</b>
+                              </div>
+                              <div>
+                                <span>Order total</span>
+                                <b>₹{item.expectedAmount || 0}</b>
+                              </div>
+                              <div>
+                                <span>Shipping fee (non-refundable)</span>
+                                <b>-₹{item.shippingFee || 0}</b>
+                              </div>
+                              <div>
+                                <span>Refundable after approval</span>
+                                <b>
+                                  ₹
+                                  {item.refundableAmount ??
+                                    Number(item.expectedAmount || 0)}
+                                </b>
+                              </div>
+                              <div>
+                                <span>Refund method (UPI)</span>
+                                <b>{item.upiId || "—"}</b>
+                              </div>
+                              {item.status === "approved" && (
+                                <div>
+                                  <span>Deduction / Refunded</span>
+                                  <b>
+                                    -₹{item.deductionAmount || 0} / ₹
+                                    {item.refundAmount || 0}
+                                  </b>
+                                </div>
+                              )}
+                              {item.status === "rejected" && (
+                                <div>
+                                  <span>Rejection reason</span>
+                                  <b>{item.rejectionReason || "—"}</b>
+                                </div>
+                              )}
+                            </div>
+
+                            {item.items?.length > 0 && (
+                              <div className="return-items">
+                                {item.items.map((it, i) => (
+                                  <small key={i}>
+                                    {it.title} × {it.quantity} — ₹
+                                    {it.price}
+                                  </small>
+                                ))}
+                              </div>
+                            )}
+
+                            {(item.images?.length > 0 || item.video) && (
+                              <div className="return-media">
+                                {item.images.map((img, i) => (
+                                  <a
+                                    key={i}
+                                    href={img}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title="Open photo"
+                                  >
+                                    <img src={img} alt="Return proof" />
+                                  </a>
+                                ))}
+                                {item.video && (
+                                  <a
+                                    className="return-video-link"
+                                    href={item.video}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                  >
+                                    🎬 View video
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                          </div>
+
+                          {isPending && (
+                            <footer className="return-card-actions">
+                              {!reviewing ? (
+                                <button
+                                  type="button"
+                                  className="admin-primary-btn"
+                                  onClick={() => startReviewReturn(item)}
+                                >
+                                  Review request
+                                </button>
+                              ) : (
+                                <>
+                                  <div className="return-review-box">
+                                    <div className="return-review-title">
+                                      <b>✓ Approve refund</b>
+                                      <button
+                                        type="button"
+                                        className="return-cancel-review"
+                                        onClick={() => setReviewReturnId(null)}
+                                      >
+                                        Close review
+                                      </button>
+                                    </div>
+                                    <div className="return-review-grid">
+                                      <label>
+                                        Deduction (₹)
+                                        <input
+                                          type="number"
+                                          min="0"
+                                          value={approveForm.deductionAmount}
+                                          onChange={(e) =>
+                                            setApproveForm({
+                                              ...approveForm,
+                                              deductionAmount: e.target.value,
+                                            })
+                                          }
+                                        />
+                                      </label>
+                                      <label>
+                                        Amount to be refunded (₹)
+                                        <input
+                                          type="number"
+                                          min="1"
+                                          value={approveForm.refundAmount}
+                                          onChange={(e) =>
+                                            setApproveForm({
+                                              ...approveForm,
+                                              refundAmount: e.target.value,
+                                            })
+                                          }
+                                        />
+                                      </label>
+                                    </div>
+                                    <label className="return-note-field">
+                                      Note to customer (optional)
+                                      <input
+                                        value={approveForm.adminNote}
+                                        onChange={(e) =>
+                                          setApproveForm({
+                                            ...approveForm,
+                                            adminNote: e.target.value,
+                                          })
+                                        }
+                                        placeholder="e.g. ₹20 deducted for damaged packaging"
+                                      />
+                                    </label>
+                                    <button
+                                      type="button"
+                                      className="return-approve-btn"
+                                      disabled={
+                                        returnProcessingId === item._id
+                                      }
+                                      onClick={() => approveReturn(item)}
+                                    >
+                                      {returnProcessingId === item._id
+                                        ? "Approving..."
+                                        : "✓ Approve & send refund email"}
+                                    </button>
+                                  </div>
+
+                                  <div className="return-reject-box">
+                                    <b>✕ Reject request</b>
+                                    <label>
+                                      Rejection reason *
+                                      <input
+                                        value={rejectForm.rejectionReason}
+                                        onChange={(e) =>
+                                          setRejectForm({
+                                            rejectionReason: e.target.value,
+                                          })
+                                        }
+                                        placeholder="e.g. Return window expired"
+                                      />
+                                    </label>
+                                    <button
+                                      type="button"
+                                      className="return-reject-btn"
+                                      disabled={
+                                        returnProcessingId === item._id
+                                      }
+                                      onClick={() => rejectReturn(item)}
+                                    >
+                                      {returnProcessingId === item._id
+                                        ? "Rejecting..."
+                                        : "✕ Reject & notify customer"}
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </footer>
+                          )}
+                        </article>
+                      );
+                    })}
                   </div>
                 )}
               </section>

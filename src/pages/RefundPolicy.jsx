@@ -7,6 +7,17 @@ export default function RefundPolicy() {
         <li>Orders can be cancelled before dispatch.</li>
         <li>Damaged or incorrect products may be replaced or refunded.</li>
         <li>Refunds are processed within 5–7 business days after approval.</li>
+        <li>
+          <strong>Shipping fees are non-refundable.</strong> Once an order is
+          placed, the delivery/shipping fee is not refunded, even if the
+          product is returned or refunded. Any refund will be calculated as
+          the order total minus the shipping fee, minus any additional
+          deductions (e.g. for damaged packaging) if applicable.
+        </li>
+        <li>
+          Return requests can be filed within <strong>7 days</strong> of
+          placing your order from your account (My Orders → Return / Refund).
+        </li>
       </ul>
 
       <p>

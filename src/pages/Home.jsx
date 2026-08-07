@@ -43,16 +43,24 @@ export default function Home({
 
   const formatTime = (n) => String(n).padStart(2, "0");
 
-  // Flash deal products (first 5)
-  const flashProducts = filteredProducts.slice(0, 5);
+  // Flash Deals shows the same products as the ₹99 collection — only items
+  // priced at ₹99 or less, or explicitly marked as a ₹99 deal.
+  const flashProducts = filteredProducts
+    .filter((p) => p.dealType === "99" || Number(p.price) <= 99)
+    .slice(0, 5);
 
-  // Deal of the Day: the 5 cheapest products (from the full catalogue,
-  // independent of any active category/search filter).
+  // Deal of the Day: only products priced at ₹199 or under, or explicitly
+  // marked as a ₹199 deal — anything above ₹199 never appears here.
   const dealProducts = useMemo(() => {
     const pool = products && products.length ? products : filteredProducts;
 
     return [...pool]
-      .filter((p) => p && Number.isFinite(Number(p.price)))
+      .filter(
+        (p) =>
+          p &&
+          Number.isFinite(Number(p.price)) &&
+          (p.dealType === "199" || Number(p.price) <= 199)
+      )
       .sort((a, b) => Number(a.price) - Number(b.price))
       .slice(0, 5);
   }, [products, filteredProducts]);
