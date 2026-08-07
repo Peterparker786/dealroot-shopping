@@ -38,9 +38,11 @@ const BecomeSeller = lazy(() => import("./pages/BecomeSeller"));
 const About = lazy(() => import("./pages/About"));
 const Brands = lazy(() => import("./pages/Brands"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const Terms = lazy(() => import("./pages/Terms"));
-const ShippingPolicy = lazy(() => import("./pages/ShippingPolicy"));
-const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const Terms = lazy(() => import("./pages/Terms"));  const ShippingPolicy = lazy(() => import("./pages/ShippingPolicy"));
+  const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+  const TryoutPolicy = lazy(() => import("./pages/TryoutPolicy"));
+  const Tryouts = lazy(() => import("./pages/Tryouts"));
+  const TryoutDashboard = lazy(() => import("./pages/TryoutDashboard"));
 const ProductDetails = lazy(() => import("./pages/ProductDetails"));
 const CheckoutModal = lazy(() => import("./CheckoutModal"));
 const AdminPanel = lazy(() => import("./AdminPanel"));
@@ -390,6 +392,7 @@ function App() {
           reviews: Number(product.reviews || 0).toLocaleString("en-IN"),
           badge: product.badge || "",
           dealType: product.dealType || "none",
+          tryoutOnly: Boolean(product.tryoutOnly),
           image: product.images?.[0] || product.image || fallbackImage,
           stock: product.stock,
           createdAt: product.createdAt || "",
@@ -860,6 +863,10 @@ function App() {
         toggleWishlist={toggleWishlist}
         addToCart={addToCart}
         banners={banners}
+        user={user}
+        userToken={userToken}
+        apiUrl={API_URL}
+        setAccountOpen={setAccountOpen}
       />
     }
   />
@@ -884,6 +891,33 @@ function App() {
   <Route path="/terms" element={<Terms />} />
   <Route path="/shipping" element={<ShippingPolicy />} />
   <Route path="/refund" element={<RefundPolicy />} />
+  <Route path="/tryout-policy" element={<TryoutPolicy />} />
+  <Route
+    path="/tryouts"
+    element={
+      <Tryouts
+        fallbackImage={fallbackImage}
+        filteredProducts={filteredProducts}
+        products={products}
+        addToCart={addToCart}
+        user={user}
+        userToken={userToken}
+        apiUrl={API_URL}
+        setAccountOpen={setAccountOpen}
+      />
+    }
+  />
+  <Route
+    path="/tryouts/dashboard"
+    element={
+      <TryoutDashboard
+        user={user}
+        userToken={userToken}
+        apiUrl={API_URL}
+        setAccountOpen={setAccountOpen}
+      />
+    }
+  />
   <Route
   path="/product/:id"
   element={

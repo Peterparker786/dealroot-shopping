@@ -19,6 +19,7 @@ import {
   FiX,
   FiZap,
   FiCornerUpLeft,
+  FiUsers,
 } from "react-icons/fi";
 import "./AdminPanel.css";
 import { optimizeImage } from "./utils/cloudinary";
@@ -61,6 +62,7 @@ const adminTabs = [
   { id: "products", label: "Products", icon: FiPackage },
   { id: "orders", label: "Orders", icon: FiShoppingBag },
   { id: "returns", label: "Returns", icon: FiCornerUpLeft },
+  { id: "tryouts", label: "Tryouts", icon: FiUsers },
   { id: "banners", label: "Offer Banners", icon: FiImage },
   { id: "coupons", label: "Coupons", icon: FiPercent },
   { id: "categories", label: "Categories", icon: FiGrid },
@@ -90,6 +92,14 @@ function AdminPanel({
   const [banners, setBanners] = useState([]);
   const [returns, setReturns] = useState([]);
   const [returnsLoading, setReturnsLoading] = useState(false);
+  const [applications, setApplications] = useState([]);
+  const [applicationsLoading, setApplicationsLoading] = useState(false);
+  const [tryoutProcessingId, setTryoutProcessingId] = useState("");
+  const [tryoutCashbackForm, setTryoutCashbackForm] = useState({
+    open: "",
+    amount: "",
+    note: "",
+  });
   const [returnProcessingId, setReturnProcessingId] = useState("");
   const [reviewReturnId, setReviewReturnId] = useState(null);
   const [approveForm, setApproveForm] = useState({
@@ -245,6 +255,19 @@ function AdminPanel({
     }
   };
 
+  const loadApplications = async () => {
+    try {
+      setApplicationsLoading(true);
+
+      const data = await request(`${apiUrl}/api/tryouts/applications`);
+      setApplications(data.applications || []);
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setApplicationsLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (token) {
       loadProducts();
@@ -252,6 +275,7 @@ function AdminPanel({
       loadCoupons();
       loadBanners();
       loadReturns();
+      loadApplications();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
@@ -267,6 +291,7 @@ function AdminPanel({
       loadCoupons(),
       loadBanners(),
       loadReturns(),
+      loadApplications(),
     ]);
 
     setRefreshing(false);
@@ -1044,6 +1069,185 @@ function AdminPanel({
     }
   };
 
+  // ---------- Dealroot Tryouts ----------
+
+  const approveApplication = async (item) => {
+    try {
+      setTryoutProcessingId(item._id);
+
+      const data = await request(
+        `${apiUrl}/api/tryouts/${item._id}/approve`,
+        {
+          method: "POST",
+        }
+      );
+
+      setApplications((current) =>
+        current.map((a) =>
+          a._id === item._id ? data.application : a
+        )
+      );
+
+      showToast("Application approved — member can now shop Tryout deals");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setTryoutProcessingId("");
+    }
+  };
+
+  const rejectApplication = async (item) => {
+    try {
+      setTryoutProcessingId(item._id);
+
+      const data = await request(
+        `${apiUrl}/api/tryouts/${item._id}/reject`,
+        {
+          method: "POST",
+        }
+      );
+
+      setApplications((current) =>
+        current.map((a) =>
+          a._id === item._id ? data.application : a
+        )
+      );
+
+      showToast("Application rejected");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setTryoutProcessingId("");
+    }
+  };
+
+  const disqualifyApplication = async (item) => {
+    try {
+      setTryoutProcessingId(item._id);
+
+      const data = await request(
+        `${apiUrl}/api/tryouts/${item._id}/disqualify`,
+        {
+          method: "POST",
+        }
+      );
+
+      setApplications((current) =>
+        current.map((a) =>
+          a._id === item._id ? data.application : a
+        )
+      );
+
+      showToast("Member disqualified — Tryout deals are locked again");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setTryoutProcessingId("");
+    }
+  };
+
+  // -------- Tryout cashback management --------
+  const openCashbackForm = (item) => {
+    setTryoutCashbackForm({ open: item._id, amount: "", note: "" });
+  };
+
+  const closeCashbackForm = () => {
+    setTryoutCashbackForm({ open: "", amount: "", note: "" });
+  };
+
+  const addTryoutCashback = async (item) => {
+    const amount = Number(tryoutCashbackForm.amount);
+    if (!amount || amount <= 0) {
+      showToast("Please enter a valid cashback amount");
+      return;
+    }
+
+    try {
+      setTryoutProcessingId(item._id);
+
+      const data = await request(
+        `${apiUrl}/api/tryouts/${item._id}/cashback`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            amount,
+            note: tryoutCashbackForm.note,
+          }),
+        }
+      );
+
+      setApplications((current) =>
+        current.map((a) =>
+          a._id === item._id ? data.application : a
+        )
+      );
+      closeCashbackForm();
+      showToast("Cashback added to member");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setTryoutProcessingId("");
+    }
+  };
+
+  const updateCashbackStatus = async (item, entryId, nextStatus) => {
+    try {
+      setTryoutProcessingId(`${item._id}-cb`);
+
+      const data = await request(
+        `${apiUrl}/api/tryouts/cashback/${entryId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ status: nextStatus }),
+        }
+      );
+
+      setApplications((current) =>
+        current.map((a) =>
+          a._id === item._id ? data.application : a
+        )
+      );
+      showToast("Cashback status updated");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setTryoutProcessingId("");
+    }
+  };
+
+  const toggleTryoutProduct = async (product) => {
+    try {
+      setTryoutProcessingId(`p-${product._id}`);
+
+      const data = await request(
+        `${apiUrl}/api/products/${product._id}/tryout`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ tryoutOnly: !product.tryoutOnly }),
+        }
+      );
+
+      setProducts((current) =>
+        current.map((p) =>
+          p._id === product._id ? data.product : p
+        )
+      );
+
+      showToast(
+        data.product.tryoutOnly
+          ? "Product added to Tryout deals"
+          : "Product removed from Tryout deals"
+      );
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setTryoutProcessingId("");
+    }
+  };
+
   const createCoupon = async (e) => {
     e.preventDefault();
 
@@ -1160,6 +1364,10 @@ function AdminPanel({
     (item) => item.status === "pending"
   ).length;
 
+  const pendingTryouts = applications.filter(
+    (item) => item.status === "pending"
+  ).length;
+
   const outOfStock = products.filter(
     (product) => Number(product.stock) === 0
   ).length;
@@ -1213,6 +1421,13 @@ function AdminPanel({
       icon: FiCornerUpLeft,
       tone: "amber",
     },
+    {
+      label: "Tryout applications",
+      value: pendingTryouts,
+      sub: "Awaiting approval",
+      icon: FiUsers,
+      tone: "purple",
+    },
   ];
 
   const quickActions = [
@@ -1261,6 +1476,13 @@ function AdminPanel({
       tone: "pink",
       onClick: () => switchTab("returns"),
     },
+    {
+      label: "Tryout approvals",
+      desc: `${pendingTryouts} application(s) pending`,
+      icon: FiUsers,
+      tone: "purple",
+      onClick: () => switchTab("tryouts"),
+    },
   ];
 
   const statusBadge = (status = "placed") => {
@@ -1304,9 +1526,14 @@ function AdminPanel({
                 <Icon />
                 <span>{item.label}</span>
                 {(item.id === "orders" && pendingOrders > 0) ||
-                (item.id === "returns" && pendingReturns > 0) ? (
+                (item.id === "returns" && pendingReturns > 0) ||
+                (item.id === "tryouts" && pendingTryouts > 0) ? (
                   <em className="admin-nav-badge">
-                    {item.id === "orders" ? pendingOrders : pendingReturns}
+                    {item.id === "orders"
+                      ? pendingOrders
+                      : item.id === "returns"
+                      ? pendingReturns
+                      : pendingTryouts}
                   </em>
                 ) : null}
               </button>
@@ -1367,9 +1594,14 @@ function AdminPanel({
                 <Icon />
                 <span>{item.label}</span>
                 {(item.id === "orders" && pendingOrders > 0) ||
-                (item.id === "returns" && pendingReturns > 0) ? (
+                (item.id === "returns" && pendingReturns > 0) ||
+                (item.id === "tryouts" && pendingTryouts > 0) ? (
                   <em className="admin-nav-badge">
-                    {item.id === "orders" ? pendingOrders : pendingReturns}
+                    {item.id === "orders"
+                      ? pendingOrders
+                      : item.id === "returns"
+                      ? pendingReturns
+                      : pendingTryouts}
                   </em>
                 ) : null}
               </button>
@@ -1418,6 +1650,9 @@ function AdminPanel({
                     }
                     if (stat.label === "Pending returns") {
                       return switchTab("returns");
+                    }
+                    if (stat.label === "Tryout applications") {
+                      return switchTab("tryouts");
                     }
                     return switchTab("products");
                   };
@@ -2415,6 +2650,384 @@ function AdminPanel({
                                   )}
                                 </div>
                               )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
+
+          {/* ===================== TRYOUTS ===================== */}
+          {tab === "tryouts" && (
+            <div className="admin-tab-page">
+              <section className="admin-tab-head">
+                <div>
+                  <p>DEALROOT TRYOUTS</p>
+                  <h2>Tryout applications & member deals</h2>
+                </div>
+
+                <button
+                  className="admin-refresh"
+                  onClick={loadApplications}
+                >
+                  <FiRefreshCw /> Refresh applications
+                </button>
+              </section>
+
+              <section className="admin-products-card">
+                <div className="admin-section-title">
+                  <div>
+                    <p>MEMBER APPLICATIONS</p>
+                    <h2>Applications ({applications.length})</h2>
+                  </div>
+                </div>
+
+                {applicationsLoading ? (
+                  <div className="admin-empty">Loading applications...</div>
+                ) : applications.length === 0 ? (
+                  <div className="admin-empty">
+                    No Tryout applications yet — customers apply from the
+                    Dealroot Tryouts section on the home page.
+                  </div>
+                ) : (
+                  <div className="returns-list">
+                    {applications.map((item) => (
+                      <article
+                        className={`return-card ${
+                          item.status === "pending" ? "is-pending" : ""
+                        }`}
+                        key={item._id}
+                      >
+                        <header className="return-card-head">
+                          <div>
+                            <b>{item.name}</b>
+                            <small>
+                              Applied{" "}
+                              {new Date(
+                                item.requestedAt
+                              ).toLocaleString("en-IN")}
+                            </small>
+                          </div>
+                          <span
+                            className={`return-badge return-badge-${item.status}`}
+                          >
+                            {item.status === "pending"
+                              ? "Pending review"
+                              : item.status === "approved"
+                              ? "Approved member"
+                              : item.status === "disqualified"
+                              ? "Disqualified"
+                              : "Rejected"}
+                          </span>
+                        </header>
+
+                        <div className="return-card-body">
+                          <div className="return-meta-grid">
+                            <div>
+                              <span>Email</span>
+                              <b>{item.email || "—"}</b>
+                            </div>
+                            <div>
+                              <span>Phone</span>
+                              <b>{item.phone || "—"}</b>
+                            </div>
+                            <div>
+                              <span>City</span>
+                              <b>{item.city || "—"}</b>
+                            </div>
+                            <div>
+                              <span>State</span>
+                              <b>{item.state || "—"}</b>
+                            </div>
+                            <div>
+                              <span>Pincode</span>
+                              <b>{item.pincode || "—"}</b>
+                            </div>
+                            <div>
+                              <span>Tried before</span>
+                              <b>
+                                {item.previousProgram === "Other"
+                                  ? `Other (${item.otherProgram || "—"})`
+                                  : item.previousProgram || "—"}
+                              </b>
+                            </div>
+                            <div>
+                              <span>Why they want to join</span>
+                              <b>{item.reason || "—"}</b>
+                            </div>
+                          </div>
+                        </div>
+
+                        {item.status === "pending" && (
+                          <footer className="return-card-actions">
+                            <div className="return-review-actions">
+                              <button
+                                type="button"
+                                className="return-approve-btn"
+                                disabled={
+                                  tryoutProcessingId === item._id
+                                }
+                                onClick={() => approveApplication(item)}
+                              >
+                                {tryoutProcessingId === item._id
+                                  ? "Approving..."
+                                  : "✓ Approve member"}
+                              </button>
+                              <button
+                                type="button"
+                                className="return-reject-btn"
+                                disabled={
+                                  tryoutProcessingId === item._id
+                                }
+                                onClick={() => rejectApplication(item)}
+                              >
+                                ✕ Reject
+                              </button>
+                            </div>
+                          </footer>
+                        )}
+
+                        {item.status === "approved" && (
+                          <footer className="return-card-actions">
+                            <div className="tryout-cashback-summary">
+                              <span>
+                                <b>
+                                  ₹
+                                  {(item.cashbackAvailable || 0).toLocaleString(
+                                    "en-IN"
+                                  )}
+                                </b>
+                                Available
+                              </span>
+                              <span>
+                                <b>
+                                  ₹
+                                  {(item.cashbackPending || 0).toLocaleString(
+                                    "en-IN"
+                                  )}
+                                </b>
+                                Pending
+                              </span>
+                              <span>
+                                <b>
+                                  ₹
+                                  {(item.cashbackReceived || 0).toLocaleString(
+                                    "en-IN"
+                                  )}
+                                </b>
+                                Received
+                              </span>
+                            </div>
+
+                            {(item.cashbackHistory || []).length > 0 && (
+                              <div className="tryout-cashback-entries">
+                                {(item.cashbackHistory || [])
+                                  .slice()
+                                  .reverse()
+                                  .map((entry) => (
+                                    <div
+                                      className="tryout-cashback-entry"
+                                      key={entry._id}
+                                    >
+                                      <span
+                                        className={`tryout-cb-badge ${entry.status}`}
+                                      >
+                                        {entry.status.toUpperCase()}
+                                      </span>
+                                      <b>₹{entry.amount}</b>
+                                      {entry.note && <small>{entry.note}</small>}
+                                      {entry.status !== "received" && (
+                                        <button
+                                          type="button"
+                                          className="tryout-cb-move"
+                                          disabled={
+                                            tryoutProcessingId ===
+                                            `${item._id}-cb`
+                                          }
+                                          onClick={() =>
+                                            updateCashbackStatus(
+                                              item,
+                                              entry._id,
+                                              entry.status === "available"
+                                                ? "pending"
+                                                : "received"
+                                            )
+                                          }
+                                        >
+                                          {entry.status === "available"
+                                            ? "→ Pending"
+                                            : "→ Received"}
+                                        </button>
+                                      )}
+                                    </div>
+                                  ))}
+                              </div>
+                            )}
+
+                            {tryoutCashbackForm.open === item._id ? (
+                              <div className="tryout-cashback-form">
+                                <input
+                                  type="number"
+                                  min="1"
+                                  placeholder="Cashback amount (₹)"
+                                  value={tryoutCashbackForm.amount}
+                                  onChange={(event) =>
+                                    setTryoutCashbackForm((current) => ({
+                                      ...current,
+                                      amount: event.target.value,
+                                    }))
+                                  }
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Note (e.g. Purchase of Glow Serum)"
+                                  value={tryoutCashbackForm.note}
+                                  onChange={(event) =>
+                                    setTryoutCashbackForm((current) => ({
+                                      ...current,
+                                      note: event.target.value,
+                                    }))
+                                  }
+                                />
+                                <div className="tryout-cashback-form-actions">
+                                  <button
+                                    type="button"
+                                    className="return-reject-btn"
+                                    onClick={closeCashbackForm}
+                                  >
+                                    Cancel
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="return-approve-btn"
+                                    disabled={
+                                      tryoutProcessingId === item._id
+                                    }
+                                    onClick={() =>
+                                      addTryoutCashback(item)
+                                    }
+                                  >
+                                    {tryoutProcessingId === item._id
+                                      ? "Adding..."
+                                      : "Add cashback"}
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="return-review-actions">
+                                <button
+                                  type="button"
+                                  className="return-approve-btn"
+                                  onClick={() => openCashbackForm(item)}
+                                >
+                                  💰 Add cashback
+                                </button>
+                                <button
+                                  type="button"
+                                  className="return-reject-btn"
+                                  disabled={
+                                    tryoutProcessingId === item._id
+                                  }
+                                  onClick={() =>
+                                    disqualifyApplication(item)
+                                  }
+                                >
+                                  {tryoutProcessingId === item._id
+                                    ? "Disqualifying..."
+                                    : "✕ Disqualify member"}
+                                </button>
+                              </div>
+                            )}
+                          </footer>
+                        )}
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="admin-products-card">
+                <div className="admin-section-title">
+                  <div>
+                    <p>TRYOUT MEMBER DEALS</p>
+                    <h2>Tryout products</h2>
+                  </div>
+                </div>
+                <p className="admin-section-note">
+                  Toggle products to add or remove them from the Tryout
+                  member deals section. Only approved Tryout members can buy
+                  these products — everyone else sees them locked.
+                </p>
+
+                {loading ? (
+                  <div className="admin-empty">Loading products...</div>
+                ) : products.length === 0 ? (
+                  <div className="admin-empty">No products yet.</div>
+                ) : (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>Price</th>
+                          <th>Tryout deal</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {products.map((product) => (
+                          <tr key={product._id}>
+                            <td data-label="Product">
+                              <div className="admin-product-name">
+                                <img
+                                  src={
+                                    optimizeImage(
+                                      product.images?.[0],
+                                      120
+                                    ) ||
+                                    "https://placehold.co/80x80?text=Product"
+                                  }
+                                  alt={product.title}
+                                />
+                                <div>
+                                  <b>{product.title}</b>
+                                  <span>{product.brand}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td data-label="Price">
+                              <b>₹{product.price}</b>
+                            </td>
+                            <td data-label="Tryout deal">
+                              {product.tryoutOnly ? (
+                                <span className="stock-active">
+                                  🟣 Tryout deal
+                                </span>
+                              ) : (
+                                <small>Regular</small>
+                              )}
+                            </td>
+                            <td data-label="Action">
+                              <button
+                                type="button"
+                                className={`tryout-toggle-btn ${
+                                  product.tryoutOnly ? "on" : ""
+                                }`}
+                                disabled={
+                                  tryoutProcessingId === `p-${product._id}`
+                                }
+                                onClick={() => toggleTryoutProduct(product)}
+                              >
+                                {tryoutProcessingId === `p-${product._id}`
+                                  ? "Updating..."
+                                  : product.tryoutOnly
+                                  ? "Remove from Tryout"
+                                  : "Add to Tryout"}
+                              </button>
                             </td>
                           </tr>
                         ))}

@@ -2236,6 +2236,11 @@
   color: #b42318;
   border: 1px solid #fda29b;
 }
+.return-badge-disqualified {
+  background: #f5f3ff;
+  color: #6d28d9;
+  border: 1px solid #d8cff5;
+}
 .return-card-body {
   padding: 16px 18px;
   display: grid;
@@ -2395,4 +2400,159 @@
   cursor: pointer;
   text-decoration: underline;
   padding: 0;
+}
+
+/* ===================== TRYOUTS (admin) ===================== */
+.admin-section-note {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: -4px 0 16px;
+  max-width: 760px;
+}
+.tryout-toggle-btn {
+  padding: 8px 14px;
+  border: 1.5px solid #7c3aed;
+  border-radius: 999px;
+  background: #fff;
+  color: #7c3aed;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.tryout-toggle-btn:hover:not(:disabled) {
+  background: #f3e8ff;
+}
+.tryout-toggle-btn.on {
+  background: #7c3aed;
+  color: #fff;
+}
+.tryout-toggle-btn.on:hover:not(:disabled) {
+  background: #6d28d9;
+}
+.tryout-toggle-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.chip-purple {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+.qa-purple {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+
+/* ---------- Tryout cashback management ---------- */
+.tryout-cashback-summary {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.tryout-cashback-summary span {
+  flex: 1;
+  min-width: 90px;
+  text-align: center;
+  padding: 10px 8px;
+  border-radius: 12px;
+  background: #f8f7fc;
+  border: 1px solid #ece9f6;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: #8b93a7;
+}
+.tryout-cashback-summary b {
+  display: block;
+  font-size: 17px;
+  font-weight: 900;
+  color: #1f2a4d;
+  letter-spacing: 0;
+  margin-bottom: 2px;
+}
+.tryout-cashback-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.tryout-cashback-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: #fcfbff;
+  border: 1px solid #eeeaf6;
+  flex-wrap: wrap;
+}
+.tryout-cashback-entry b {
+  font-size: 14px;
+  color: #1f2a4d;
+}
+.tryout-cashback-entry small {
+  flex: 1;
+  min-width: 120px;
+  font-size: 12px;
+  color: #6b7280;
+}
+.tryout-cb-badge {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.tryout-cb-badge.available { background: #ecfdf5; color: #059669; }
+.tryout-cb-badge.pending { background: #fff7e6; color: #b45309; }
+.tryout-cb-badge.received { background: #e0e7ff; color: #4338ca; }
+.tryout-cb-move {
+  margin-left: auto;
+  padding: 5px 12px;
+  border: 1px solid #ddd6fe;
+  border-radius: 999px;
+  background: #fff;
+  color: #6d28d9;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tryout-cb-move:hover:not(:disabled) {
+  background: #f3e8ff;
+}
+.tryout-cb-move:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.tryout-cashback-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px dashed #c4b5fd;
+  border-radius: 12px;
+  background: #faf8ff;
+  margin-bottom: 12px;
+}
+.tryout-cashback-form input {
+  padding: 10px 12px;
+  border: 1px solid #e2e0ec;
+  border-radius: 10px;
+  font-size: 13px;
+  background: #fff;
+}
+.tryout-cashback-form-actions {
+  display: flex;
+  gap: 10px;
+}
+.tryout-cashback-form-actions .return-approve-btn,
+.tryout-cashback-form-actions .return-reject-btn {
+  flex: 1;
 }

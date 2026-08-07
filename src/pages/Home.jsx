@@ -23,6 +23,9 @@ export default function Home({
   toggleWishlist,
   addToCart,
   banners,
+  user,
+  userToken,
+  apiUrl,
 }) {
   // Flash deal countdown timer
   const [timeLeft, setTimeLeft] = useState({ h: 5, m: 23, s: 47 });
@@ -43,9 +46,59 @@ export default function Home({
 
   const formatTime = (n) => String(n).padStart(2, "0");
 
+  // ---------- Dealroot Tryouts ----------
+  // Status: loading | none | pending | approved | rejected | disqualified
+  const [tryoutStatus, setTryoutStatus] = useState("loading");
+
+  // Tryout-only products stay out of the general catalogue until the user
+  // is an approved Tryout member.
+  const tryoutApproved = tryoutStatus === "approved";
+  const shopProducts = tryoutApproved
+    ? filteredProducts
+    : filteredProducts.filter((p) => !p.tryoutOnly);
+
+  useEffect(() => {
+    if (!user || !userToken) {
+      setTryoutStatus("none");
+      return undefined;
+    }
+
+    let requestCancelled = false;
+
+    const loadTryoutStatus = async () => {
+      try {
+        const response = await fetch(`${apiUrl}/api/tryouts/my`, {
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+        });
+        const data = await response.json();
+
+        if (!requestCancelled) {
+          setTryoutStatus(
+            data.application ? data.application.status : "none"
+          );
+        }
+      } catch {
+        if (!requestCancelled) {
+          setTryoutStatus("none");
+        }
+      }
+    };
+
+    loadTryoutStatus();
+
+    return () => {
+      requestCancelled = true;
+    };
+  }, [apiUrl, user, userToken]);
+
   // Flash Deals shows the same products as the ₹99 collection — only items
   // priced at ₹99 or less, or explicitly marked as a ₹99 deal.
-  const flashProducts = filteredProducts
+  const flashProducts = (tryoutApproved
+    ? filteredProducts
+    : filteredProducts.filter((p) => !p.tryoutOnly)
+  )
     .filter((p) => p.dealType === "99" || Number(p.price) <= 99)
     .slice(0, 5);
 
@@ -53,8 +106,11 @@ export default function Home({
   // marked as a ₹199 deal — anything above ₹199 never appears here.
   const dealProducts = useMemo(() => {
     const pool = products && products.length ? products : filteredProducts;
+    const shopPool = tryoutApproved
+      ? pool
+      : pool.filter((p) => !p.tryoutOnly);
 
-    return [...pool]
+    return [...shopPool]
       .filter(
         (p) =>
           p &&
@@ -63,7 +119,7 @@ export default function Home({
       )
       .sort((a, b) => Number(a.price) - Number(b.price))
       .slice(0, 5);
-  }, [products, filteredProducts]);
+  }, [products, filteredProducts, tryoutApproved]);
 
   // Deal of the Day countdown — resets every midnight.
   const [dealTimeLeft, setDealTimeLeft] = useState({ h: 0, m: 0, s: 0 });
@@ -339,7 +395,7 @@ export default function Home({
 
         {!loadingProducts && !productsError && (
           <div className="product-grid">
-            {filteredProducts.map((product) => {
+            {shopProducts.map((product) => {
               const isWishlisted = wishlist.some((w) => w.id === product.id);
               const discount = product.originalPrice > product.price
                 ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -403,6 +459,30 @@ export default function Home({
             No products found. Try another search or category.
           </div>
         )}
+      </section>
+
+      {/* Dealroot Tryouts — teaser */}
+      <section className="section tryout-section tryout-teaser-section" id="tryouts">
+        <div className="tryout-pills">
+          <span className="tryout-pill">✦ WELCOME TO</span>
+          <span className="tryout-pill tryout-pill-main">DEALROOT TESTERS COMMUNITY</span>
+          <span className="tryout-pill">Products Free or Upto 90% Off</span>
+        </div>
+
+        <Link to="/tryouts" className="tryout-teaser">
+          <span className="tryout-teaser-emoji">🛍️</span>
+          <div className="tryout-teaser-copy">
+            <b>Tryout deals</b>
+            <p>
+              {tryoutApproved
+                ? "Your deals are unlocked — shop below!"
+                : "New exclusive member products will appear here shortly."}
+            </p>
+          </div>
+          <span className="tryout-teaser-cta">
+            {tryoutApproved ? "View your deals →" : "Explore Tryout deals →"}
+          </span>
+        </Link>
       </section>
 
       {/* Why Shop With Us */}
