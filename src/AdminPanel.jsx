@@ -2009,6 +2009,14 @@ function AdminPanel({
                   <div className="admin-email-health">
                     <div className="admin-email-rows">
                       <div className="admin-email-row">
+                        <span>Transport</span>
+                        <b className="ok-text">
+                          {emailStatus.transport === "brevo-api"
+                            ? "Brevo API (HTTPS) ✓"
+                            : "Gmail SMTP"}
+                        </b>
+                      </div>
+                      <div className="admin-email-row">
                         <span>Sending address</span>
                         <b
                           className={
@@ -2021,13 +2029,29 @@ function AdminPanel({
                         </b>
                       </div>
                       <div className="admin-email-row">
-                        <span>App password</span>
+                        <span>
+                          {emailStatus.transport === "brevo-api"
+                            ? "API key (Brevo)"
+                            : "App password (Gmail)"}
+                        </span>
                         <b
                           className={
-                            emailStatus.emailPassSet ? "ok-text" : "bad-text"
+                            emailStatus.transport === "brevo-api"
+                              ? emailStatus.brevoKeySet
+                                ? "ok-text"
+                                : "bad-text"
+                              : emailStatus.emailPassSet
+                              ? "ok-text"
+                              : "bad-text"
                           }
                         >
-                          {emailStatus.emailPassSet ? "Configured" : "Not configured"}
+                          {emailStatus.transport === "brevo-api"
+                            ? emailStatus.brevoKeySet
+                              ? "Configured"
+                              : "Not configured"
+                            : emailStatus.emailPassSet
+                            ? "Configured"
+                            : "Not configured"}
                         </b>
                       </div>
                       <div className="admin-email-row">
@@ -2053,7 +2077,11 @@ function AdminPanel({
                         </b>
                       </div>
                       <div className="admin-email-row">
-                        <span>SMTP connection</span>
+                        <span>
+                          {emailStatus.transport === "brevo-api"
+                            ? "Connection"
+                            : "SMTP connection"}
+                        </span>
                         <b
                           className={
                             emailStatus.smtp === "ok" ? "ok-text" : "bad-text"
