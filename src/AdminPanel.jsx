@@ -217,12 +217,22 @@ function AdminPanel({
     let data;
 
     try {
-      response = await fetch(url, {
-        ...options,
-        headers,
-      });
+      // Abort after 12s so a slow/hanging backend can never leave the UI
+      // stuck on a spinner (e.g. the email health check during SMTP verify).
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 12000);
 
-      data = await response.json();
+      try {
+        response = await fetch(url, {
+          ...options,
+          headers,
+          signal: controller.signal,
+        });
+
+        data = await response.json();
+      } finally {
+        clearTimeout(timer);
+      }
     } catch {
       throw new Error("Could not connect to the backend. Please try again.");
     }
