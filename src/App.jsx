@@ -915,6 +915,8 @@ function App() {
     path="/tryouts/dashboard"
     element={
       <TryoutDashboard
+        products={products}
+        filteredProducts={filteredProducts}
         user={user}
         userToken={userToken}
         apiUrl={API_URL}

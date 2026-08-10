@@ -20,6 +20,8 @@ import {
   FiZap,
   FiCornerUpLeft,
   FiUsers,
+  FiMail,
+  FiSend,
 } from "react-icons/fi";
 import "./AdminPanel.css";
 import { optimizeImage } from "./utils/cloudinary";
@@ -132,6 +134,12 @@ function AdminPanel({
     buyLinkTerms: "",
   });
   const [tryoutProductSaving, setTryoutProductSaving] = useState(false);
+  // Email health check — shows whether the deployed server can send order
+  // confirmation emails and lets the admin send a live test email.
+  const [emailStatus, setEmailStatus] = useState(null);
+  const [emailStatusLoading, setEmailStatusLoading] = useState(false);
+  const [emailTestLoading, setEmailTestLoading] = useState(false);
+  const [emailTestResult, setEmailTestResult] = useState("");
   const [returnProcessingId, setReturnProcessingId] = useState("");
   const [reviewReturnId, setReviewReturnId] = useState(null);
   const [approveForm, setApproveForm] = useState({
@@ -300,6 +308,42 @@ function AdminPanel({
     }
   };
 
+  const checkEmailStatus = async () => {
+    if (!token) return;
+
+    setEmailStatusLoading(true);
+    setEmailTestResult("");
+
+    try {
+      const data = await request(`${apiUrl}/api/admin/email-status`);
+      setEmailStatus(data.status || null);
+    } catch (error) {
+      setEmailStatus(null);
+      showToast(error.message);
+    } finally {
+      setEmailStatusLoading(false);
+    }
+  };
+
+  const sendTestEmail = async () => {
+    if (!token || emailTestLoading) return;
+
+    setEmailTestLoading(true);
+    setEmailTestResult("");
+
+    try {
+      const data = await request(`${apiUrl}/api/admin/email-test`, {
+        method: "POST",
+      });
+      setEmailTestResult({ ok: true, text: data.message });
+      showToast("Test email sent");
+    } catch (error) {
+      setEmailTestResult({ ok: false, text: error.message });
+    } finally {
+      setEmailTestLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (token) {
       loadProducts();
@@ -308,6 +352,7 @@ function AdminPanel({
       loadBanners();
       loadReturns();
       loadApplications();
+      checkEmailStatus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
@@ -324,6 +369,7 @@ function AdminPanel({
       loadBanners(),
       loadReturns(),
       loadApplications(),
+      checkEmailStatus(),
     ]);
 
     setRefreshing(false);
@@ -1932,6 +1978,115 @@ function AdminPanel({
                 </div>
               </section>
 
+              <section className="admin-card admin-email-card">
+                <div className="admin-card-head">
+                  <h3>
+                    <FiMail className="head-icon" /> Email delivery
+                  </h3>
+                  <button
+                    type="button"
+                    className="admin-link-btn"
+                    onClick={checkEmailStatus}
+                    disabled={emailStatusLoading}
+                  >
+                    {emailStatusLoading ? "Checking..." : "Check again"}
+                  </button>
+                </div>
+
+                {emailStatusLoading && !emailStatus ? (
+                  <div className="admin-empty">Checking email configuration...</div>
+                ) : emailStatus ? (
+                  <div className="admin-email-health">
+                    <div className="admin-email-rows">
+                      <div className="admin-email-row">
+                        <span>Sending address</span>
+                        <b
+                          className={
+                            emailStatus.emailUserSet ? "ok-text" : "bad-text"
+                          }
+                        >
+                          {emailStatus.emailUserSet
+                            ? `${emailStatus.from}`
+                            : "Not configured"}
+                        </b>
+                      </div>
+                      <div className="admin-email-row">
+                        <span>App password</span>
+                        <b
+                          className={
+                            emailStatus.emailPassSet ? "ok-text" : "bad-text"
+                          }
+                        >
+                          {emailStatus.emailPassSet ? "Configured" : "Not configured"}
+                        </b>
+                      </div>
+                      <div className="admin-email-row">
+                        <span>Owner email (ADMIN_EMAIL)</span>
+                        <b
+                          className={
+                            emailStatus.adminEmailSet ? "ok-text" : "bad-text"
+                          }
+                        >
+                          {emailStatus.adminEmailSet ? "Configured" : "Not configured"}
+                        </b>
+                      </div>
+                      <div className="admin-email-row">
+                        <span>Status emails dry-run</span>
+                        <b
+                          className={
+                            emailStatus.dryRun ? "bad-text" : "ok-text"
+                          }
+                        >
+                          {emailStatus.dryRun
+                            ? "ON — emails are NOT being sent!"
+                            : "Off (emails active)"}
+                        </b>
+                      </div>
+                      <div className="admin-email-row">
+                        <span>SMTP connection</span>
+                        <b
+                          className={
+                            emailStatus.smtp === "ok" ? "ok-text" : "bad-text"
+                          }
+                        >
+                          {emailStatus.smtp === "ok"
+                            ? "Connected ✓"
+                            : emailStatus.smtp || "Unknown"}
+                        </b>
+                      </div>
+                    </div>
+
+                    {emailTestResult && (
+                      <p
+                        className={`admin-email-test-result ${
+                          emailTestResult.ok ? "ok" : "bad"
+                        }`}
+                        role="status"
+                      >
+                        {emailTestResult.text}
+                      </p>
+                    )}
+
+                    <button
+                      type="button"
+                      className="admin-primary-btn"
+                      onClick={sendTestEmail}
+                      disabled={emailTestLoading || !emailStatus.emailUserSet}
+                      style={{ marginTop: "12px" }}
+                    >
+                      <FiSend />{" "}
+                      {emailTestLoading
+                        ? "Sending..."
+                        : "Send test email to me"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="admin-empty">
+                    Could not reach the email status endpoint.
+                  </div>
+                )}
+              </section>
+
               <div className="admin-dash-grid">
                 <section className="admin-card">
                   <div className="admin-card-head">
@@ -3224,6 +3379,28 @@ function AdminPanel({
                                           <b>Profile:</b>{" "}
                                           {form.profileName || "—"}
                                         </span>
+                                        <span>
+                                          <b>Order id:</b>{" "}
+                                          {form.orderId || "—"}
+                                        </span>
+                                        <span>
+                                          <b>Order amount:</b> ₹
+                                          {(form.orderAmount || 0).toLocaleString(
+                                            "en-IN"
+                                          )}
+                                        </span>
+                                        {form.orderDate && (
+                                          <span>
+                                            <b>Order date:</b>{" "}
+                                            {form.orderDate}
+                                          </span>
+                                        )}
+                                        {form.productName && (
+                                          <span>
+                                            <b>Product:</b>{" "}
+                                            {form.productName}
+                                          </span>
+                                        )}
                                         {form.otherInfo && (
                                           <span>
                                             <b>Info:</b>{" "}
@@ -3232,29 +3409,50 @@ function AdminPanel({
                                         )}
                                       </div>
                                       <div className="tryout-pf-actions">
-                                        {form.screenshotUrl ? (
+                                        {form.screenshotUrl ||
+                                        form.driveUrl ? (
                                           <button
                                             type="button"
                                             className="tryout-pf-thumb"
                                             onClick={() =>
                                               openImagePreview(
-                                                form.screenshotUrl,
+                                                form.driveImageUrl ||
+                                                  form.driveUrl ||
+                                                  form.screenshotUrl,
                                                 `purchase-${form.profileName || "proof"}.png`
                                               )
                                             }
                                             title="Preview order screenshot"
                                           >
                                             <img
-                                              src={form.screenshotUrl}
+                                              src={
+                                                form.driveImageUrl ||
+                                                form.driveUrl ||
+                                                form.screenshotUrl
+                                              }
                                               alt="Order screenshot"
                                               loading="lazy"
                                             />
-                                            <span>🖼️ Screenshot</span>
+                                            <span>
+                                              {form.driveUrl
+                                                ? "🗂️ Drive"
+                                                : "🖼️ Screenshot"}
+                                            </span>
                                           </button>
                                         ) : (
                                           <span className="tryout-pf-noshot">
                                             No screenshot
                                           </span>
+                                        )}
+                                        {form.driveUrl && (
+                                          <a
+                                            href={form.driveUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="tryout-pf-open-drive"
+                                          >
+                                            ↗ Open in Drive
+                                          </a>
                                         )}
                                         {form.status === "submitted" && (
                                           <button

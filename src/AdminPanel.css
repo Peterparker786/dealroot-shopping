@@ -2703,6 +2703,24 @@
   font-size: 12px;
   color: #b45309;
 }
+.tryout-pf-open-drive {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 14px;
+  border: 1px solid #d9f99d;
+  border-radius: 999px;
+  background: #f7fee7;
+  color: #4d7c0f;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all var(--fast) var(--ease);
+}
+.tryout-pf-open-drive:hover {
+  background: #ecfccb;
+  transform: translateY(-1px);
+}
 .tryout-cashback-summary {
   display: flex;
   gap: 10px;
@@ -2849,4 +2867,58 @@
   .tryout-product-form {
     grid-template-columns: 1fr;
   }
+}
+
+/* ============================================================
+   EMAIL DELIVERY HEALTH CARD (dashboard)
+   ============================================================ */
+.admin-email-card {
+  margin-bottom: 22px;
+}
+.admin-email-health {
+  padding-top: 4px;
+}
+.admin-email-rows {
+  display: grid;
+  gap: 8px;
+}
+.admin-email-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 12px;
+  background: #f8fafc;
+  border: 1px solid #eef2f6;
+  border-radius: 10px;
+  font-size: 13px;
+}
+.admin-email-row span {
+  color: #64748b;
+}
+.admin-email-row b {
+  font-weight: 700;
+  text-align: right;
+  word-break: break-word;
+}
+.ok-text { color: #059669; }
+.bad-text { color: #dc2626; }
+.admin-email-test-result {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  word-break: break-word;
+}
+.admin-email-test-result.ok {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+}
+.admin-email-test-result.bad {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
 }

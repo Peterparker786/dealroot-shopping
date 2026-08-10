@@ -147,18 +147,6 @@ export default function Navbar({
   };
   return (
     <>
-      {/* Scrolling Marquee Bar (Nykaa style) */}
-      <div className="top-marquee" aria-hidden="true">
-        <div className="marquee-track">
-          <span className="marquee-text">
-            ✨ COST SALE IS LIVE! FREE SHIPPING ON ALL ORDERS ABOVE ₹499! ✨ USE CODE: BEAUTY10 FOR 10% OFF ON ORDERS ABOVE ₹999! ✨ 100% ORIGINAL PRODUCTS — EASY RETURNS IN 7 DAYS ✨
-          </span>
-          <span className="marquee-text">
-            ✨ COST SALE IS LIVE! FREE SHIPPING ON ALL ORDERS ABOVE ₹499! ✨ USE CODE: BEAUTY10 FOR 10% OFF ON ORDERS ABOVE ₹999! ✨ 100% ORIGINAL PRODUCTS — EASY RETURNS IN 7 DAYS ✨
-          </span>
-        </div>
-      </div>
-
       {/* Announcement Bar */}
       <div className="announcement-bar">
         <span>🚚 FREE DELIVERY on orders above ₹499</span>

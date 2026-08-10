@@ -123,36 +123,6 @@ img { max-width: 100%; display: block; }
 }
 
 /* ============================================================
-   SCROLLING MARQUEE (Nykaa style)
-   ============================================================ */
-.top-marquee {
-  background: var(--brand);
-  overflow: hidden;
-  white-space: nowrap;
-  padding: 7px 0;
-  position: relative;
-  z-index: 120;
-}
-.marquee-track {
-  display: inline-flex;
-  animation: marqueeScroll 30s linear infinite;
-  will-change: transform;
-}
-.marquee-text {
-  display: inline-block;
-  padding-right: 8px;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-}
-@keyframes marqueeScroll {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-
-/* ============================================================
    ANNOUNCEMENT BAR
    ============================================================ */
 .announcement-bar {
@@ -1199,11 +1169,6 @@ img { max-width: 100%; display: block; }
   .why-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .marquee-track {
-    animation: none;
-  }
-}
 
 /* ============================================================
    DEAL OF THE DAY
@@ -2597,6 +2562,7 @@ img { max-width: 100%; display: block; }
 }
 .tryout-purchase-form input[type="text"],
 .tryout-purchase-form input[type="tel"],
+.tryout-purchase-form select,
 .tryout-purchase-form textarea {
   border: none;
   border-bottom: 1.5px solid #cbd5e1;
@@ -2610,8 +2576,17 @@ img { max-width: 100%; display: block; }
 }
 .tryout-purchase-form input[type="text"]:focus,
 .tryout-purchase-form input[type="tel"]:focus,
+.tryout-purchase-form select:focus,
 .tryout-purchase-form textarea:focus {
   border-bottom-color: #7c3aed;
+}
+.tryout-purchase-form select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237c3aed' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 4px center;
+  padding-right: 26px;
 }
 .tryout-purchase-form textarea {
   resize: vertical;

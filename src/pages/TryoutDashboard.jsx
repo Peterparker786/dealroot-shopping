@@ -14,6 +14,8 @@ export default function TryoutDashboard({
   user,
   userToken,
   apiUrl,
+  products,
+  filteredProducts,
   setAccountOpen,
 }) {
   const navigate = useNavigate();
@@ -25,8 +27,20 @@ export default function TryoutDashboard({
   const [purchaseForm, setPurchaseForm] = useState({
     phoneAtStore: user?.phone || "",
     profileName: "",
+    orderId: "",
+    orderAmount: "",
+    productName: "",
+    productOther: "",
+    orderDate: "",
     otherInfo: "",
   });
+
+  // Tryout-exclusive products the admin listed — shown as a dropdown in
+  // the purchase form so members can pick exactly what they ordered.
+  const tryoutProducts = (products && products.length
+    ? products
+    : filteredProducts || []
+  ).filter((p) => p && p.tryoutOnly);
   const [purchaseFile, setPurchaseFile] = useState(null);
   const [purchaseSubmitting, setPurchaseSubmitting] = useState(false);
   const [purchaseError, setPurchaseError] = useState("");
@@ -55,6 +69,11 @@ export default function TryoutDashboard({
     setPurchaseForm({
       phoneAtStore: user?.phone || "",
       profileName: "",
+      orderId: "",
+      orderAmount: "",
+      productName: "",
+      productOther: "",
+      orderDate: "",
       otherInfo: "",
     });
     setPurchaseFile(null);
@@ -176,6 +195,20 @@ export default function TryoutDashboard({
       const formData = new FormData();
       formData.append("phoneAtStore", purchaseForm.phoneAtStore);
       formData.append("profileName", purchaseForm.profileName);
+      formData.append("orderId", purchaseForm.orderId);
+      formData.append("orderAmount", purchaseForm.orderAmount);
+      const selectedProduct = tryoutProducts.find(
+        (p) => p.id === purchaseForm.productName
+      );
+      formData.append(
+        "productName",
+        purchaseForm.productName === "__other__"
+          ? purchaseForm.productOther
+          : selectedProduct
+          ? selectedProduct.name
+          : purchaseForm.productName
+      );
+      formData.append("orderDate", purchaseForm.orderDate);
       formData.append("otherInfo", purchaseForm.otherInfo);
       if (purchaseFile) {
         formData.append("screenshot", purchaseFile);
@@ -697,6 +730,103 @@ export default function TryoutDashboard({
                   />
                 </label>
 
+                <label>
+                  Order Id (Fill Correct Id Only) *
+                  <input
+                    name="orderId"
+                    type="text"
+                    value={purchaseForm.orderId}
+                    onChange={(event) =>
+                      setPurchaseForm((current) => ({
+                        ...current,
+                        orderId: event.target.value,
+                      }))
+                    }
+                    placeholder="Your answer"
+                    required
+                  />
+                </label>
+
+                <label>
+                  Order Amount (₹) *
+                  <input
+                    name="orderAmount"
+                    type="number"
+                    min="1"
+                    step="1"
+                    inputMode="numeric"
+                    value={purchaseForm.orderAmount}
+                    onChange={(event) =>
+                      setPurchaseForm((current) => ({
+                        ...current,
+                        orderAmount: event.target.value,
+                      }))
+                    }
+                    placeholder="Your answer"
+                    required
+                  />
+                </label>
+
+                <label>
+                  Order Date (when you placed the order) *
+                  <input
+                    name="orderDate"
+                    type="date"
+                    value={purchaseForm.orderDate}
+                    onChange={(event) =>
+                      setPurchaseForm((current) => ({
+                        ...current,
+                        orderDate: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                </label>
+
+                <label>
+                  Product Name (bought from the marketplace) *
+                  <select
+                    name="productName"
+                    value={purchaseForm.productName}
+                    onChange={(event) =>
+                      setPurchaseForm((current) => ({
+                        ...current,
+                        productName: event.target.value,
+                      }))
+                    }
+                    required
+                  >
+                    <option value="" disabled>
+                      {tryoutProducts.length
+                        ? "Select the product you ordered"
+                        : "No Tryout products listed yet"}
+                    </option>
+                    {tryoutProducts.map((product) => (
+                      <option key={product.id} value={product.id}>
+                        {product.name}
+                      </option>
+                    ))}
+                    <option value="__other__">
+                      Other (not in the list)
+                    </option>
+                  </select>
+                  {purchaseForm.productName === "__other__" && (
+                    <input
+                      name="productOther"
+                      type="text"
+                      value={purchaseForm.productOther}
+                      onChange={(event) =>
+                        setPurchaseForm((current) => ({
+                          ...current,
+                          productOther: event.target.value,
+                        }))
+                      }
+                      placeholder="Type the product name"
+                      required
+                    />
+                  )}
+                </label>
+
                 <label className="tryout-purchase-file">
                   Order Screenshot (order id, order date, order amount,
                   product — should be visible) *
@@ -748,6 +878,11 @@ export default function TryoutDashboard({
                       setPurchaseForm({
                         phoneAtStore: user?.phone || "",
                         profileName: "",
+                        orderId: "",
+                        orderAmount: "",
+                        productName: "",
+                        productOther: "",
+                        orderDate: "",
                         otherInfo: "",
                       });
                       setPurchaseFile(null);
@@ -1070,6 +1205,25 @@ export default function TryoutDashboard({
                               <b>Profile:</b>{" "}
                               {form.profileName || "—"}
                             </span>
+                            <span>
+                              <b>Order id:</b> {form.orderId || "—"}
+                            </span>
+                            <span>
+                              <b>Order amount:</b> ₹
+                              {(form.orderAmount || 0).toLocaleString(
+                                "en-IN"
+                              )}
+                            </span>
+                            {form.orderDate && (
+                              <span>
+                                <b>Order date:</b> {form.orderDate}
+                              </span>
+                            )}
+                            {form.productName && (
+                              <span>
+                                <b>Product:</b> {form.productName}
+                              </span>
+                            )}
                             {form.otherInfo && (
                               <span>
                                 <b>Info:</b> {form.otherInfo}
