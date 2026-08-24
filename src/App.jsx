@@ -5,6 +5,7 @@ import {
   useNavigate,
   useLocation,
 } from "react-router-dom";
+import { FiHome, FiGrid, FiZap, FiPackage, FiUser } from "react-icons/fi";
 import {
   lazy,
   Suspense,
