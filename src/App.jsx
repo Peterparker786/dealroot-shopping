@@ -1,4 +1,3 @@
-import Navbar from "./components/Navbar";
 import {
   Routes,
   Route,
@@ -6,9 +5,6 @@ import {
   useNavigate,
   useLocation,
 } from "react-router-dom";
-import { FiHome, FiGrid, FiZap, FiPackage, FiUser } from "react-icons/fi";
-import Home from "./pages/Home";
-import Footer from "./components/Footer";
 import {
   lazy,
   Suspense,
@@ -18,8 +14,13 @@ import {
   useRef,
   useState,
 } from "react";
-import CartDrawer from "./CartDrawer";
-import WishlistDrawer from "./WishlistDrawer";
+
+// Lazy-load heavy page/component chunks so the initial JS payload shrinks.
+const Navbar = lazy(() => import("./components/Navbar"));
+const Home = lazy(() => import("./pages/Home"));
+const Footer = lazy(() => import("./components/Footer"));
+const CartDrawer = lazy(() => import("./CartDrawer"));
+const WishlistDrawer = lazy(() => import("./WishlistDrawer"));
 import "./index.css";
 import {
   getStoredCategories,
@@ -790,29 +791,33 @@ function App() {
         </div>
       )}
 
-      <CartDrawer
-        isOpen={cartOpen}
-        onClose={() => setCartOpen(false)}
-        cart={cart}
-        setCart={setCart}
-        showToast={showToast}
-        onCheckout={() => {
-          if (!cart.length) {
-            showToast("Your cart is empty");
-            return;
-          }
-          setCartOpen(false);
-          setCheckoutOpen(true);
-        }}
-      />
+      <Suspense fallback={null}>
+        <CartDrawer
+          isOpen={cartOpen}
+          onClose={() => setCartOpen(false)}
+          cart={cart}
+          setCart={setCart}
+          showToast={showToast}
+          onCheckout={() => {
+            if (!cart.length) {
+              showToast("Your cart is empty");
+              return;
+            }
+            setCartOpen(false);
+            setCheckoutOpen(true);
+          }}
+        />
+      </Suspense>
 
-      <WishlistDrawer
-        isOpen={wishlistOpen}
-        onClose={() => setWishlistOpen(false)}
-        products={wishlistProducts}
-        onRemove={removeFromWishlist}
-        addToCart={addToCart}
-      />
+      <Suspense fallback={null}>
+        <WishlistDrawer
+          isOpen={wishlistOpen}
+          onClose={() => setWishlistOpen(false)}
+          products={wishlistProducts}
+          onRemove={removeFromWishlist}
+          addToCart={addToCart}
+        />
+      </Suspense>
 
       {checkoutMounted && (
         <Suspense fallback={<PageLoader />}>
@@ -852,26 +857,28 @@ function App() {
         </Suspense>
       )}
 
-<Navbar
-  search={search}
-  setSearch={setSearch}
-  openAdmin={openAdmin}
-  user={user}
-  wishlist={wishlist}
-  cartCount={cartCount}
-  setAccountOpen={setAccountOpen}
-  setAccountTab={setAccountTab}
-  onSelectAddress={selectDefaultAddress}
-  onUseCurrentLocation={useCurrentLocation}
-  deliveryLocation={deliveryLocation}
-  setCartOpen={setCartOpen}
-  openWishlist={openWishlist}
-  showBestsellers={showBestsellers}
-  showAllProducts={showAllProducts}
-  showNewArrivals={showNewArrivals}
-  categories={categories}
-  showCategory={showCategory}
-/>
+<Suspense fallback={null}>
+  <Navbar
+    search={search}
+    setSearch={setSearch}
+    openAdmin={openAdmin}
+    user={user}
+    wishlist={wishlist}
+    cartCount={cartCount}
+    setAccountOpen={setAccountOpen}
+    setAccountTab={setAccountTab}
+    onSelectAddress={selectDefaultAddress}
+    onUseCurrentLocation={useCurrentLocation}
+    deliveryLocation={deliveryLocation}
+    setCartOpen={setCartOpen}
+    openWishlist={openWishlist}
+    showBestsellers={showBestsellers}
+    showAllProducts={showAllProducts}
+    showNewArrivals={showNewArrivals}
+    categories={categories}
+    showCategory={showCategory}
+  />
+</Suspense>
 
 <Suspense fallback={<PageLoader />}>
 <Routes>
@@ -985,7 +992,9 @@ function App() {
 />  
 </Routes>
 </Suspense>
-<Footer />
+<Suspense fallback={null}>
+  <Footer />
+</Suspense>
 
       {/* Mobile Bottom Navigation */}
       <nav className="mobile-bottom-nav">
