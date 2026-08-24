@@ -294,14 +294,12 @@ export default function Navbar({
         </div>
 
         <label className="header-search">
+          <FiSearch className="search-icon-left" size={16} />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search for products, brands..."
+            placeholder="🔍 Search products, brands & categories..."
           />
-          <button type="button" aria-label="Search">
-            <FiSearch />
-          </button>
         </label>
 
         <nav className="header-actions">

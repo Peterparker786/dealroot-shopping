@@ -146,7 +146,20 @@ function CartDrawer({
               <button className="primary-button checkout-button" onClick={checkout}>
                 Proceed to checkout
               </button>
-              <small>Secure checkout • COD and online payment available</small>
+
+              <div className="cart-trust-badges">
+                <div className="cart-trust-row">
+                  <span className="cart-trust-item">💳 UPI</span>
+                  <span className="cart-trust-item">💳 Visa</span>
+                  <span className="cart-trust-item">💳 Mastercard</span>
+                  <span className="cart-trust-item">💵 COD</span>
+                </div>
+                <div className="cart-trust-row">
+                  <span className="cart-trust-item">🔒 SSL Secured</span>
+                  <span className="cart-trust-item">✅ Genuine</span>
+                  <span className="cart-trust-item">↩️ Easy Returns</span>
+                </div>
+              </div>
             </div>
           </>
         )}
