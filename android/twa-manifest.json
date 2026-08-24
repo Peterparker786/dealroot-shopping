@@ -1,0 +1,21 @@
+{
+  "app_name": "DEALROOT",
+  "short_name": "DEALROOT",
+  "package": "com.dealroot.beauty",
+  "host": "www.dealroot.store",
+  "start_url": "/",
+  "theme_color": "#7c3aed",
+  "background_color": "#ffffff",
+  "icon": "./public/icons/icon-512.png",
+  "maskable_icon": "./public/icons/icon-maskable-512.png",
+  "navigation_color": "#7c3aed",
+  "splash_screen_color": "#7c3aed",
+  "signing": {
+    "path": "./android/release-key.jks",
+    "alias": "dealroot",
+    "keystore_password": "",
+    "key_password": ""
+  },
+  "app_version_code": 1,
+  "app_version_name": "1.0.0"
+}
