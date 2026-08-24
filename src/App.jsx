@@ -520,23 +520,31 @@ function App() {
   }, []);
 
   const filteredProducts = useMemo(() => {
+    let list;
+
     if (bestsellersOnly) {
-      return products.filter(
+      list = products.filter(
         (product) =>
           Number(product.price) < 200 &&
           Number.isFinite(Number(product.price))
       );
-    }
-
-    if (newArrivalsOnly) {
-      return [...products].sort((a, b) => {
+    } else if (newArrivalsOnly) {
+      list = [...products].sort((a, b) => {
         const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return timeB - timeA;
       });
+    } else {
+      list = products;
     }
 
-    return products;
+    // Push out-of-stock products to the bottom so customers see
+    // available items first.
+    return [...list].sort((a, b) => {
+      const aOOS = a.stock <= 0 ? 1 : 0;
+      const bOOS = b.stock <= 0 ? 1 : 0;
+      return aOOS - bOOS;
+    });
   }, [products, bestsellersOnly, newArrivalsOnly]);
 
   const showCategory = (category) => {
