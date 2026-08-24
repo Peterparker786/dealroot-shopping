@@ -117,6 +117,21 @@ export default function ProductDetails({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Track recently viewed products in localStorage for personalized suggestions.
+  useEffect(() => {
+    if (!id) return;
+    try {
+      const raw = localStorage.getItem("dealroot_recently_viewed") || "[]";
+      const list = JSON.parse(raw);
+      const filtered = list.filter((item) => item.id !== id);
+      filtered.unshift({ id, ts: Date.now() });
+      localStorage.setItem(
+        "dealroot_recently_viewed",
+        JSON.stringify(filtered.slice(0, 20))
+      );
+    } catch { /* ignore */ }
+  }, [id]);
+
   // SEO: dynamic meta tags + Product structured data (Google rich snippets).
   useSeo(
     {

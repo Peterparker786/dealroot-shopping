@@ -485,6 +485,76 @@ export default function Home({
         </Link>
       </section>
 
+      {/* Recently Viewed */}
+      {(() => {
+        let recentProducts = [];
+        try {
+          const raw = localStorage.getItem("dealroot_recently_viewed") || "[]";
+          const ids = JSON.parse(raw).map((r) => r.id).slice(0, 6);
+          recentProducts = ids
+            .map((rid) => products.find((p) => p.id === rid))
+            .filter(Boolean);
+        } catch { /* ignore */ }
+
+        if (!recentProducts.length) return null;
+
+        return (
+          <section className="section">
+            <h2>Recently Viewed</h2>
+            <div className="product-grid">
+              {recentProducts.map((product) => {
+                const isWishlisted = wishlist.some((w) => w.id === product.id);
+                const discount = product.originalPrice > product.price
+                  ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+                  : 0;
+
+                return (
+                  <article className="product-card" key={`recent-${product.id}`}>
+                    <div className="product-image">
+                      <Link to={`/product/${product.id}`}>
+                        <img
+                          src={optimizeImage(product.image, 400)}
+                          alt={product.name}
+                          loading="lazy"
+                          decoding="async"
+                        />
+                      </Link>
+                      <button
+                        type="button"
+                        className="wishlist-btn"
+                        onClick={() => toggleWishlist(product)}
+                      >
+                        {isWishlisted ? "♥" : "♡"}
+                      </button>
+                    </div>
+                    <div className="product-info">
+                      <p className="product-brand">{product.brand}</p>
+                      <h3 className="product-title">
+                        <Link to={`/product/${product.id}`}>{product.name}</Link>
+                      </h3>
+                      <div className="product-price">
+                        <strong>₹{product.price}</strong>
+                        {product.originalPrice > product.price && (
+                          <del>₹{product.originalPrice}</del>
+                        )}
+                        {discount > 0 && <span>{discount}% off</span>}
+                      </div>
+                      <button
+                        type="button"
+                        className="add-to-cart-btn"
+                        onClick={() => addToCart(product)}
+                      >
+                        Add to Cart
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
+
       {/* Why Shop With Us */}
       <section className="why-section">
         <h2>Why Shop With Us</h2>

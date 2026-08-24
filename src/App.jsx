@@ -5,7 +5,22 @@ import {
   useNavigate,
   useLocation,
 } from "react-router-dom";
-import { FiHome, FiGrid, FiZap, FiPackage, FiUser } from "react-icons/fi";
+// Inline SVGs instead of react-icons to save ~30KB from main bundle.
+const IconHome = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+);
+const IconGrid = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+);
+const IconZap = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+);
+const IconPackage = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+);
+const IconUser = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+);
 import {
   lazy,
   Suspense,
@@ -1008,7 +1023,7 @@ function App() {
               window.scrollTo({ top: 0, behavior: "smooth" });
             }}
           >
-            <FiHome />
+            <IconHome />
             <span className="mn-label">Home</span>
           </a>
           <a
@@ -1019,7 +1034,7 @@ function App() {
               scrollToHomeSection("categories");
             }}
           >
-            <FiGrid />
+            <IconGrid />
             <span className="mn-label">Categories</span>
           </a>
           <a
@@ -1030,7 +1045,7 @@ function App() {
               scrollToHomeSection("price-deals");
             }}
           >
-            <FiZap />
+            <IconZap />
             <span className="mn-label">Deals</span>
           </a>
           <button
@@ -1041,7 +1056,7 @@ function App() {
               setAccountOpen(true);
             }}
           >
-            <FiPackage />
+            <IconPackage />
             <span className="mn-label">Orders</span>
           </button>
           <button
@@ -1052,7 +1067,7 @@ function App() {
               setAccountOpen(true);
             }}
           >
-            <FiUser />
+            <IconUser />
             <span className="mn-label">Account</span>
           </button>
         </div>
