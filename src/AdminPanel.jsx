@@ -140,6 +140,9 @@ function AdminPanel({
   const [emailStatusLoading, setEmailStatusLoading] = useState(false);
   const [emailTestLoading, setEmailTestLoading] = useState(false);
   const [emailTestResult, setEmailTestResult] = useState("");
+  const [newsletterLoading, setNewsletterLoading] = useState(false);
+  const [newsletterStatus, setNewsletterStatus] = useState(null);
+  const [newsletterResult, setNewsletterResult] = useState(null);
   const [returnProcessingId, setReturnProcessingId] = useState("");
   const [reviewReturnId, setReviewReturnId] = useState(null);
   const [approveForm, setApproveForm] = useState({
@@ -354,6 +357,34 @@ function AdminPanel({
     }
   };
 
+  const checkNewsletterStatus = async () => {
+    if (!token) return;
+    try {
+      const data = await request(`${apiUrl}/api/admin/new-product-email/status`);
+      setNewsletterStatus(data);
+    } catch {
+      setNewsletterStatus(null);
+    }
+  };
+
+  const triggerNewsletter = async () => {
+    if (!token || newsletterLoading) return;
+    setNewsletterLoading(true);
+    setNewsletterResult(null);
+    try {
+      const data = await request(`${apiUrl}/api/admin/new-product-email/run`, {
+        method: "POST",
+      });
+      setNewsletterResult({ ok: true, text: data.message });
+      showToast(`Newsletter sent to ${data.sent} customer(s)`);
+      checkNewsletterStatus();
+    } catch (error) {
+      setNewsletterResult({ ok: false, text: error.message });
+    } finally {
+      setNewsletterLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (token) {
       loadProducts();
@@ -363,6 +394,7 @@ function AdminPanel({
       loadReturns();
       loadApplications();
       checkEmailStatus();
+      checkNewsletterStatus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
@@ -2123,6 +2155,73 @@ function AdminPanel({
                     Could not reach the email status endpoint.
                   </div>
                 )}
+              </section>
+
+              {/* Daily New Products Newsletter */}
+              <section className="admin-card admin-email-card">
+                <div className="admin-card-head">
+                  <h3>
+                    <FiSend className="head-icon" /> Daily New Products Email
+                  </h3>
+                  <button
+                    type="button"
+                    className="admin-link-btn"
+                    onClick={checkNewsletterStatus}
+                  >
+                    Check status
+                  </button>
+                </div>
+
+                <p style={{ fontSize: 13, color: '#6b7280', marginBottom: 12 }}>
+                  Automatically sends a "New Arrivals" email to all registered customers every 24 hours with products added in the last day.
+                </p>
+
+                {newsletterStatus && (
+                  <div className="admin-email-rows" style={{ marginBottom: 12 }}>
+                    <div className="admin-email-row">
+                      <span>Last sent</span>
+                      <b className="ok-text">
+                        {newsletterStatus.lastSent
+                          ? new Date(newsletterStatus.lastSent).toLocaleString('en-IN')
+                          : 'Never'}
+                      </b>
+                    </div>
+                    <div className="admin-email-row">
+                      <span>Emails sent (last run)</span>
+                      <b className="ok-text">{newsletterStatus.lastCount || 0}</b>
+                    </div>
+                    {newsletterStatus.nextRun && (
+                      <div className="admin-email-row">
+                        <span>Next auto-run</span>
+                        <b className="ok-text">
+                          {new Date(newsletterStatus.nextRun).toLocaleString('en-IN')}
+                        </b>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {newsletterResult && (
+                  <p
+                    className={`admin-email-test-result ${newsletterResult.ok ? 'ok' : 'bad'}`}
+                    role="status"
+                  >
+                    {newsletterResult.text}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  className="admin-primary-btn"
+                  onClick={triggerNewsletter}
+                  disabled={newsletterLoading}
+                  style={{ marginTop: 8 }}
+                >
+                  <FiSend />{' '}
+                  {newsletterLoading
+                    ? 'Sending newsletter...'
+                    : 'Send New Products Email Now'}
+                </button>
               </section>
 
               <div className="admin-dash-grid">
