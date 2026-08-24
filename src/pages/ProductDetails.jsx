@@ -510,6 +510,38 @@ export default function ProductDetails({
             >
               {wishlist.some((w) => w.id === product.id) ? "❤️ Wishlisted" : "🤍 Add To Wishlist"}
             </motion.button>
+
+            <motion.button
+              className="share-btn"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={async () => {
+                const shareUrl = `${window.location.origin}/product/${id}`;
+                const shareText = `${product.brand} ${product.name} — ₹${product.price} on DEALROOT`;
+
+                // Use native Web Share API on mobile (opens share sheet).
+                if (navigator.share) {
+                  try {
+                    await navigator.share({ title: product.name, text: shareText, url: shareUrl });
+                  } catch { /* user cancelled */ }
+                  return;
+                }
+
+                // Fallback: copy link to clipboard + show share options.
+                try {
+                  await navigator.clipboard.writeText(shareUrl);
+                  showToast("Link copied to clipboard!");
+                } catch { /* ignore */ }
+
+                // Open WhatsApp share as default fallback.
+                window.open(
+                  `https://wa.me/?text=${encodeURIComponent(shareText + " " + shareUrl)}`,
+                  "_blank"
+                );
+              }}
+            >
+              📤 Share
+            </motion.button>
           </div>
 
           <div className="description-box">
