@@ -92,6 +92,7 @@ const [selectedCity, setSelectedCity] = useState(null);
   });
   const [discountAmount, setDiscountAmount] = useState(0);
   const [availableCoupons] = useState([]);
+  const [placedTotal, setPlacedTotal] = useState(null);
   const userKey = user?.id || user?._id || user?.email || "";
 
 const stateOptions = INDIAN_STATES;
@@ -171,6 +172,10 @@ const cityOptions = useMemo(() => {
         city: user.city || "Kanpur",
         pincode: user.pincode || "",
       });
+      syncStateCitySelects(
+        user.state || "Uttar Pradesh",
+        user.city || "Kanpur"
+      );
     }
     setPlacedOrder(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -181,22 +186,23 @@ useEffect(() => {
   const state = INDIAN_STATES.find((s) => s.label === form.state);
 
   if (state) {
-    setSelectedState({
-      value: state.value,
-      label: state.label,
+    setSelectedState((prev) => {
+      const next = { value: state.value, label: state.label };
+      return prev?.value === next.value ? prev : next;
     });
 
     const cities = CITIES_BY_STATE[state.value] || [];
 
-    if (cities.includes(form.city)) {
-      setSelectedCity({
-        value: form.city,
-        label: form.city,
-      });
-    }
+    setSelectedCity((prev) => {
+      if (cities.includes(form.city)) {
+        const next = { value: form.city, label: form.city };
+        return prev?.value === next.value ? prev : next;
+      }
+      return null;
+    });
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
+}, [form.state, form.city]);
 
   if (!isOpen) return null;
 
@@ -290,6 +296,7 @@ const remainingCod =
     setCouponInput("");
     setAppliedCoupon("");
     setCouponMessage({ type: "", text: "" });
+    setDiscountAmount(0);
   };
 
   const updateForm = (event) => {
@@ -454,6 +461,7 @@ const orderPayload = {
 
     const completeOrder = (order) => {
       setPlacedOrder(order);
+      setPlacedTotal(totalPayable);
 
       if (user) {
         onProfileUpdated?.({
@@ -605,6 +613,7 @@ const razorpayCheckout = new window.Razorpay({
 
   const closeCheckout = () => {
     setPlacedOrder(null);
+    setPlacedTotal(null);
     onClose();
   };
 
@@ -628,6 +637,23 @@ const razorpayCheckout = new window.Razorpay({
 
           <div className="success-order-id">
             Order ID: {placedOrder.orderNumber || placedOrder._id}
+          </div>
+
+          <div className="success-next-steps">
+            <div className="success-step">
+              <span className="success-step-icon">📦</span>
+              <span>Order is being processed</span>
+            </div>
+            <div className="success-step">
+              <span className="success-step-icon">🚚</span>
+              <span>You&apos;ll receive shipping updates via SMS</span>
+            </div>
+            {!isOnlineOrder && (
+              <div className="success-step">
+                <span className="success-step-icon">💰</span>
+                <span>Pay ₹{placedTotal ?? totalPayable} when your order arrives</span>
+              </div>
+            )}
           </div>
 
           <button className="primary-button" onClick={closeCheckout}>
@@ -1037,6 +1063,7 @@ const razorpayCheckout = new window.Razorpay({
                     if (appliedCoupon) {
                       setAppliedCoupon("");
                       setCouponMessage({ type: "", text: "" });
+                      setDiscountAmount(0);
                     }
                   }}
                   placeholder="Enter coupon code"
