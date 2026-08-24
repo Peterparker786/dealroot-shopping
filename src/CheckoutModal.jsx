@@ -1074,10 +1074,6 @@ const razorpayCheckout = new window.Razorpay({
                 )}
               </div>
 
-              <small className="coupon-help">
-                WELCOME50 gives 50% off when the cart subtotal is above ₹200.
-              </small>
-
               {couponMessage.text && (
                 <p
                   className={`coupon-message ${couponMessage.type}`}
