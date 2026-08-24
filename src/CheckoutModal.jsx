@@ -598,6 +598,7 @@ const razorpayCheckout = new window.Razorpay({
 
   if (placedOrder) {
     const isOnlineOrder = placedOrder.paymentMethod === "razorpay";
+    const isCodPartial = placedOrder.paymentMethod === "cod" && placedOrder.deliveryChargePaid;
 
     return (
       <div className="checkout-overlay">
@@ -610,6 +611,8 @@ const razorpayCheckout = new window.Razorpay({
           <p>
             {isOnlineOrder
               ? "Your online payment is verified and your order is confirmed."
+              : isCodPartial
+              ? `Delivery charge ₹${placedOrder.deliveryChargeAmount || placedOrder.deliveryFee} paid online. Remaining ₹${(placedOrder.totalAmount || 0) - (placedOrder.deliveryChargeAmount || placedOrder.deliveryFee)} will be collected at delivery.`
               : "Your Cash on Delivery order has been placed successfully."}{" "}
             We will send updates to your mobile number.
           </p>

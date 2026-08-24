@@ -2450,7 +2450,13 @@ export default function AccountModal({
                           </div>
 
                           <footer>
-                            <span>Cash on Delivery</span>
+                            <span>
+                              {order.paymentMethod === "razorpay"
+                                ? "Paid Online"
+                                : order.deliveryChargePaid
+                                ? "COD — Delivery Paid"
+                                : "Cash on Delivery"}
+                            </span>
                             <b>Total ₹{order.totalAmount}</b>
                           </footer>
 

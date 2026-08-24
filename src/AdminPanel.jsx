@@ -3016,10 +3016,18 @@ function AdminPanel({
                             </td>
 
                             <td data-label="Payment">
-                              <b>Cash on Delivery</b>
+                              <b>
+                                {order.paymentMethod === "razorpay"
+                                  ? "Online Payment"
+                                  : order.deliveryChargePaid
+                                  ? "COD — Delivery Paid"
+                                  : "Cash on Delivery"}
+                              </b>
                               <small>
                                 {order.paymentStatus === "paid"
-                                  ? "Paid"
+                                  ? "Fully Paid"
+                                  : order.paymentStatus === "partially_paid"
+                                  ? `Delivery ₹${order.deliveryChargeAmount || order.deliveryFee} paid`
                                   : "Payment pending"}
                               </small>
                             </td>
