@@ -174,7 +174,7 @@ export default function Hero({ banners, banner, fallbackImage }) {
           animate={{ opacity: 1, y: 0 }}
           className="hero-tag"
         >
-          ☀️ SUMMER BEAUTY SALE
+          ✨ UP TO 50% OFF
         </motion.span>
 
         <motion.h1
@@ -182,8 +182,8 @@ export default function Hero({ banners, banner, fallbackImage }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          Glow more. <br />
-          <span>Spend less.</span>
+          Beauty you love. <br />
+          <span>Prices you'll love more.</span>
         </motion.h1>
 
         <motion.p
@@ -191,7 +191,7 @@ export default function Hero({ banners, banner, fallbackImage }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          Up to 50% OFF on bestsellers, skincare, makeup & more. Curated for modern beauty lovers.
+          Authentic skincare, makeup & beauty essentials at unbeatable prices.
         </motion.p>
 
         <motion.div
@@ -208,31 +208,21 @@ export default function Hero({ banners, banner, fallbackImage }) {
                 ?.scrollIntoView({ behavior: "smooth" })
             }
           >
-            Shop Now <FiArrowRight size={18} />
-          </button>
-
-          <button
-            className="hero-btn-secondary"
-            onClick={() =>
-              document
-                .getElementById("categories")
-                ?.scrollIntoView({ behavior: "smooth" })
-            }
-          >
-            Explore Offers
+            SHOP NOW <FiArrowRight size={18} />
           </button>
         </motion.div>
 
         <motion.div
-          className="hero-features"
+          className="hero-trust-strip"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          <div className="hero-feature"><FiCheck size={14} /> 100% Original</div>
-          <div className="hero-feature"><FiRefreshCw size={14} /> Easy Returns</div>
-          <div className="hero-feature"><FiTruck size={14} /> Fast Delivery</div>
-          <div className="hero-feature"><FiShield size={14} /> Secure Payments</div>
+          <span className="trust-item">🚚 Free Delivery ₹499+</span>
+          <span className="trust-sep">|</span>
+          <span className="trust-item">💳 COD Available</span>
+          <span className="trust-sep">|</span>
+          <span className="trust-item">↩ 7-Day Returns</span>
         </motion.div>
       </div>
 

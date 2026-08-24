@@ -557,32 +557,28 @@ export default function Home({
 
       {/* Why Shop With Us */}
       <section className="why-section">
-        <h2>Why Shop With Us</h2>
+        <span className="why-eyebrow">✦ WHY DEALROOT</span>
+        <h2>Trusted by 10,000+ beauty lovers</h2>
         <div className="why-grid">
-          <div className="why-card">
-            <div className="why-icon"><FiAward size={20} /></div>
+          <div className="why-card why-card--accent">
+            <div className="why-icon why-icon--accent"><FiAward size={22} /></div>
             <h4>100% Authentic</h4>
-            <p>We only sell genuine products from authorized brands</p>
+            <p>Every product sourced directly from authorized brand distributors. Zero fakes, guaranteed.</p>
           </div>
-          <div className="why-card">
-            <div className="why-icon"><FiTag size={20} /></div>
-            <h4>Best Prices</h4>
-            <p>Affordable beauty for every budget</p>
+          <div className="why-card why-card--green">
+            <div className="why-icon why-icon--green"><FiTruck size={22} /></div>
+            <h4>Free Delivery</h4>
+            <p>Free shipping on orders above ₹499. COD available across India for your convenience.</p>
           </div>
-          <div className="why-card">
-            <div className="why-icon"><FiTruck size={20} /></div>
-            <h4>Fast Delivery</h4>
-            <p>Quick & reliable delivery right to your doorstep</p>
+          <div className="why-card why-card--orange">
+            <div className="why-icon why-icon--orange"><FiRefreshCw size={22} /></div>
+            <h4>7-Day Returns</h4>
+            <p>Not satisfied? Return within 7 days for a full refund. No questions asked.</p>
           </div>
-          <div className="why-card">
-            <div className="why-icon"><FiRefreshCw size={20} /></div>
-            <h4>Easy Returns</h4>
-            <p>Hassle-free 7-day return policy</p>
-          </div>
-          <div className="why-card">
-            <div className="why-icon"><FiShield size={20} /></div>
+          <div className="why-card why-card--purple">
+            <div className="why-icon why-icon--purple"><FiShield size={22} /></div>
             <h4>Secure Payments</h4>
-            <p>Safe & trusted payments via UPI, Cards & COD</p>
+            <p>Razorpay-protected checkout. Pay via UPI, cards, net banking or cash on delivery.</p>
           </div>
         </div>
       </section>
