@@ -409,6 +409,9 @@ export default function Home({
                         {product.dealType === "99" ? "₹99" : product.dealType === "199" ? "₹199" : product.badge}
                       </span>
                     )}
+                    {discount > 0 && (
+                      <span className="product-discount-badge">{discount}% OFF</span>
+                    )}
                     <button
                       type="button"
                       className={`wishlist ${isWishlisted ? "selected" : ""}`}
@@ -432,20 +435,25 @@ export default function Home({
                     <p className="brand-name">{product.brand}</p>
                     <h3><Link to={`/product/${product.id}`}>{product.name}</Link></h3>
                     <div className="rating">
-                      ★ <b>{product.rating}</b> <span>({product.reviews})</span>
+                      <span className="stars-filled">{'★'.repeat(Math.round(Number(product.rating) || 0))}</span><span className="stars-empty">{'☆'.repeat(5 - Math.round(Number(product.rating) || 0))}</span>
+                      <span className="rating-count"> ({product.reviews})</span>
                     </div>
                     <div className="price-row">
-                      <strong>₹{product.price}</strong>
-                      <del>₹{product.originalPrice}</del>
-                      {discount > 0 && <span>{discount}% off</span>}
+                      <strong className="price-current">₹{product.price}</strong>
+                      {discount > 0 && <del className="price-original">₹{product.originalPrice}</del>}
                     </div>
+                    {product.stock > 0 && product.stock <= 10 && (
+                      <div className="stock-urgency">
+                        <span className="urgency-dot" /> Only {product.stock} left — hurry!
+                      </div>
+                    )}
                     <button
                       type="button"
                       className="add-button"
                       disabled={product.stock <= 0}
                       onClick={() => addToCart(product)}
                     >
-                      {product.stock <= 0 ? "Out of stock" : "Add to Cart"}
+                      {product.stock <= 0 ? "Out of Stock" : "🛒 Add to Cart"}
                     </button>
                   </div>
                 </article>
