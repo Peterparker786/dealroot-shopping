@@ -1,7 +1,7 @@
 /* DEALROOT PWA service worker */
 // Bump this whenever you ship a new deploy so the old cache generation is
 // purged on activate instead of accumulating stale hashed assets forever.
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_NAME = `dealroot-${CACHE_VERSION}`;
 const CORE_ASSETS = ["/", "/index.html", "/manifest.webmanifest"];
 
@@ -39,8 +39,35 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // API requests: network-first so checkout/cart always hit the live backend.
+  // API requests: stale-while-revalidate for read-heavy endpoints
+  // (products, banners, categories) so the UI shows cached data instantly
+  // while fetching fresh data in the background. Checkout/cart/auth stay
+  // network-only.
   if (request.url.includes("/api/")) {
+    const isReadOnly =
+      request.url.includes("/api/products") ||
+      request.url.includes("/api/banners") ||
+      request.url.includes("/api/categories");
+
+    if (isReadOnly) {
+      event.respondWith(
+        caches.open(CACHE_NAME).then((cache) =>
+          cache.match(request).then((cached) => {
+            const fresh = fetch(request)
+              .then((response) => {
+                if (response.ok) cache.put(request, response.clone());
+                return response;
+              })
+              .catch(() => cached);
+
+            return cached || fresh;
+          })
+        )
+      );
+      return;
+    }
+
+    // Checkout, cart, auth: always network-first.
     event.respondWith(
       fetch(request).catch(() =>
         caches.match(request).then((cached) => cached || Response.error())

@@ -371,6 +371,26 @@ function App() {
       }
 
       const query = params.toString();
+      const cacheKey = `dealroot_products_${query || "all"}`;
+      const cachedRaw = localStorage.getItem(cacheKey);
+
+      // Serve from cache if fresh (< 2 minutes old), show immediately,
+      // then fetch fresh data in the background.
+      if (cachedRaw) {
+        try {
+          const cached = JSON.parse(cachedRaw);
+          const age = Date.now() - (cached.ts || 0);
+
+          if (age < 2 * 60 * 1000) {
+            setProducts(cached.products || []);
+            setLoadingProducts(false);
+            // Still fetch fresh data, but don't show spinner.
+          }
+        } catch {
+          // ignore corrupt cache
+        }
+      }
+
       const response = await fetch(
         `${API_URL}/api/products${query ? `?${query}` : ""}`
       );
@@ -381,32 +401,42 @@ function App() {
         throw new Error(data.message || "Products could not be loaded");
       }
 
-      setProducts(
-        (data.products || []).map((product) => ({
-          id: product._id,
-          brand: product.brand,
-          name: product.title,
-          category: product.category,
-          price: product.price,
-          originalPrice: product.mrp,
-          rating: product.rating,
-          reviews: Number(product.reviews || 0).toLocaleString("en-IN"),
-          badge: product.badge || "",
-          dealType: product.dealType || "none",
-          tryoutOnly: Boolean(product.tryoutOnly),
-          image: product.images?.[0] || product.image || fallbackImage,
-          stock: product.stock,
-          createdAt: product.createdAt || "",
-          marketplaceLinks: Array.isArray(product.marketplaceLinks)
-            ? product.marketplaceLinks.filter(
-                (link) => link?.platform && link?.url
-              )
-            : [],
-          buyLink: product.buyLink || "",
-          buyLinkLabel: product.buyLinkLabel || "",
-          buyLinkTerms: product.buyLinkTerms || "",
-        }))
-      );
+      const mapped = (data.products || []).map((product) => ({
+        id: product._id,
+        brand: product.brand,
+        name: product.title,
+        category: product.category,
+        price: product.price,
+        originalPrice: product.mrp,
+        rating: product.rating,
+        reviews: Number(product.reviews || 0).toLocaleString("en-IN"),
+        badge: product.badge || "",
+        dealType: product.dealType || "none",
+        tryoutOnly: Boolean(product.tryoutOnly),
+        image: product.images?.[0] || product.image || fallbackImage,
+        stock: product.stock,
+        createdAt: product.createdAt || "",
+        marketplaceLinks: Array.isArray(product.marketplaceLinks)
+          ? product.marketplaceLinks.filter(
+              (link) => link?.platform && link?.url
+            )
+          : [],
+        buyLink: product.buyLink || "",
+        buyLinkLabel: product.buyLinkLabel || "",
+        buyLinkTerms: product.buyLinkTerms || "",
+      }));
+
+      setProducts(mapped);
+
+      // Persist to localStorage so next visit loads instantly.
+      try {
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({ ts: Date.now(), products: mapped })
+        );
+      } catch {
+        // quota exceeded — ignore silently
+      }
     } catch {
       setProducts([]);
       setProductsError(
