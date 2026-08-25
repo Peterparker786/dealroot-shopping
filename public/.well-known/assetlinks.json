@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "com.dealroot.app",
       "sha256_cert_fingerprints": [
-        "64:98:7F:24:0A:7E:C5:BB:74:95:A0:33:AF:B7:45:60:D0:98:9A:46:51:53:C9:7C:FE:52:B7:B0:B9:86:B3:A7"
+        "64:98:7F:24:0A:7E:C5:BB:74:95:A0:33:AF:B7:45:60:D0:98:9A:46:51:53:C9:7C:FE:52:B7:B0:B9:86:B3:A7",
+        "CF:4D:C7:45:54:E7:A0:D1:DA:1E:05:FA:6F:19:91:9F:50:11:39:BC:D6:F5:BD:24:1F:15:E1:9E:FC:A1:99:13"
       ]
     }
   }
