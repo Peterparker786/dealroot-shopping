@@ -10,7 +10,7 @@
       "dest": "/dealroot-v2-assetlinks.json"
     },
     {
-      "src": "/((?!assets/).*)",
+      "src": "/((?!assets/|manifest\\.webmanifest|\\.well-known/|favicon\\.ico|robots\\.txt|dealroot-).*)",
       "dest": "/index.html"
     }
   ],
