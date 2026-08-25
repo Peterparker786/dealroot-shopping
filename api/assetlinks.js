@@ -1,7 +1,7 @@
 module.exports = (req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.end(JSON.stringify([
     {
       relation: ['delegate_permission/common.handle_all_urls'],
