@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/.well-known/assetlinks.json", "destination": "/dealroot-assetlinks.json" },
+    { "source": "/.well-known/assetlinks.json", "destination": "/dealroot-v2-assetlinks.json" },
     { "source": "/((?!assets/).*)", "destination": "/index.html" }
   ],
   "headers": [
@@ -11,10 +11,10 @@
       ]
     },
     {
-      "source": "/dealroot-assetlinks.json",
+      "source": "/dealroot-v2-assetlinks.json",
       "headers": [
         { "key": "Content-Type", "value": "application/json" },
-        { "key": "Cache-Control", "value": "no-store" }
+        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
       ]
     }
   ]
