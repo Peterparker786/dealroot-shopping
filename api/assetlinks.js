@@ -9,7 +9,7 @@ module.exports = (req, res) => {
         namespace: 'android_app',
         package_name: 'com.dealroot.app',
         sha256_cert_fingerprints: [
-          '7B:DD:2F:D0:6D:FF:1C:47:33:69:48:9B:0D:B7:ED:AA:72:A7:BE:BE:64:32:27:CB:A1:44:4A:C5:F6:EC:84:13'
+          '64:98:7F:24:0A:7E:C5:BB:74:95:A0:33:AF:B7:45:60:D0:98:9A:46:51:53:C9:7C:FE:52:B7:B0:B9:86:B3:A7'
         ]
       }
     }
