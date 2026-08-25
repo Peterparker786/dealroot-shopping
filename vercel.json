@@ -1,20 +1,24 @@
 {
-  "rewrites": [
-    { "source": "/.well-known/assetlinks.json", "destination": "/dealroot-v2-assetlinks.json" },
-    { "source": "/((?!assets/).*)", "destination": "/index.html" }
+  "routes": [
+    {
+      "src": "/\\.well-known/assetlinks\\.json",
+      "headers": {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, s-maxage=0",
+        "x-vercel-cache": "BYPASS"
+      },
+      "dest": "/dealroot-v2-assetlinks.json"
+    },
+    {
+      "src": "/((?!assets/).*)",
+      "dest": "/index.html"
+    }
   ],
   "headers": [
     {
       "source": "/assets/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
-    },
-    {
-      "source": "/dealroot-v2-assetlinks.json",
-      "headers": [
-        { "key": "Content-Type", "value": "application/json" },
-        { "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }
       ]
     }
   ]
