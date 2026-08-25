@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.dealroot.store",
+      "sha256_cert_fingerprints": [
+        "09:E9:8B:63:27:CB:26:38:E9:80:1A:BC:5E:3E:BA:EA:BF:B7:0F:74"
+      ]
+    }
+  }
+]
