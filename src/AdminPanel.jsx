@@ -1097,15 +1097,9 @@ function AdminPanel({
   };
 
   const cancelOrder = async (order) => {
-    const isPaid =
-      order.paymentMethod === "razorpay" &&
-      order.paymentStatus === "paid";
-
-    const confirmMessage = isPaid
-      ? `Cancel ${order.orderNumber}?\n\n⚠️ This is a PAID order (₹${order.totalAmount}).\nA full Razorpay refund of ₹${order.totalAmount} will be automatically initiated.\n\nStock will be restored. Continue?`
-      : `Cancel ${order.orderNumber}?\n\nStock will be restored.\n${order.paymentMethod === "cod" ? "(COD — no payment to refund)" : ""}`;
-
-    const confirmCancel = window.confirm(confirmMessage);
+    const confirmCancel = window.confirm(
+      `Cancel ${order.orderNumber}? Product stock will be restored.`
+    );
 
     if (!confirmCancel) {
       return;
@@ -1128,14 +1122,7 @@ function AdminPanel({
       );
 
       loadProducts();
-
-      if (data.refund) {
-        showToast(
-          `Order cancelled + ₹${data.refund.amount} refund initiated (Refund ID: ${data.refund.id})`
-        );
-      } else {
-        showToast("Order cancelled and stock restored");
-      }
+      showToast("Order cancelled and stock restored");
     } catch (error) {
       showToast(error.message);
     } finally {

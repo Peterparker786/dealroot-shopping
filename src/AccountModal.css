@@ -1382,32 +1382,6 @@ border-radius:18px;
   color: #fff;
 }
 
-/* ─── Refund Status Badge ─── */
-.order-refund-badge {
-  margin-top: 10px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  color: #065f46;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.5;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.order-refund-badge small {
-  font-size: 11px;
-  color: #6b7280;
-  font-weight: 500;
-}
-.order-refund-badge.pending {
-  background: #fffbeb;
-  border-color: #fde68a;
-  color: #92400e;
-}
-
 .return-open-btn {
   width: 100%;
   margin-top: 12px;
