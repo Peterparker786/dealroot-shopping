@@ -184,6 +184,7 @@ function AdminPanel({
   const [selectedImages, setSelectedImages] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState("");
+  const [trackingInputs, setTrackingInputs] = useState({});
   const [search, setSearch] = useState("");
 
   const [extractingInfo, setExtractingInfo] = useState(false);
@@ -1067,10 +1068,44 @@ function AdminPanel({
     }
   };
 
+  const saveTrackingLink = async (orderId) => {
+    try {
+      setUpdatingOrderId(orderId);
+      const link = trackingInputs[orderId] || "";
+
+      const data = await request(
+        `${apiUrl}/api/orders/${orderId}/tracking`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ trackingLink: link }),
+        }
+      );
+
+      setOrders((prev) =>
+        prev.map((o) => (o._id === orderId ? data.order : o))
+      );
+      setTrackingInputs((prev) => ({ ...prev, [orderId]: "" }));
+      showToast(data.message || "Tracking link saved");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setUpdatingOrderId("");
+    }
+  };
+
   const cancelOrder = async (order) => {
-    const confirmCancel = window.confirm(
-      `Cancel ${order.orderNumber}? Product stock will be restored.`
-    );
+    const isPaid =
+      order.paymentMethod === "razorpay" &&
+      order.paymentStatus === "paid";
+
+    const confirmMessage = isPaid
+      ? `Cancel ${order.orderNumber}?\n\n⚠️ This is a PAID order (₹${order.totalAmount}).\nA full Razorpay refund of ₹${order.totalAmount} will be automatically initiated.\n\nStock will be restored. Continue?`
+      : `Cancel ${order.orderNumber}?\n\nStock will be restored.\n${order.paymentMethod === "cod" ? "(COD — no payment to refund)" : ""}`;
+
+    const confirmCancel = window.confirm(confirmMessage);
 
     if (!confirmCancel) {
       return;
@@ -1093,7 +1128,14 @@ function AdminPanel({
       );
 
       loadProducts();
-      showToast("Order cancelled and stock restored");
+
+      if (data.refund) {
+        showToast(
+          `Order cancelled + ₹${data.refund.amount} refund initiated (Refund ID: ${data.refund.id})`
+        );
+      } else {
+        showToast("Order cancelled and stock restored");
+      }
     } catch (error) {
       showToast(error.message);
     } finally {
@@ -3168,6 +3210,44 @@ function AdminPanel({
                                         ? "Updating..."
                                         : "Cancel + restore stock"}
                                     </button>
+                                  )}
+
+                                  {/* Tracking link input */}
+                                  <div className="tracking-input-row">
+                                    <input
+                                      type="url"
+                                      placeholder="Paste tracking link..."
+                                      value={trackingInputs[order._id] || order.trackingLink || ""}
+                                      onChange={(e) =>
+                                        setTrackingInputs((prev) => ({
+                                          ...prev,
+                                          [order._id]: e.target.value,
+                                        }))
+                                      }
+                                      disabled={updatingOrderId === order._id}
+                                    />
+                                    <button
+                                      type="button"
+                                      className="save-tracking-btn"
+                                      disabled={updatingOrderId === order._id}
+                                      onClick={() => saveTrackingLink(order._id)}
+                                    >
+                                      {updatingOrderId === order._id
+                                        ? "..."
+                                        : order.trackingLink
+                                        ? "Update"
+                                        : "Save"}
+                                    </button>
+                                  </div>
+                                  {order.trackingLink && (
+                                    <a
+                                      href={order.trackingLink}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="tracking-link-preview"
+                                    >
+                                      🔗 View tracking link
+                                    </a>
                                   )}
                                 </div>
                               )}

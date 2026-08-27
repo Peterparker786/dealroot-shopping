@@ -2472,6 +2472,26 @@ export default function AccountModal({
                             <b>Total ₹{order.totalAmount}</b>
                           </footer>
 
+                          {order.paymentStatus === "refunded" && (
+                            <div className="order-refund-badge">
+                              ✅ Refund of ₹{order.totalAmount} has been
+                              initiated. It will reflect in your account within
+                              5-7 business days.
+                              {order.refundId && (
+                                <small>Refund ID: {order.refundId}</small>
+                              )}
+                            </div>
+                          )}
+
+                          {order.orderStatus === "cancelled" &&
+                            order.paymentStatus !== "refunded" &&
+                            order.paymentMethod === "razorpay" && (
+                              <div className="order-refund-badge pending">
+                                ⏳ Refund is being processed. You will receive
+                                an email once it is initiated.
+                              </div>
+                          )}
+
                           {(() => {
                             const returnInfo = returnInfoFor(order);
 
