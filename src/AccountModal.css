@@ -1360,6 +1360,28 @@ border-radius:18px;
 }
 
 /* ===================== RETURNS & REFUNDS (customer) ===================== */
+/* ─── Order Tracking Button ─── */
+.order-tracking-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #fff;
+  font-size: 13.5px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+.order-tracking-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+  color: #fff;
+}
+
 .return-open-btn {
   width: 100%;
   margin-top: 12px;

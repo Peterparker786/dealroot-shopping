@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Select from "react-select";
-import { FiPackage } from "react-icons/fi";
+import { FiPackage, FiTruck } from "react-icons/fi";
 import { optimizeImage } from "./utils/cloudinary";
 import {
   INDIAN_STATES,
@@ -2425,6 +2425,18 @@ export default function AccountModal({
                           </header>
 
                           <OrderTimeline order={order} />
+
+                          {order.trackingLink && (
+                            <a
+                              className="order-tracking-btn"
+                              href={order.trackingLink}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <FiTruck size={15} />
+                              Track Your Order
+                            </a>
+                          )}
 
                           <div className="history-items">
                             {order.items?.map((item) => (
