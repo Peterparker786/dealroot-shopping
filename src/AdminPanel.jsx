@@ -134,6 +134,7 @@ function AdminPanel({
     buyLinkTerms: "",
   });
   const [tryoutProductSaving, setTryoutProductSaving] = useState(false);
+  const [tryoutImageUploading, setTryoutImageUploading] = useState(false);
   // Email health check — shows whether the deployed server can send order
   // confirmation emails and lets the admin send a live test email.
   const [emailStatus, setEmailStatus] = useState(null);
@@ -1304,6 +1305,33 @@ function AdminPanel({
   // -------- Tryout product management (dedicated add) --------
   const updateTryoutProductForm = (field, value) => {
     setTryoutProductForm((current) => ({ ...current, [field]: value }));
+  };
+
+  const uploadTryoutImage = async (file) => {
+    if (!file) return;
+    try {
+      setTryoutImageUploading(true);
+      const formData = new FormData();
+      formData.append("images", file);
+      const response = await fetch(`${apiUrl}/api/upload`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Upload failed");
+      }
+      const imageUrl = data.images?.[0] || "";
+      if (imageUrl) {
+        updateTryoutProductForm("image", imageUrl);
+        showToast("Image uploaded");
+      }
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setTryoutImageUploading(false);
+    }
   };
 
   const saveTryoutProduct = async (event) => {
@@ -4027,14 +4055,52 @@ function AdminPanel({
                     />
                   </label>
                   <label className="tryout-product-form-full">
-                    Image URL
-                    <input
-                      value={tryoutProductForm.image}
-                      onChange={(e) =>
-                        updateTryoutProductForm("image", e.target.value)
-                      }
-                      placeholder="https://... (optional — upload from Products tab instead)"
-                    />
+                    Product photo
+                    <div className="tryout-image-upload-area">
+                      {tryoutProductForm.image ? (
+                        <div className="tryout-image-preview">
+                          <img
+                            src={tryoutProductForm.image}
+                            alt="Tryout product"
+                          />
+                          <button
+                            type="button"
+                            className="tryout-image-remove"
+                            onClick={() => updateTryoutProductForm("image", "")}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="tryout-image-dropzone">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            hidden
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) uploadTryoutImage(file);
+                              e.target.value = "";
+                            }}
+                          />
+                          {tryoutImageUploading ? (
+                            <span>⏳ Uploading...</span>
+                          ) : (
+                            <span>📷 Click to upload photo</span>
+                          )}
+                        </label>
+                      )}
+                    </div>
+                    <small style={{color:'#9ca3af',fontSize:12}}>
+                      Or paste a URL:{" "}
+                      <input
+                        type="text"
+                        value={tryoutProductForm.image}
+                        onChange={(e) => updateTryoutProductForm("image", e.target.value)}
+                        placeholder="https://..."
+                        style={{border:'1px solid #e5e7eb',borderRadius:8,padding:'4px 8px',fontSize:12,width:200}}
+                      />
+                    </small>
                   </label>
                   <label className="tryout-product-form-full">
                     Buy link (Amazon / Flipkart / any URL)

@@ -1129,6 +1129,56 @@
   cursor: wait;
 }
 
+/* Tracking link input */
+.tracking-input-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  align-items: center;
+}
+.tracking-input-row input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 12px;
+  min-width: 0;
+}
+.tracking-input-row input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+.save-tracking-btn {
+  padding: 6px 14px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.save-tracking-btn:hover {
+  background: #1d4ed8;
+}
+.save-tracking-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+.tracking-link-preview {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: #2563eb;
+  word-break: break-all;
+  text-decoration: none;
+}
+.tracking-link-preview:hover {
+  text-decoration: underline;
+}
+
 .order-badge {
   display: inline-block;
   margin-top: 3px;
@@ -2862,6 +2912,28 @@
   grid-column: 1 / -1;
   display: flex;
   gap: 10px;
+}
+.tryout-image-upload-area { margin-top: 6px; }
+.tryout-image-dropzone {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; min-height: 120px; border: 2px dashed #d1d5db;
+  border-radius: 12px; cursor: pointer; background: #fafafa;
+  font-size: 14px; color: #6b7280; transition: all 0.2s;
+}
+.tryout-image-dropzone:hover { border-color: #a78bfa; background: #f5f3ff; }
+.tryout-image-preview {
+  position: relative; display: inline-block; border-radius: 12px;
+  overflow: hidden; border: 1px solid #e5e7eb;
+}
+.tryout-image-preview img {
+  width: 180px; height: 180px; object-fit: cover; display: block;
+}
+.tryout-image-remove {
+  position: absolute; top: 6px; right: 6px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: #ef4444; color: #fff; border: none;
+  font-size: 12px; cursor: pointer; display: flex;
+  align-items: center; justify-content: center;
 }
 @media (max-width: 720px) {
   .tryout-product-form {
