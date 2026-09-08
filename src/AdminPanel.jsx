@@ -217,6 +217,10 @@ function AdminPanel({
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     };
+    // Auto-set JSON content-type when sending a string body.
+    if (typeof options.body === "string" && !headers["Content-Type"]) {
+      headers["Content-Type"] = "application/json";
+    }
 
     let response;
     let data;
