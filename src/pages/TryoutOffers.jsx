@@ -13,6 +13,7 @@ export default function TryoutOffers({
   setAccountOpen,
 }) {
   const navigate = useNavigate();
+  const [termsProduct, setTermsProduct] = useState(null);
   const [tryoutStatus, setTryoutStatus] = useState("loading");
 
   const tryoutProducts = (products && products.length
@@ -212,10 +213,14 @@ export default function TryoutOffers({
                   </div>
 
                   {product.buyLinkTerms?.trim() && (
-                    <div className="tryout-offer-terms-row">
+                    <button
+                      type="button"
+                      className="tryout-offer-terms-row"
+                      onClick={() => setTermsProduct(product)}
+                    >
                       <span>ℹ️</span>
-                      <small>{product.buyLinkTerms.trim()}</small>
-                    </div>
+                      <small>TERMS & CONDITIONS →</small>
+                    </button>
                   )}
 
                   {tryoutApproved ? (
@@ -271,6 +276,88 @@ export default function TryoutOffers({
       <div className="tryout-dash-help">
         <Link to="/tryouts">← Back to Tryouts</Link>
       </div>
+
+      {termsProduct && (
+        <div className="terms-overlay" onClick={() => setTermsProduct(null)}>
+          <div className="terms-modal" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="terms-close"
+              onClick={() => setTermsProduct(null)}
+            >
+              ✕
+            </button>
+            <div className="terms-left">
+              <span className="terms-exclusive-badge">EXCLUSIVE OFFER</span>
+              <div className="terms-product-img">
+                <img
+                  src={optimizeImage(
+                    termsProduct.images?.[0] || termsProduct.image,
+                    500
+                  )}
+                  alt={termsProduct.name}
+                  onError={(e) => { e.currentTarget.src = fallbackImage; }}
+                />
+              </div>
+              <p className="terms-brand">{(termsProduct.brand || "DEALROOT").toUpperCase()}</p>
+              <h3>{termsProduct.name}</h3>
+              <div className="terms-badges">
+                <span className="terms-cashback-tag">
+                  LESS ₹{(termsProduct.originalPrice || termsProduct.mrp || termsProduct.price) - termsProduct.price} CASHBACK
+                </span>
+                <span className="terms-cat-tag">
+                  {(termsProduct.category || "Beauty").toUpperCase()}
+                </span>
+              </div>
+            </div>
+            <div className="terms-right">
+              <h4>TERMS & CONDITIONS</h4>
+              <ul className="terms-list">
+                <li>Fill form in cashback summary after purchase</li>
+                <li>Submit rating within 10 days of delivery</li>
+                <li>Cashback credited after verification</li>
+              </ul>
+              {(() => {
+                const target = buyTarget(termsProduct);
+                const label = termsProduct.buyLinkLabel?.trim() || "Buy Now";
+                return target ? (
+                  <a
+                    href={target}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="terms-buy-btn"
+                  >
+                    {(termsProduct.brand || "DEALROOT").toUpperCase()} — {termsProduct.name.toUpperCase()}
+                    <span>→</span>
+                  </a>
+                ) : (
+                  <button
+                    type="button"
+                    className="terms-buy-btn"
+                    onClick={() => {
+                      setTermsProduct(null);
+                      if (termsProduct.stock > 0) addToCart(termsProduct);
+                    }}
+                  >
+                    {(termsProduct.brand || "DEALROOT").toUpperCase()} — {termsProduct.name.toUpperCase()}
+                    <span>→</span>
+                  </button>
+                );
+              })()}
+              <button
+                type="button"
+                className="terms-cancel"
+                onClick={() => setTermsProduct(null)}
+              >
+                CANCEL / GO BACK
+              </button>
+              <p className="terms-footer-text">
+                BY CLICKING YOU AGREE TO DEALROOT REWARD POLICY AND PARTNER BRAND TERMS.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
