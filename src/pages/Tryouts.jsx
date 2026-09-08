@@ -37,6 +37,7 @@ export default function Tryouts({
   const [tryoutSubmitting, setTryoutSubmitting] = useState(false);
   const [tryoutError, setTryoutError] = useState("");
   const [tryoutAgreed, setTryoutAgreed] = useState(false);
+  const [ineligiblePopup, setIneligiblePopup] = useState(false);
   const [tryoutIndex, setTryoutIndex] = useState(0);
   const navigate = useNavigate();
 
@@ -133,6 +134,14 @@ export default function Tryouts({
       setTryoutError(
         "Please accept the Terms & Conditions to continue"
       );
+      return;
+    }
+
+    if (
+      tryoutForm.previousProgram === "Freekamaal" ||
+      tryoutForm.previousProgram === "Trybox"
+    ) {
+      setIneligiblePopup(true);
       return;
     }
 
@@ -509,9 +518,14 @@ export default function Tryouts({
             Have you tried this program before?
             <select
               value={tryoutForm.previousProgram}
-              onChange={(e) =>
-                updateTryoutForm("previousProgram", e.target.value)
-              }
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "Freekamaal" || val === "Trybox") {
+                  setIneligiblePopup(true);
+                  return;
+                }
+                updateTryoutForm("previousProgram", val);
+              }}
             >
               <option value="">Select an option</option>
               <option value="Freekamaal">Freekamaal</option>
@@ -620,6 +634,27 @@ export default function Tryouts({
           >
             Apply now
           </button>
+        </div>
+      )}
+
+      {ineligiblePopup && (
+        <div className="tryout-ineligible-overlay" onClick={() => setIneligiblePopup(false)}>
+          <div className="tryout-ineligible-popup" onClick={(e) => e.stopPropagation()}>
+            <span className="tryout-ineligible-emoji">🚫</span>
+            <h3>Sorry, you are not eligible</h3>
+            <p>
+              This Tryout program is for <b>new users or first-time users only</b>.
+              If you have already tried Freekamaal or Trybox, we cannot accept
+              your application.
+            </p>
+            <button
+              type="button"
+              className="tryout-apply-btn"
+              onClick={() => setIneligiblePopup(false)}
+            >
+              OK, I understand
+            </button>
+          </div>
         </div>
       )}
 

@@ -1604,6 +1604,23 @@ img { max-width: 100%; display: block; }
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(124, 58, 237, 0.35);
 }
+.tryout-ineligible-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.tryout-ineligible-popup {
+  background: #fff; border-radius: 16px; padding: 36px 30px; max-width: 420px;
+  text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  animation: tryoutPopupIn 0.3s ease;
+}
+.tryout-ineligible-emoji { font-size: 48px; display: block; margin-bottom: 12px; }
+.tryout-ineligible-popup h3 { margin: 0 0 12px; font-size: 20px; color: #dc2626; }
+.tryout-ineligible-popup p { margin: 0 0 20px; font-size: 14px; color: #6b7280; line-height: 1.6; }
+@keyframes tryoutPopupIn {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
 .tryout-form {
   max-width: 560px;
   margin: 0 auto 30px;
