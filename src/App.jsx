@@ -731,17 +731,28 @@ function App() {
         { method: "DELETE" }
       );
 
+      // Remove from local state regardless of API response so the UI
+      // stays responsive — the category may only exist locally.
+      const next = categories.filter((c) => c.name !== name);
+      setCategories(next);
+      saveStoredCategories(next);
+
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.message || "Could not remove category");
+        // 404 means the category was only local — that's fine.
+        if (response.status !== 404) {
+          showToast(data.message || "Could not remove category from server");
+          return;
+        }
       }
 
+      showToast(`Category "${name}" removed`);
+    } catch (error) {
+      // Network error — still remove locally.
       const next = categories.filter((c) => c.name !== name);
       setCategories(next);
       saveStoredCategories(next);
       showToast(`Category "${name}" removed`);
-    } catch (error) {
-      showToast(error.message);
     }
   };
 
