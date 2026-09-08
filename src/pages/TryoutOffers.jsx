@@ -241,12 +241,6 @@ export default function TryoutOffers({
                                   ⚠️ {product.buyLinkTerms.trim()}
                                 </small>
                               )}
-                              <Link
-                                to={`/product/${product.id}`}
-                                className="tryout-offer-view"
-                              >
-                                View full details →
-                              </Link>
                             </>
                           );
                         }
@@ -262,12 +256,6 @@ export default function TryoutOffers({
                                 ? "Out of Stock"
                                 : "🛒 Buy now — Member price"}
                             </button>
-                            <Link
-                              to={`/product/${product.id}`}
-                              className="tryout-offer-view"
-                            >
-                              View full details →
-                            </Link>
                           </>
                         );
                       })()}
