@@ -213,7 +213,7 @@ useEffect(() => {
 
   const hasFreeDelivery =
     orderSubtotal === 0 || orderSubtotal >= 499;
-  const deliveryFee = hasFreeDelivery ? 0 : 49;
+  const deliveryFee = hasFreeDelivery ? 0 : 59;
   const deliveryLabel = deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`;
 const couponDiscount = discountAmount;
   const totalPayable = orderSubtotal - couponDiscount + deliveryFee;
