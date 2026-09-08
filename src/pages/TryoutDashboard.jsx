@@ -324,19 +324,19 @@ export default function TryoutDashboard({
       className: "tryout-stat-bag",
     },
     {
-      label: "Available Cashback",
+      label: "Total Available Cashback",
       value: `₹${(dashboard.cashbackAvailable || 0).toLocaleString("en-IN")}`,
       icon: "✅",
       className: "tryout-stat-green",
     },
     {
-      label: "Cashback Pending",
+      label: "Total Cashback Pending",
       value: `₹${(dashboard.cashbackPending || 0).toLocaleString("en-IN")}`,
       icon: "👛",
       className: "tryout-stat-blue",
     },
     {
-      label: "Cashback Received",
+      label: "Total Cashback Received",
       value: `₹${(dashboard.cashbackReceived || 0).toLocaleString("en-IN")}`,
       icon: "🏆",
       className: "tryout-stat-gold",
@@ -367,25 +367,18 @@ export default function TryoutDashboard({
 
   return (
     <main className="tryouts-page">
-      <div className="tryout-dash-page-head">
-        <span className="eyebrow blue">TRYOUT MEMBER DASHBOARD</span>
-        <h1>
-          Hello, <b>{user.name || "Member"}!</b>
-        </h1>
-        <p>
-          Manage your Tryout membership, track your claimed rewards and
-          browse the exclusive deals we open for you.
-        </p>
-      </div>
-
-      {/* Status ribbon */}
-      <div className={`tryout-dash-ribbon ${tryoutApproved ? "approved" : ""}`}>
-        <span className="tryout-dash-avatar">
-          {user.name?.charAt(0).toUpperCase() || "D"}
-        </span>
-        <div>
-          <b>Welcome, {user.name || "Member"}!</b>
-          <small>{statusText}</small>
+      {/* TryBoxes-style header: greeting left, status tabs right */}
+      <div className="tryout-dash-topbar">
+        <div className="tryout-dash-greet">
+          <h1>
+            Hello, <b>{user.name || "Member"}!</b>
+          </h1>
+          <p>Manage your Brand Vault and track your claimed rewards.</p>
+        </div>
+        <div className={`tryout-dash-tabs ${tryoutApproved ? "approved" : ""}`}>
+          <span className="tryout-dash-tab active">
+            {statusText.replace(/^[^\w₹]+/, "")}
+          </span>
         </div>
       </div>
 
@@ -405,67 +398,69 @@ export default function TryoutDashboard({
             ))}
           </div>
 
-          {/* Action buttons */}
+          {/* Action buttons — TryBoxes-style coloured grid */}
           <div className="tryout-action-row">
             <button
               type="button"
-              className="tryout-action-btn tryout-action-primary"
+              className="tryout-action-btn tryout-action-browse"
               onClick={() => navigate("/tryouts/offers")}
             >
-              🛍️ Browse Offers
+              <span className="tryout-action-ico">🛍️</span> Browse Offers
             </button>
             <button
               type="button"
-              className="tryout-action-btn tryout-action-ghost"
+              className="tryout-action-btn tryout-action-purchase"
               onClick={openPurchaseForm}
             >
-              📝 Submit Purchase Form
+              <span className="tryout-action-ico">📝</span> Submit Purchase
+              Form
             </button>
             <button
               type="button"
-              className="tryout-action-btn tryout-action-ghost"
+              className="tryout-action-btn tryout-action-refund"
               onClick={openRefundForm}
             >
-              📋 Submit Refund Form
+              <span className="tryout-action-ico">📋</span> Submit Refund Form
             </button>
             <button
               type="button"
-              className="tryout-action-btn tryout-action-ghost"
+              className="tryout-action-btn tryout-action-response"
               onClick={() => setResponsesOpen(true)}
             >
-              🕒 Form Response History
+              <span className="tryout-action-ico">🕒</span> Form Response
+              History
             </button>
             <button
               type="button"
-              className="tryout-action-btn tryout-action-dark"
+              className="tryout-action-btn tryout-action-withdraw"
               onClick={openWithdrawForm}
             >
-              💳 Withdrawal
+              <span className="tryout-action-ico">💳</span> Withdrawal
             </button>
           </div>
 
-          {/* Cashback history */}
+          {/* Cashback history — TryBoxes-style product cards */}
           <section className="tryout-cashback-section">
-            <div className="tryout-cashback-head">
-              <div>
-                <h3>🕒 Cashback History</h3>
-                <p>Every reward added by the DealRoot team, tracked here.</p>
-              </div>
+            <div className="tryout-cashback-titlebar">
+              <h2>
+                <span className="tryout-cashback-clock">🕒</span> CASHBACK
+                HISTORY
+              </h2>
               <div className="tryout-cashback-tools">
                 <input
                   type="search"
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search amount or note..."
+                  placeholder="Search Order ID or Product..."
                 />
                 <select
                   value={historyFilter}
                   onChange={(event) => setHistoryFilter(event.target.value)}
                 >
-                  <option value="all">All status</option>
-                  <option value="available">Available</option>
-                  <option value="pending">Pending</option>
-                  <option value="received">Received</option>
+                  <option value="all">ALL STATUS</option>
+                  <option value="available">AVAILABLE</option>
+                  <option value="pending">PENDING</option>
+                  <option value="received">RECEIVED</option>
                 </select>
               </div>
             </div>
@@ -493,15 +488,32 @@ export default function TryoutDashboard({
                         {statusLabel(entry.status)}
                       </span>
                     </div>
-                    <b className="tryout-cashback-amount">
-                      ₹{(entry.amount || 0).toLocaleString("en-IN")}
+                    <b className="tryout-cashback-product">
+                      {entry.productName || entry.note || "Tryout product"}
                     </b>
-                    {entry.note && (
-                      <p className="tryout-cashback-note">{entry.note}</p>
-                    )}
-                    <small className="tryout-cashback-date">
-                      {new Date(entry.createdAt).toLocaleString("en-IN")}
-                    </small>
+                    <div className="tryout-cashback-meta">
+                      <span>
+                        <small>CASHBACK</small>
+                        <b className="tryout-cashback-amount">
+                          ₹
+                          {(
+                            entry.amount || 0
+                          ).toLocaleString("en-IN")}
+                        </b>
+                      </span>
+                      <span>
+                        <small>CLAIM DATE</small>
+                        <b>
+                          {new Date(
+                            entry.createdAt
+                          ).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </b>
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -510,14 +522,11 @@ export default function TryoutDashboard({
 
           {/* Withdrawal history — every payout request, newest first */}
           <section className="tryout-withdraw-section">
-            <div className="tryout-cashback-head">
-              <div>
-                <h3>💳 Withdrawal History</h3>
-                <p>
-                  Every cashback payout you requested, with its live
-                  status.
-                </p>
-              </div>
+            <div className="tryout-cashback-titlebar">
+              <h2>
+                <span className="tryout-cashback-clock">💳</span> WITHDRAWAL
+                HISTORY
+              </h2>
             </div>
 
             {(dashboard.withdrawals || []).length === 0 ? (
