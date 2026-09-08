@@ -211,23 +211,10 @@ useEffect(() => {
     0
   );
 
-  const normalizedCity = form.city
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, " ");
-  const isKanpurAddress = normalizedCity.includes("kanpur");
-  const deliveryType = isKanpurAddress ? "local" : "courier";
   const hasFreeDelivery =
     orderSubtotal === 0 || orderSubtotal >= 499;
-  const deliveryFee =
-    hasFreeDelivery
-      ? 0
-      : isKanpurAddress
-      ? 29
-      : 49;
+  const deliveryFee = hasFreeDelivery ? 0 : 49;
   const deliveryLabel = deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`;
-  const kanpurDeliveryLabel = hasFreeDelivery ? "FREE" : "₹29";
-  const indiaDeliveryLabel = hasFreeDelivery ? "FREE" : "₹49";
 const couponDiscount = discountAmount;
   const totalPayable = orderSubtotal - couponDiscount + deliveryFee;
   const payableNow =
@@ -370,25 +357,7 @@ const remainingCod =
     });
   };
 
-  const selectDeliveryArea = (area) => {
-    setForm((current) => {
-      if (area === "kanpur") {
-        return {
-          ...current,
-          city: "Kanpur",
-        };
-      }
 
-      const currentCity = String(current.city || "")
-        .trim()
-        .toLowerCase();
-
-      return {
-        ...current,
-        city: currentCity.includes("kanpur") ? "" : current.city,
-      };
-    });
-  };
 
   const placeOrder = async (event) => {
     
@@ -446,7 +415,7 @@ const orderPayload = {
     productId: item._id || item.id,
     quantity: item.quantity,
   })),
-  deliveryType,
+  deliveryType: "courier",
   couponCode: appliedCoupon,
   paymentMethod:
     paymentMethod === "online"
@@ -850,55 +819,8 @@ const razorpayCheckout = new window.Razorpay({
             </section>
 
             <section className="checkout-card">
-              <h3>2. Delivery method</h3>
+              <h3>2. Payment method</h3>
 
-              <label
-                className={`choice-card ${
-                  isKanpurAddress ? "selected" : ""
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="delivery"
-                  checked={isKanpurAddress}
-                  onChange={() => selectDeliveryArea("kanpur")}
-                />
-                <span>
-                  <b>Kanpur local delivery</b>
-                  <small>
-                    {hasFreeDelivery
-                      ? "Free delivery on this order"
-                      : "Delivery charge ₹29 for Kanpur addresses"}
-                  </small>
-                </span>
-                <strong>{kanpurDeliveryLabel}</strong>
-              </label>
-
-              <label
-                className={`choice-card ${
-                  !isKanpurAddress ? "selected" : ""
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="delivery"
-                  checked={!isKanpurAddress}
-                  onChange={() => selectDeliveryArea("india")}
-                />
-                <span>
-                  <b>Other city in India</b>
-                  <small>
-                    {hasFreeDelivery
-                      ? "Free delivery on this order"
-                      : "Delivery charge ₹49 outside Kanpur"}
-                  </small>
-                </span>
-                <strong>{indiaDeliveryLabel}</strong>
-              </label>
-            </section>
-
-            <section className="checkout-card">
-              <h3>3. Payment method</h3>
 
               <label
                 className={`choice-card ${
@@ -952,7 +874,7 @@ const razorpayCheckout = new window.Razorpay({
 
             <div className="checkout-item">
               <span>
-                Delivery charge {isKanpurAddress ? "(Kanpur)" : "(India)"}
+                Delivery charge
               </span>
               <b>{deliveryLabel}</b>
             </div>
