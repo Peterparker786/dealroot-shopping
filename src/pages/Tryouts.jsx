@@ -147,7 +147,7 @@ export default function Tryouts({
         },
         body: JSON.stringify({
           ...tryoutForm,
-          replaceRejected: tryoutStatus === "rejected",
+          replaceRejected: tryoutStatus === "rejected" || tryoutStatus === "disqualified",
         }),
       });
 
