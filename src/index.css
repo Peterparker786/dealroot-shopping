@@ -2493,53 +2493,80 @@ img { max-width: 100%; display: block; }
   color: #8b93a7;
 }
 
-/* Withdrawal history — TryBoxes-style rows in the dashboard */
+/* Withdrawal history — TryBoxes-style table */
 .tryout-withdraw-section {
-  max-width: 880px;
+  max-width: 1040px;
   margin: 18px auto 0;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+.tryout-withdraw-table {
   background: #fff;
-  border: 1px solid #e8e4f2;
+  border: 1px solid #ece9f6;
   border-radius: 20px;
-  padding: 22px 24px;
+  overflow: hidden;
 }
-.tryout-withdraw-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.tryout-withdraw-item {
+.tryout-withdraw-thead {
   display: grid;
-  grid-template-columns: 1.4fr 1.7fr 0.9fr 1.1fr 1fr;
-  align-items: center;
-  gap: 12px;
-  border: 1px solid #eeeaf6;
-  border-radius: 14px;
-  padding: 12px 16px;
-  background: #fcfbff;
-  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
-}
-.tryout-withdraw-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(80, 60, 160, 0.1);
-}
-.tryout-withdraw-item small {
-  display: block;
-  font-size: 9px;
+  grid-template-columns: 1.2fr 1.5fr 0.9fr 1fr 1fr 1fr;
+  gap: 10px;
+  padding: 16px 24px;
+  background: #f4f3fb;
+  font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.6px;
-  color: #9ca3af;
   text-transform: uppercase;
-  margin-bottom: 3px;
+  color: #6b7280;
 }
-.tryout-withdraw-item b {
+.tryout-withdraw-trow {
+  display: grid;
+  grid-template-columns: 1.2fr 1.5fr 0.9fr 1fr 1fr 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 16px 24px;
+  border-top: 1px solid #f0eef8;
   font-size: 13px;
-  color: #1f2a4d;
-  word-break: break-word;
 }
-.tryout-withdraw-item-amt b {
-  font-size: 16px;
+.tryout-withdraw-tref {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  word-break: break-all;
+}
+.tryout-withdraw-tupi {
+  color: #6b7280;
+  word-break: break-all;
+}
+.tryout-withdraw-tamt {
+  font-size: 17px;
   font-weight: 900;
+  color: #6d28d9;
+  font-variant-numeric: tabular-nums;
+}
+.tryout-withdraw-tdate {
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+}
+.tryout-withdraw-query {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid #e2e0ec;
+  border-radius: 999px;
+  background: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
   color: #4c1d95;
+  cursor: pointer;
+  transition: background 0.15s var(--ease), box-shadow 0.15s var(--ease);
+}
+.tryout-withdraw-query:hover {
+  background: #faf9ff;
+  box-shadow: 0 4px 12px rgba(80, 60, 160, 0.12);
 }
 .tryout-withdraw-badge {
   display: inline-block;
@@ -2578,11 +2605,15 @@ img { max-width: 100%; display: block; }
   .tryout-action-row {
     grid-template-columns: 1fr;
   }
-  .tryout-withdraw-item {
+  .tryout-withdraw-thead {
+    display: none;
+  }
+  .tryout-withdraw-trow {
     grid-template-columns: 1fr 1fr;
     gap: 10px 14px;
+    padding: 14px 16px;
   }
-  .tryout-withdraw-item-status {
+  .tryout-withdraw-trow > span:last-child {
     grid-column: 1 / -1;
   }
   .tryout-cashback-tools {

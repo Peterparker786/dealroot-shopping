@@ -520,11 +520,11 @@ export default function TryoutDashboard({
             )}
           </section>
 
-          {/* Withdrawal history — every payout request, newest first */}
+          {/* Withdrawal history — TryBoxes-style table */}
           <section className="tryout-withdraw-section">
             <div className="tryout-cashback-titlebar">
               <h2>
-                <span className="tryout-cashback-clock">💳</span> WITHDRAWAL
+                <span className="tryout-cashback-clock">🕒</span> WITHDRAWAL
                 HISTORY
               </h2>
             </div>
@@ -539,56 +539,62 @@ export default function TryoutDashboard({
                 </p>
               </div>
             ) : (
-              <div className="tryout-withdraw-list">
+              <div className="tryout-withdraw-table">
+                <div className="tryout-withdraw-thead">
+                  <span>REFERENCE ID</span>
+                  <span>WITHDRAWAL UPI</span>
+                  <span>AMOUNT</span>
+                  <span>STATUS</span>
+                  <span>DATE</span>
+                  <span>ACTION</span>
+                </div>
                 {(dashboard.withdrawals || []).map((entry) => (
                   <div
-                    className="tryout-withdraw-item"
+                    className="tryout-withdraw-trow"
                     key={entry._id}
                   >
-                    <div className="tryout-withdraw-item-ref">
-                      <small>REFERENCE ID</small>
-                      <b>
-                        {entry.referenceId ||
-                          `REQ_${String(entry._id)
-                            .slice(-8)
-                            .toUpperCase()}`}
-                      </b>
-                    </div>
-                    <div className="tryout-withdraw-item-upi">
-                      <small>WITHDRAWAL UPI</small>
-                      <b>{entry.upiId || "—"}</b>
-                    </div>
-                    <div className="tryout-withdraw-item-amt">
-                      <small>AMOUNT</small>
-                      <b>
-                        ₹
-                        {(entry.amount || 0).toLocaleString("en-IN")}
-                      </b>
-                    </div>
-                    <div className="tryout-withdraw-item-status">
-                      <small>STATUS</small>
+                    <span className="tryout-withdraw-tref">
+                      {entry.referenceId ||
+                        `REQ_${String(entry._id)
+                          .slice(-8)
+                          .toUpperCase()}`}
+                    </span>
+                    <span className="tryout-withdraw-tupi">
+                      {entry.upiId || "—"}
+                    </span>
+                    <span className="tryout-withdraw-tamt">
+                      ₹
+                      {(entry.amount || 0).toLocaleString("en-IN")}
+                    </span>
+                    <span>
                       <span
                         className={`tryout-withdraw-badge ${entry.status}`}
                       >
                         {entry.status === "paid"
-                          ? "SUCCESSFUL"
+                          ? "SETTLED"
                           : entry.status === "rejected"
                           ? "REJECTED"
-                          : "PROCESSING"}
+                          : "PENDING"}
                       </span>
-                    </div>
-                    <div className="tryout-withdraw-item-date">
-                      <small>DATE</small>
-                      <b>
-                        {new Date(
-                          entry.processedAt || entry.requestedAt
-                        ).toLocaleDateString("en-IN", {
-                          day: "numeric",
-                          month: "short",
-                          year: "numeric",
-                        })}
-                      </b>
-                    </div>
+                    </span>
+                    <span className="tryout-withdraw-tdate">
+                      {new Date(
+                        entry.processedAt || entry.requestedAt
+                      ).toLocaleDateString("en-IN")}
+                    </span>
+                    <span>
+                      <button
+                        type="button"
+                        className="tryout-withdraw-query"
+                        onClick={() =>
+                          showToast?.(
+                            "For any withdrawal query, WhatsApp us at +91-9000000000 with your reference ID."
+                          )
+                        }
+                      >
+                        ? Raise Query
+                      </button>
+                    </span>
                   </div>
                 ))}
               </div>
