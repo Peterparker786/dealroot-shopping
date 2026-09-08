@@ -37,6 +37,7 @@ export default function ProductDetails({
   wishlist,
   fallbackImage,
   showToast,
+  userToken,
 }) {
   const { id } = useParams();
   const [selectedImage, setSelectedImage] = useState("");
@@ -115,7 +116,7 @@ export default function ProductDetails({
     loadProduct();
     loadReviews();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, userToken]);
 
   // Track recently viewed products in localStorage for personalized suggestions.
   useEffect(() => {
@@ -155,7 +156,11 @@ export default function ProductDetails({
   async function loadProduct() {
     try {
       setLoading(true);
-      const response = await fetch(`${apiUrl}/api/products/${id}`);
+      const response = await fetch(`${apiUrl}/api/products/${id}`, {
+        headers: userToken
+          ? { Authorization: `Bearer ${userToken}` }
+          : undefined,
+      });
       const data = await response.json();
 
       if (!response.ok || !data.success) throw new Error();

@@ -409,7 +409,12 @@ function App() {
       }
 
       const response = await fetch(
-        `${API_URL}/api/products${query ? `?${query}` : ""}`
+        `${API_URL}/api/products${query ? `?${query}` : ""}`,
+        {
+          headers: userToken
+            ? { Authorization: `Bearer ${userToken}` }
+            : undefined,
+        }
       );
 
       const data = await response.json();
@@ -462,7 +467,7 @@ function App() {
     } finally {
       setLoadingProducts(false);
     }
-  }, [activeCategory, activeDeal, search]);
+  }, [activeCategory, activeDeal, search, userToken]);
 
   useEffect(() => {
     const timer = window.setTimeout(loadProducts, 300);
@@ -1022,6 +1027,7 @@ function App() {
       fallbackImage={fallbackImage}
       showToast={showToast}
       user={user}
+      userToken={userToken}
     />
   }
 />  
