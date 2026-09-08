@@ -197,6 +197,7 @@ function AdminPanel({
   const [previewDraft, setPreviewDraft] = useState(null);
 
   const [tab, setTab] = useState("dashboard");
+  const [tryoutSubTab, setTryoutSubTab] = useState("applications");
   const [showProductForm, setShowProductForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -3290,22 +3291,29 @@ function AdminPanel({
               <section className="admin-tab-head">
                 <div>
                   <p>DEALROOT TRYOUTS</p>
-                  <h2>Tryout applications & member deals</h2>
+                  <h2>Tryout Management</h2>
                 </div>
 
                 <button
                   className="admin-refresh"
                   onClick={loadApplications}
                 >
-                  <FiRefreshCw /> Refresh applications
+                  <FiRefreshCw /> Refresh
                 </button>
               </section>
 
+              <div className="tryout-subtabs">
+                <button type="button" className={`tryout-subtab ${tryoutSubTab === 'applications' ? 'active' : ''}`} onClick={() => setTryoutSubTab('applications')}>📋 Applications ({applications.filter(a => a.status === 'pending').length})</button>
+                <button type="button" className={`tryout-subtab ${tryoutSubTab === 'members' ? 'active' : ''}`} onClick={() => setTryoutSubTab('members')}>👥 Members ({applications.filter(a => a.status === 'approved').length})</button>
+                <button type="button" className={`tryout-subtab ${tryoutSubTab === 'products' ? 'active' : ''}`} onClick={() => setTryoutSubTab('products')}>🛍️ Products ({tryoutOnlyProducts.length})</button>
+              </div>
+
+              {tryoutSubTab === 'applications' && (
               <section className="admin-products-card">
                 <div className="admin-section-title">
                   <div>
-                    <p>MEMBER APPLICATIONS</p>
-                    <h2>Applications ({applications.length})</h2>
+                    <p>PENDING APPLICATIONS</p>
+                    <h2>New Applications ({applications.filter(a => a.status === 'pending').length})</h2>
                   </div>
                 </div>
 
@@ -3318,11 +3326,9 @@ function AdminPanel({
                   </div>
                 ) : (
                   <div className="returns-list">
-                    {applications.map((item) => (
+                    {applications.filter(a => a.status === "pending").map((item) => (
                       <article
-                        className={`return-card ${
-                          item.status === "pending" ? "is-pending" : ""
-                        }`}
+                        className="return-card is-pending"
                         key={item._id}
                       >
                         <header className="return-card-head">
@@ -3983,7 +3989,96 @@ function AdminPanel({
                   </div>
                 )}
               </section>
+              )}
 
+              {tryoutSubTab === 'members' && (
+              <section className="admin-products-card">
+                <div className="admin-section-title">
+                  <div>
+                    <p>APPROVED MEMBERS</p>
+                    <h2>Active Members ({applications.filter(a => a.status === 'approved').length})</h2>
+                  </div>
+                </div>
+                {applications.filter(a => a.status === 'approved').length === 0 ? (
+                  <div className="admin-empty">No approved members yet.</div>
+                ) : (
+                  <div className="returns-list">
+                    {applications.filter(a => a.status === 'approved').map((item) => (
+                      <article className="return-card" key={item._id}>
+                        <header className="return-card-head">
+                          <div>
+                            <b>{item.name}</b>
+                            <small>{item.email} · {item.phone}</small>
+                          </div>
+                          <span className="return-badge return-badge-approved">Approved</span>
+                        </header>
+                        <div className="return-details">
+                          <span><b>City:</b> {item.city}, {item.state}</span>
+                          <span><b>Applied:</b> {new Date(item.requestedAt).toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="tryout-member-stats">
+                          <div className="tryout-stat-box">
+                            <span className="tryout-stat-val">₹{item.cashbackAvailable || 0}</span>
+                            <span className="tryout-stat-lbl">Available</span>
+                          </div>
+                          <div className="tryout-stat-box">
+                            <span className="tryout-stat-val">₹{item.cashbackPending || 0}</span>
+                            <span className="tryout-stat-lbl">Pending</span>
+                          </div>
+                          <div className="tryout-stat-box">
+                            <span className="tryout-stat-val">₹{item.cashbackReceived || 0}</span>
+                            <span className="tryout-stat-lbl">Received</span>
+                          </div>
+                        </div>
+                        {(item.cashbackHistory || []).length > 0 && (
+                          <div className="tryout-cashback-entries">
+                            {(item.cashbackHistory || []).slice().reverse().map((entry) => (
+                              <div className="tryout-cashback-entry" key={entry._id}>
+                                <span className={`tryout-cb-badge ${entry.status}`}>{entry.status.toUpperCase()}</span>
+                                <b>₹{entry.amount}</b>
+                                {entry.note && <small>{entry.note}</small>}
+                                {entry.status === 'pending' && (
+                                  <button type="button" className="tryout-cb-move tryout-cb-confirm" disabled={tryoutProcessingId === `${item._id}-cb`} onClick={() => updateCashbackStatus(item, entry._id, 'available')}>✓ Confirm</button>
+                                )}
+                                {entry.status === 'available' && (
+                                  <button type="button" className="tryout-cb-move" disabled={tryoutProcessingId === `${item._id}-cb`} onClick={() => updateCashbackStatus(item, entry._id, 'received')}>→ Received</button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        {(item.withdrawals || []).length > 0 && (
+                          <div className="tryout-pf-section">
+                            <b className="tryout-pf-title">💳 Withdrawals</b>
+                            {(item.withdrawals || []).slice().reverse().map((entry) => (
+                              <div className="tryout-withdraw-admin" key={entry._id}>
+                                <div className="tryout-pf-top">
+                                  <span className={`tryout-responses-badge ${entry.status}`}>{String(entry.status || 'requested').toUpperCase()}</span>
+                                  <small>{new Date(entry.requestedAt).toLocaleString('en-IN')}</small>
+                                </div>
+                                <div className="tryout-pf-details">
+                                  <span><b>Amount:</b> ₹{entry.amount}</span>
+                                  <span><b>UPI:</b> {entry.upiId || '—'}</span>
+                                </div>
+                                {entry.status === 'requested' && (
+                                  <div className="tryout-withdraw-admin-actions">
+                                    <button type="button" className="return-approve-btn" disabled={tryoutWithdrawId === `${item._id}-${entry._id}`} onClick={() => processWithdrawal(item, entry._id, 'paid')}>✅ Mark as paid</button>
+                                    <button type="button" className="return-reject-btn" disabled={tryoutWithdrawId === `${item._id}-${entry._id}`} onClick={() => processWithdrawal(item, entry._id, 'rejected')}>❌ Reject</button>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+              )}
+
+              {tryoutSubTab === 'products' && (
+              <>
               <section className="admin-products-card">
                 <div className="admin-section-title">
                   <div>
@@ -4251,6 +4346,8 @@ function AdminPanel({
                   </div>
                 )}
               </section>
+              </>
+              )}
             </div>
           )}
 
