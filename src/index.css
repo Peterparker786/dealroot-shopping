@@ -2925,55 +2925,79 @@ img { max-width: 100%; display: block; }
 }
 .tryout-offers-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 20px;
-  max-width: 980px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 .tryout-offer-card {
   background: #fff;
   border: 1px solid #e8e4f2;
-  border-radius: 18px;
+  border-radius: 14px;
   overflow: hidden;
-  transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
 }
 .tryout-offer-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 16px 36px rgba(80, 60, 160, 0.14);
+  box-shadow: 0 12px 32px rgba(80, 60, 160, 0.12);
 }
 .tryout-offer-card.is-locked {
   border-color: #eee7d8;
 }
 .tryout-offer-img {
   position: relative;
-  height: 230px;
+  height: 220px;
   background: linear-gradient(160deg, #faf9ff, #fdf0f6);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 18px;
+  padding: 16px;
 }
 .tryout-offer-img img {
   max-height: 100%;
   max-width: 100%;
   object-fit: contain;
 }
-.tryout-offer-discount {
+.tryout-cashback-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: #5135ff;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 5px 10px;
+  border-radius: 6px;
+  letter-spacing: 0.3px;
+}
+.tryout-category-tag {
   position: absolute;
   bottom: 10px;
-  right: 10px;
-  background: #e11d48;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
+  left: 10px;
+  background: rgba(255,255,255,0.92);
+  color: #1f2a4d;
+  font-size: 10px;
+  font-weight: 700;
   padding: 4px 10px;
-  border-radius: 999px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  border: 1px solid #e5e7eb;
 }
 .tryout-offer-body {
-  padding: 18px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+  flex: 1;
+}
+.tryout-brand {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  letter-spacing: 0.5px;
+  margin: 0;
 }
 .tryout-offer-body h3 {
   font-size: 15px;
@@ -2984,47 +3008,78 @@ img { max-width: 100%; display: block; }
 }
 .tryout-offer-body h3 a {
   color: inherit;
+  text-decoration: none;
 }
-.tryout-offer-features {
-  margin: 2px 0;
-  flex-wrap: wrap;
+.tryout-offer-body h3 a:hover {
+  color: #5135ff;
 }
-.tryout-offer-price-row {
-  margin: 2px 0;
+.tryout-price-columns {
+  display: flex;
+  gap: 12px;
+  margin: 6px 0;
 }
-.tryout-offer-view {
-  text-align: center;
-  font-size: 12.5px;
+.tryout-price-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tryout-price-label {
+  font-size: 9px;
   font-weight: 700;
-  color: #7c3aed;
+  color: #9ca3af;
+  letter-spacing: 0.5px;
 }
-.tryout-offer-view:hover {
-  text-decoration: underline;
+.tryout-price-value {
+  font-size: 16px;
+  font-weight: 800;
+  color: #1f2a4d;
+}
+.tryout-price-final .tryout-price-value {
+  color: #5135ff;
+}
+.tryout-offer-terms-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.4;
+  padding: 6px 0;
+  border-top: 1px solid #f3f4f6;
+}
+.tryout-buy-btn {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: auto;
 }
 .tryout-buy-link {
   display: block;
+  width: 100%;
   text-align: center;
   text-decoration: none;
-  background: linear-gradient(135deg, #5135ff, #7c3aed);
+  padding: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1f2a4d, #374151);
+  color: #fff;
 }
 .tryout-buy-link:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 22px rgba(81, 53, 255, 0.35);
-}
-.tryout-offer-terms {
-  display: block;
-  text-align: center;
-  font-size: 11px;
-  color: #b45309;
-  background: #fff7e6;
-  border: 1px solid #ffd591;
-  border-radius: 8px;
-  padding: 6px 10px;
-  line-height: 1.45;
+  box-shadow: 0 8px 20px rgba(31, 42, 77, 0.3);
 }
 @media (max-width: 640px) {
   .tryout-offers-grid {
     grid-template-columns: 1fr;
+    max-width: 400px;
   }
 }
 

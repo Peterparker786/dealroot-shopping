@@ -130,6 +130,8 @@ export default function TryoutOffers({
         <div className="tryout-offers-grid">
           {tryoutProducts.map((product) => {
             const d = discount(product);
+            const sellingPrice = product.originalPrice || product.mrp || product.price;
+            const finalCost = product.price;
             return (
               <article
                 className={`tryout-offer-card ${
@@ -139,8 +141,10 @@ export default function TryoutOffers({
               >
                 <div className="tryout-offer-img">
                   <span className="tryout-badge">TRYOUT PICK</span>
-                  {!tryoutApproved && (
-                    <span className="tryout-poster-lock">🔒 Member only</span>
+                  {d > 0 && (
+                    <span className="tryout-cashback-badge">
+                      LESS ₹{sellingPrice - finalCost} CASHBACK
+                    </span>
                   )}
                   {(() => {
                     const target = buyTarget(product);
@@ -170,13 +174,13 @@ export default function TryoutOffers({
                       <Link to={`/product/${product.id}`}>{image}</Link>
                     );
                   })()}
-                  {d > 0 && (
-                    <span className="tryout-offer-discount">{d}% OFF</span>
-                  )}
+                  <span className="tryout-category-tag">
+                    {(product.category || "Beauty").toUpperCase()}
+                  </span>
                 </div>
 
                 <div className="tryout-offer-body">
-                  <p className="tryout-brand">{product.brand}</p>
+                  <p className="tryout-brand">{(product.brand || "DEALROOT").toUpperCase()}</p>
                   <h3>
                     {(() => {
                       const target = buyTarget(product);
@@ -196,28 +200,23 @@ export default function TryoutOffers({
                     })()}
                   </h3>
 
-                  <div className="tryout-poster-rating">
-                    ★ <b>{product.rating}</b> ({product.reviews})
-                  </div>
-
-                  <div className="tryout-poster-features tryout-offer-features">
-                    <span className="tryout-poster-feature">✅ 100% Original</span>
-                    <span className="tryout-poster-feature">💸 Member Price</span>
-                    <span className="tryout-poster-feature">🚚 Fast Delivery</span>
-                    <span className="tryout-poster-feature">🔄 Easy Returns</span>
-                  </div>
-
-                  <div className="tryout-offer-price-row">
-                    <div className="tryout-price">
-                      <strong>₹{product.price}</strong>
-                      {product.originalPrice > product.price && (
-                        <del>₹{product.originalPrice}</del>
-                      )}
-                      {d > 0 && (
-                        <span className="tryout-discount">{d}% off</span>
-                      )}
+                  <div className="tryout-price-columns">
+                    <div className="tryout-price-col">
+                      <span className="tryout-price-label">SELLING PRICE</span>
+                      <span className="tryout-price-value">₹{sellingPrice}</span>
+                    </div>
+                    <div className="tryout-price-col tryout-price-final">
+                      <span className="tryout-price-label">FINAL COST</span>
+                      <span className="tryout-price-value">₹{finalCost}</span>
                     </div>
                   </div>
+
+                  {product.buyLinkTerms?.trim() && (
+                    <div className="tryout-offer-terms-row">
+                      <span>ℹ️</span>
+                      <small>{product.buyLinkTerms.trim()}</small>
+                    </div>
+                  )}
 
                   {tryoutApproved ? (
                     <>
@@ -227,36 +226,27 @@ export default function TryoutOffers({
                           product.buyLinkLabel?.trim() || "Buy Now";
                         if (target) {
                           return (
-                            <>
-                              <a
-                                href={target}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="tryout-buy-btn tryout-buy-link"
-                              >
-                                🛒 {label}
-                              </a>
-                              {product.buyLinkTerms?.trim() && (
-                                <small className="tryout-offer-terms">
-                                  ⚠️ {product.buyLinkTerms.trim()}
-                                </small>
-                              )}
-                            </>
+                            <a
+                              href={target}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="tryout-buy-btn tryout-buy-link"
+                            >
+                              {label} →
+                            </a>
                           );
                         }
                         return (
-                          <>
-                            <button
-                              type="button"
-                              className="tryout-buy-btn"
-                              disabled={product.stock <= 0}
-                              onClick={() => addToCart(product)}
-                            >
-                              {product.stock <= 0
-                                ? "Out of Stock"
-                                : "🛒 Buy now — Member price"}
-                            </button>
-                          </>
+                          <button
+                            type="button"
+                            className="tryout-buy-btn"
+                            disabled={product.stock <= 0}
+                            onClick={() => addToCart(product)}
+                          >
+                            {product.stock <= 0
+                              ? "Out of Stock"
+                              : "🛒 Buy now — Member price"}
+                          </button>
                         );
                       })()}
                     </>
