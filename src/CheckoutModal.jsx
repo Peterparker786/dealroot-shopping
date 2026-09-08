@@ -1019,17 +1019,12 @@ const razorpayCheckout = new window.Razorpay({
 </div>
 
 {paymentMethod === "cod" && (
-  <>
-    <div className="checkout-item">
-      <span>Pay Now (Delivery Charge)</span>
-      <b>₹{payableNow}</b>
-    </div>
-
-    <div className="checkout-item">
-      <span>Remaining COD</span>
-      <b>₹{remainingCod}</b>
-    </div>
-  </>
+  <div className="checkout-item cod-info">
+    <span>
+      ₹{payableNow} delivery charge paid now online.
+      ₹{remainingCod} collected at doorstep.
+    </span>
+  </div>
 )}
 
             <button

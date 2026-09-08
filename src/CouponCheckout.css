@@ -729,6 +729,12 @@ box-shadow:0 20px 45px rgba(124,58,237,.35);
   color: #0f172a;
 }
 
+.cod-info span {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.5;
+}
+
 .checkout-total {
   margin-top: 18px;
   padding-top: 16px;
