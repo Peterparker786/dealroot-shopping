@@ -3122,6 +3122,9 @@ function AdminPanel({
                             <td data-label="Customer">
                               <b>{order.customer?.name}</b>
                               <small>{order.customer?.phone}</small>
+                              {order.customer?.email && (
+                                <small>{order.customer?.email}</small>
+                              )}
                               <small>
                                 {order.customer?.address}, {order.customer?.city} -{" "}
                                 {order.customer?.pincode}
