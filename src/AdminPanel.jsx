@@ -3859,7 +3859,26 @@ function AdminPanel({
                                       </span>
                                       <b>₹{entry.amount}</b>
                                       {entry.note && <small>{entry.note}</small>}
-                                      {entry.status !== "received" && (
+                                      {entry.status === "pending" && (
+                                        <button
+                                          type="button"
+                                          className="tryout-cb-move tryout-cb-confirm"
+                                          disabled={
+                                            tryoutProcessingId ===
+                                            `${item._id}-cb`
+                                          }
+                                          onClick={() =>
+                                            updateCashbackStatus(
+                                              item,
+                                              entry._id,
+                                              "available"
+                                            )
+                                          }
+                                        >
+                                          ✓ Confirm (make available)
+                                        </button>
+                                      )}
+                                      {entry.status === "available" && (
                                         <button
                                           type="button"
                                           className="tryout-cb-move"
@@ -3871,15 +3890,11 @@ function AdminPanel({
                                             updateCashbackStatus(
                                               item,
                                               entry._id,
-                                              entry.status === "available"
-                                                ? "pending"
-                                                : "received"
+                                              "received"
                                             )
                                           }
                                         >
-                                          {entry.status === "available"
-                                            ? "→ Pending"
-                                            : "→ Received"}
+                                          → Mark as received
                                         </button>
                                       )}
                                     </div>

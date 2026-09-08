@@ -2856,6 +2856,14 @@
   opacity: 0.6;
   cursor: default;
 }
+.tryout-cb-confirm {
+  background: #059669;
+  color: #fff;
+  border-color: #059669;
+}
+.tryout-cb-confirm:hover:not(:disabled) {
+  background: #047857;
+}
 .tryout-cashback-form {
   display: flex;
   flex-direction: column;
