@@ -2962,8 +2962,8 @@ img { max-width: 100%; display: block; }
 }
 .tryout-cashback-badge {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 10px;
+  right: 10px;
   background: #5135ff;
   color: #fff;
   font-size: 10px;
@@ -2971,6 +2971,7 @@ img { max-width: 100%; display: block; }
   padding: 5px 10px;
   border-radius: 6px;
   letter-spacing: 0.3px;
+  z-index: 2;
 }
 .tryout-category-tag {
   position: absolute;
