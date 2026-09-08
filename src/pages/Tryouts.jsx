@@ -403,33 +403,8 @@ export default function Tryouts({
             Apply again
           </button>
         </div>
-      ) : tryoutStatus === "disqualified" ? (
-        <div className="tryout-status-card tryout-rejected">
-          <span className="tryout-status-emoji">🚫</span>
-          <h3>Your Tryout membership was disqualified</h3>
-          <p>
-            Your membership was revoked by our team, so your Tryout deals are
-            locked. You can apply again if you would like to rejoin the
-            program.
-          </p>
-          <button
-            type="button"
-            className="tryout-apply-btn"
-            onClick={openTryoutApply}
-          >
-            Apply again
-          </button>
-        </div>
-      ) : tryoutApproved ? (
-        <div className="tryout-status-card tryout-approved">
-          <span className="tryout-status-emoji">🎉</span>
-          <h3>You are a Tryout member!</h3>
-          <p>
-            Welcome to the club! You can now buy exclusive Tryout deals below
-            at special member prices.
-          </p>
-        </div>
       ) : tryoutApplyOpen ? (
+        /* Form always shows first when open — even for disqualified users */
         <form className="tryout-form" onSubmit={submitTryoutApply}>
           <div className="tryout-form-head">
             <b>Apply for Dealroot Tryouts</b>
@@ -604,6 +579,32 @@ export default function Tryouts({
             </button>
           </div>
         </form>
+      ) : tryoutStatus === "disqualified" ? (
+        <div className="tryout-status-card tryout-rejected">
+          <span className="tryout-status-emoji">🚫</span>
+          <h3>Your Tryout membership was disqualified</h3>
+          <p>
+            Your membership was revoked by our team, so your Tryout deals are
+            locked. You can apply again if you would like to rejoin the
+            program.
+          </p>
+          <button
+            type="button"
+            className="tryout-apply-btn"
+            onClick={openTryoutApply}
+          >
+            Apply again
+          </button>
+        </div>
+      ) : tryoutApproved ? (
+        <div className="tryout-status-card tryout-approved">
+          <span className="tryout-status-emoji">🎉</span>
+          <h3>You are a Tryout member!</h3>
+          <p>
+            Welcome to the club! You can now buy exclusive Tryout deals below
+            at special member prices.
+          </p>
+        </div>
       ) : (
         <div className="tryout-status-card tryout-locked">
           <span className="tryout-status-emoji">📝</span>
