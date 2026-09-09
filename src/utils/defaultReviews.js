@@ -45,6 +45,12 @@ const REVIEWERS = [
   { name: "Kavita Singh", rating: 5, days: 3, helpful: 52 },
 ];
 
+// How many placeholder reviews getDefaultReviews() renders. Anywhere that
+// shows a "(N Reviews)" count next to the rating needs to fall back to
+// this same number when product.reviews hasn't been set — otherwise the
+// count badge says "(0 Reviews)" right above a list of 6 visible reviews.
+export const DEFAULT_REVIEW_COUNT = REVIEWERS.length;
+
 function daysAgo(n) {
   return new Date(Date.now() - n * 86400000).toLocaleDateString("en-IN", {
     day: "numeric",

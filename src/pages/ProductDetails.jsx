@@ -268,8 +268,12 @@ export default function ProductDetails({
 
   // Single source of truth for the rating header: the admin-set fields, so
   // the storefront cards and the product page always show the same numbers.
+  // If the admin hasn't set a review count (still the default 0), fall
+  // back to how many reviews are actually being displayed below — that
+  // was the "4.5 ⭐ (0 Reviews)" glitch: real cards showing, count at 0.
   const ratingShown = Number(product.rating || 0);
-  const reviewCountShown = Number(product.reviews || 0);
+  const reviewCountShown =
+    Number(product.reviews) > 0 ? Number(product.reviews) : displayReviews.length;
 
   return (
     <>

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { FiArrowRight, FiClock, FiTruck, FiRefreshCw, FiShield, FiTag, FiAward, FiZap } from "react-icons/fi";
 import { useEffect, useMemo, useState } from "react";
 import { optimizeImage } from "../utils/cloudinary";
+import { DEFAULT_REVIEW_COUNT } from "../utils/defaultReviews";
 
 export default function Home({
   fallbackImage,
@@ -225,7 +226,7 @@ export default function Home({
                     <div className="flash-card-brand">{product.brand}</div>
                     <div className="flash-card-title">{product.name}</div>
                     <div className="flash-card-rating">
-                      ★ <b>{product.rating}</b> ({product.reviews})
+                      ★ <b>{product.rating}</b> ({Number(product.reviews) > 0 ? product.reviews : DEFAULT_REVIEW_COUNT})
                     </div>
                     <div className="flash-card-price">
                       <strong>₹{product.price}</strong>
@@ -436,7 +437,7 @@ export default function Home({
                     <h3><Link to={`/product/${product.id}`}>{product.name}</Link></h3>
                     <div className="rating">
                       <span className="stars-filled">{'★'.repeat(Math.round(Number(product.rating) || 0))}</span><span className="stars-empty">{'☆'.repeat(5 - Math.round(Number(product.rating) || 0))}</span>
-                      <span className="rating-count"> ({product.reviews})</span>
+                      <span className="rating-count"> ({Number(product.reviews) > 0 ? product.reviews : DEFAULT_REVIEW_COUNT})</span>
                     </div>
                     <div className="price-row">
                       <strong className="price-current">₹{product.price}</strong>
