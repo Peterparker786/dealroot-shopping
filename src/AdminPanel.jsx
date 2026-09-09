@@ -104,6 +104,8 @@ function AdminPanel({
     open: "",
     amount: "",
     note: "",
+    productName: "",
+    trackId: "",
   });
   // When the admin verifies a purchase/refund form via "Verify & Add
   // Cashback", we mark that form verified right after the cashback is added.
@@ -121,6 +123,8 @@ function AdminPanel({
   const [refundShippingFees, setRefundShippingFees] = useState({});
   // Processing a withdrawal request (paid / rejected).
   const [tryoutWithdrawId, setTryoutWithdrawId] = useState("");
+  // Expanded member card in Tryouts → Members (click name to open).
+  const [expandedMemberId, setExpandedMemberId] = useState("");
   const [tryoutProductForm, setTryoutProductForm] = useState({
     brand: "",
     title: "",
@@ -1238,9 +1242,7 @@ function AdminPanel({
 
       const data = await request(
         `${apiUrl}/api/tryouts/${item._id}/approve`,
-        {
-          method: "POST",
-        }
+        { method: "POST" }
       );
 
       setApplications((current) =>
@@ -1443,11 +1445,6 @@ function AdminPanel({
   );
 
   // -------- Tryout cashback management --------
-  const openCashbackForm = (item) => {
-    setTryoutCashbackForm({ open: item._id, amount: "", note: "" });
-    setTryoutVerifyForm({ appId: "", formId: "", kind: "" });
-  };
-
   // Lightbox preview for a member-uploaded proof image.
   const openImagePreview = (url, name) => {
     setTryoutImagePreview({ url, name });
@@ -1484,8 +1481,20 @@ function AdminPanel({
   // Open the cashback form for a specific purchase/refund submission and
   // remember to mark that submission as verified once cashback is added.
   const verifyPurchaseForm = (item, formId) => {
+    const form = (item.purchaseForms || []).find((f) => f._id === formId);
+    const productName = (form?.productName || "").trim();
     setTryoutVerifyForm({ appId: item._id, formId, kind: "purchase" });
-    setTryoutCashbackForm({ open: item._id, amount: "", note: "" });
+    setTryoutCashbackForm({
+      open: item._id,
+      amount: "",
+      note: "",
+      productName: productName || (item.tryoutProductName || ""),
+    });
+
+    // Auto-fill the linked purchase form's product into the cashback entry.
+    if (productName) {
+      item._cashbackProductName = productName;
+    }
   };
 
   const verifyRefundForm = (item, formId) => {
@@ -1524,7 +1533,7 @@ function AdminPanel({
   };
 
   const closeCashbackForm = () => {
-    setTryoutCashbackForm({ open: "", amount: "", note: "" });
+    setTryoutCashbackForm({ open: "", amount: "", note: "", productName: "", trackId: "" });
     setTryoutVerifyForm({ appId: "", formId: "", kind: "" });
   };
 
@@ -1545,6 +1554,8 @@ function AdminPanel({
           body: JSON.stringify({
             amount,
             note: tryoutCashbackForm.note,
+            productName: tryoutCashbackForm.productName,
+            trackId: tryoutCashbackForm.trackId,
           }),
         }
       );
@@ -1562,10 +1573,11 @@ function AdminPanel({
             {
               method: "PATCH",
               body: JSON.stringify({ status: "verified" }),
-            }
+            },
           );
           data = verify;
         } catch {
+
           // The cashback is already added — just warn so the admin does not
           // re-verify (and accidentally double-add) the same submission.
           verifyFailed = true;
@@ -1596,11 +1608,10 @@ function AdminPanel({
       setTryoutProcessingId(`${item._id}-cb`);
 
       const data = await request(
-        `${apiUrl}/api/tryouts/cashback/${entryId}`,
-        {
+        `${apiUrl}/api/tryouts/cashback/${entryId}`,        {
           method: "PATCH",
           body: JSON.stringify({ status: nextStatus }),
-        }
+        },
       );
 
       setApplications((current) =>
@@ -1614,6 +1625,17 @@ function AdminPanel({
     } finally {
       setTryoutProcessingId("");
     }
+  };
+
+  const openCashbackForm = (item) => {
+    setTryoutCashbackForm({
+      open: item._id,
+      amount: "",
+      note: "",
+      productName: item.tryoutProductName || "",
+      trackId: item.tryoutTrackId || "",
+    });
+    setTryoutVerifyForm({ appId: "", formId: "", kind: "" });
   };
 
   const createCoupon = async (e) => {
@@ -1659,7 +1681,6 @@ function AdminPanel({
       showToast(error.message);
     }
   };
-
   if (!token) {
     return (
       <div className="admin-login-page">
@@ -3864,6 +3885,7 @@ function AdminPanel({
                                         {entry.status.toUpperCase()}
                                       </span>
                                       <b>₹{entry.amount}</b>
+                                      {entry.productName && <small className="tryout-cb-product">{entry.productName}</small>}
                                       {entry.note && <small>{entry.note}</small>}
                                       {entry.status === "pending" && (
                                         <button
@@ -3933,6 +3955,28 @@ function AdminPanel({
                                     }))
                                   }
                                 />
+                                <input
+                                  type="text"
+                                  placeholder="Product name (e.g. Glow Serum)"
+                                  value={tryoutCashbackForm.productName}
+                                  onChange={(event) =>
+                                    setTryoutCashbackForm((current) => ({
+                                      ...current,
+                                      productName: event.target.value,
+                                    }))
+                                  }
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Track ID (optional)"
+                                  value={tryoutCashbackForm.trackId}
+                                  onChange={(event) =>
+                                    setTryoutCashbackForm((current) => ({
+                                      ...current,
+                                      trackId: event.target.value,
+                                    }))
+                                  }
+                                />
                                 <div className="tryout-cashback-form-actions">
                                   <button
                                     type="button"
@@ -3997,81 +4041,243 @@ function AdminPanel({
                   <div>
                     <p>APPROVED MEMBERS</p>
                     <h2>Active Members ({applications.filter(a => a.status === 'approved').length})</h2>
+                    <small>Click a member's name to see their enrolled offers, purchase forms, wallet & withdrawals</small>
                   </div>
                 </div>
                 {applications.filter(a => a.status === 'approved').length === 0 ? (
                   <div className="admin-empty">No approved members yet.</div>
                 ) : (
-                  <div className="returns-list">
-                    {applications.filter(a => a.status === 'approved').map((item) => (
-                      <article className="return-card" key={item._id}>
-                        <header className="return-card-head">
-                          <div>
-                            <b>{item.name}</b>
-                            <small>{item.email} · {item.phone}</small>
+                  <div className="returns-list tryout-members-list">
+                    {applications.filter(a => a.status === 'approved').map((item) => {
+                      const pendingForms = (item.purchaseForms || []).filter((f) => f.status === 'submitted').length
+                        + (item.refundForms || []).filter((f) => f.status === 'submitted').length;
+                      const pendingCashbacks = (item.cashbackHistory || []).filter((c) => c.status === 'pending').length;
+                      const expanded = expandedMemberId === item._id;
+
+                      return (
+                      <article className={`return-card tryout-member-card ${expanded ? 'expanded' : ''}`} key={item._id}>
+                        <header
+                          className="tryout-member-head"
+                          role="button"
+                          tabIndex={0}
+                          aria-expanded={expanded}
+                          onClick={() => setExpandedMemberId(expanded ? "" : item._id)}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              setExpandedMemberId(expanded ? "" : item._id);
+                            }
+                          }}
+                        >
+                          <div className="tryout-member-id">
+                            <span className={`tryout-member-chevron ${expanded ? 'open' : ''}`}>▸</span>
+                            <div>
+                              <b>{item.name}</b>
+                              <small>{item.email} · {item.phone}</small>
+                            </div>
                           </div>
-                          <span className="return-badge return-badge-approved">Approved</span>
+                          <div className="tryout-member-head-right">
+                            {pendingForms > 0 && (
+                              <span className="tryout-member-alert">🔔 {pendingForms} form{pendingForms > 1 ? 's' : ''} to verify</span>
+                            )}
+                            {pendingCashbacks > 0 && (
+                              <span className="tryout-member-alert amber">⏳ ₹{pendingCashbacks ? (item.cashbackHistory || []).filter((c) => c.status === 'pending').reduce((s, c) => s + (c.amount || 0), 0) : 0} pending cashback</span>
+                            )}
+                            <span className="return-badge return-badge-approved">Approved</span>
+                          </div>
                         </header>
-                        <div className="return-details">
-                          <span><b>City:</b> {item.city}, {item.state}</span>
-                          <span><b>Applied:</b> {new Date(item.requestedAt).toLocaleString('en-IN')}</span>
-                        </div>
-                        <div className="tryout-member-stats">
-                          <div className="tryout-stat-box">
-                            <span className="tryout-stat-val">₹{item.cashbackAvailable || 0}</span>
-                            <span className="tryout-stat-lbl">Available</span>
+
+                        {expanded && (
+                        <div className="tryout-member-body">
+                          <div className="return-details">
+                            <span><b>City:</b> {item.city}, {item.state}</span>
+                            <span><b>Applied:</b> {new Date(item.requestedAt).toLocaleString('en-IN')}</span>
                           </div>
-                          <div className="tryout-stat-box">
-                            <span className="tryout-stat-val">₹{item.cashbackPending || 0}</span>
-                            <span className="tryout-stat-lbl">Pending</span>
+
+                          <div className="tryout-member-stats">
+                            <div className="tryout-stat-box">
+                              <span className="tryout-stat-val">₹{item.cashbackAvailable || 0}</span>
+                              <span className="tryout-stat-lbl">Available</span>
+                            </div>
+                            <div className="tryout-stat-box">
+                              <span className="tryout-stat-val">₹{item.cashbackPending || 0}</span>
+                              <span className="tryout-stat-lbl">Pending</span>
+                            </div>
+                            <div className="tryout-stat-box">
+                              <span className="tryout-stat-val">₹{item.cashbackReceived || 0}</span>
+                              <span className="tryout-stat-lbl">Received</span>
+                            </div>
                           </div>
-                          <div className="tryout-stat-box">
-                            <span className="tryout-stat-val">₹{item.cashbackReceived || 0}</span>
-                            <span className="tryout-stat-lbl">Received</span>
-                          </div>
-                        </div>
-                        {(item.cashbackHistory || []).length > 0 && (
-                          <div className="tryout-cashback-entries">
-                            {(item.cashbackHistory || []).slice().reverse().map((entry) => (
-                              <div className="tryout-cashback-entry" key={entry._id}>
-                                <span className={`tryout-cb-badge ${entry.status}`}>{entry.status.toUpperCase()}</span>
-                                <b>₹{entry.amount}</b>
-                                {entry.note && <small>{entry.note}</small>}
-                                {entry.status === 'pending' && (
-                                  <button type="button" className="tryout-cb-move tryout-cb-confirm" disabled={tryoutProcessingId === `${item._id}-cb`} onClick={() => updateCashbackStatus(item, entry._id, 'available')}>✓ Confirm</button>
-                                )}
-                                {entry.status === 'available' && (
-                                  <button type="button" className="tryout-cb-move" disabled={tryoutProcessingId === `${item._id}-cb`} onClick={() => updateCashbackStatus(item, entry._id, 'received')}>→ Received</button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {(item.withdrawals || []).length > 0 && (
-                          <div className="tryout-pf-section">
-                            <b className="tryout-pf-title">💳 Withdrawals</b>
-                            {(item.withdrawals || []).slice().reverse().map((entry) => (
-                              <div className="tryout-withdraw-admin" key={entry._id}>
-                                <div className="tryout-pf-top">
-                                  <span className={`tryout-responses-badge ${entry.status}`}>{String(entry.status || 'requested').toUpperCase()}</span>
-                                  <small>{new Date(entry.requestedAt).toLocaleString('en-IN')}</small>
-                                </div>
-                                <div className="tryout-pf-details">
-                                  <span><b>Amount:</b> ₹{entry.amount}</span>
-                                  <span><b>UPI:</b> {entry.upiId || '—'}</span>
-                                </div>
-                                {entry.status === 'requested' && (
-                                  <div className="tryout-withdraw-admin-actions">
-                                    <button type="button" className="return-approve-btn" disabled={tryoutWithdrawId === `${item._id}-${entry._id}`} onClick={() => processWithdrawal(item, entry._id, 'paid')}>✅ Mark as paid</button>
-                                    <button type="button" className="return-reject-btn" disabled={tryoutWithdrawId === `${item._id}-${entry._id}`} onClick={() => processWithdrawal(item, entry._id, 'rejected')}>❌ Reject</button>
+
+                          {(item.cashbackHistory || []).length > 0 && (
+                            <div className="tryout-pf-section">
+                              <b className="tryout-pf-title">💰 Cashback — offer wise</b>
+                              <div className="tryout-cashback-entries">
+                                {(item.cashbackHistory || []).slice().reverse().map((entry) => (
+                                  <div className="tryout-cashback-entry" key={entry._id}>
+                                    <span className={`tryout-cb-badge ${entry.status}`}>{entry.status.toUpperCase()}</span>
+                                    <div className="tryout-cb-info">
+                                      <b>₹{entry.amount}</b>
+                                      {entry.productName && <small className="tryout-cb-product">{entry.productName}</small>}
+                                      {entry.note && !entry.productName && <small>{entry.note}</small>}
+                                    </div>
+                                    {entry.status === 'pending' && (
+                                      <button type="button" className="tryout-cb-move tryout-cb-confirm" disabled={tryoutProcessingId === `${item._id}-cb`} onClick={() => updateCashbackStatus(item, entry._id, 'available')}>✓ Confirm</button>
+                                    )}
+                                    {entry.status === 'available' && (
+                                      <button type="button" className="tryout-cb-move" disabled={tryoutProcessingId === `${item._id}-cb`} onClick={() => updateCashbackStatus(item, entry._id, 'received')}>→ Received</button>
+                                    )}
                                   </div>
-                                )}
+                                ))}
                               </div>
-                            ))}
-                          </div>
+                            </div>
+                          )}
+
+                          {(item.purchaseForms || []).length > 0 && (
+                            <div className="tryout-pf-section">
+                              <b className="tryout-pf-title">📋 Purchase Forms</b>
+                              {(item.purchaseForms || []).slice().reverse().map((form) => (
+                                <div className="tryout-pf-card" key={form._id}>
+                                  <div className="tryout-pf-top">
+                                    <span className={`tryout-pf-badge ${form.status}`}>{String(form.status || 'submitted').toUpperCase()}</span>
+                                    <small>{new Date(form.submittedAt).toLocaleString('en-IN')}</small>
+                                  </div>
+                                  <div className="tryout-pf-details">
+                                    <span><b>Order id:</b> {form.orderId || '—'}</span>
+                                    <span><b>Amount:</b> ₹{(form.orderAmount || 0).toLocaleString('en-IN')}</span>
+                                    {form.productName && <span><b>Product:</b> {form.productName}</span>}
+                                    {form.orderDate && <span><b>Order date:</b> {form.orderDate}</span>}
+                                  </div>
+                                  <div className="tryout-pf-actions">
+                                    {form.screenshotUrl || form.driveUrl ? (
+                                      <button type="button" className="tryout-pf-thumb" onClick={() => openImagePreview(form.driveImageUrl || form.driveUrl || form.screenshotUrl, `purchase-${form.profileName || 'proof'}.png`)} title="Preview order screenshot">
+                                        <img src={form.driveImageUrl || form.driveUrl || form.screenshotUrl} alt="Order screenshot" loading="lazy" />
+                                        <span>{form.driveUrl ? '🗂️ Drive' : '🖼️ Screenshot'}</span>
+                                      </button>
+                                    ) : (
+                                      <span className="tryout-pf-noshot">No screenshot</span>
+                                    )}
+                                    {form.status === 'submitted' && (
+                                      <button type="button" className="return-approve-btn" disabled={tryoutProcessingId === item._id} onClick={() => verifyPurchaseForm(item, form._id)}>✅ Verify & Add Cashback</button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {(item.refundForms || []).length > 0 && (
+                            <div className="tryout-pf-section">
+                              <b className="tryout-pf-title">📦 Refund Forms</b>
+                              {(item.refundForms || []).slice().reverse().map((form) => (
+                                <div className="tryout-pf-card" key={form._id}>
+                                  <div className="tryout-pf-top">
+                                    <span className={`tryout-pf-badge ${form.status}`}>{String(form.status || 'submitted').toUpperCase()}</span>
+                                    <small>{new Date(form.submittedAt).toLocaleString('en-IN')}</small>
+                                  </div>
+                                  <div className="tryout-pf-details">
+                                    <span><b>Order id:</b> {form.orderId || '—'}</span>
+                                    <span><b>Amount:</b> ₹{(form.orderAmount || 0).toLocaleString('en-IN')}</span>
+                                    {form.otherInfo && <span><b>Info:</b> {form.otherInfo}</span>}
+                                  </div>
+                                  <div className="tryout-pf-actions">
+                                    <div className="tryout-pf-links">
+                                      {form.deliveryScreenshotUrl ? (
+                                        <button type="button" className="tryout-pf-thumb" onClick={() => openImagePreview(form.deliveryScreenshotUrl, `delivery-${form.orderId || 'proof'}.png`)} title="Preview delivery screenshot">
+                                          <img src={form.deliveryScreenshotUrl} alt="Delivery screenshot" loading="lazy" />
+                                          <span>🖼️ Delivery</span>
+                                        </button>
+                                      ) : (
+                                        <span className="tryout-pf-noshot">No delivery shot</span>
+                                      )}
+                                      {(form.reviewFiles || []).map((url, index) => (
+                                        <button type="button" key={url} className="tryout-pf-thumb" onClick={() => openImagePreview(url, `review-${index + 1}-${form.orderId || 'proof'}.png`)} title={`Preview review file ${index + 1}`}>
+                                          <img src={url} alt={`Review file ${index + 1}`} loading="lazy" />
+                                          <span>Review {index + 1}</span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                    {form.status === 'submitted' && (
+                                      <button type="button" className="return-approve-btn" disabled={tryoutProcessingId === item._id} onClick={() => verifyRefundForm(item, form._id)}>✅ Verify & Add Cashback</button>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {(item.withdrawals || []).length > 0 && (
+                            <div className="tryout-pf-section">
+                              <b className="tryout-pf-title">💳 Withdrawals</b>
+                              {(item.withdrawals || []).slice().reverse().map((entry) => (
+                                <div className="tryout-withdraw-admin" key={entry._id}>
+                                  <div className="tryout-pf-top">
+                                    <span className={`tryout-responses-badge ${entry.status}`}>{String(entry.status || 'requested').toUpperCase()}</span>
+                                    <small>{new Date(entry.requestedAt).toLocaleString('en-IN')}</small>
+                                  </div>
+                                  <div className="tryout-pf-details">
+                                    <span><b>Ref:</b> {entry.referenceId || `REQ_${String(entry._id).slice(-8).toUpperCase()}`}</span>
+                                    <span><b>Amount:</b> ₹{entry.amount}</span>
+                                    <span><b>UPI:</b> {entry.upiId || '—'}</span>
+                                  </div>
+                                  {entry.status === 'requested' && (
+                                    <div className="tryout-withdraw-admin-actions">
+                                      <button type="button" className="return-approve-btn" disabled={tryoutWithdrawId === `${item._id}-${entry._id}`} onClick={() => processWithdrawal(item, entry._id, 'paid')}>✅ Mark as paid</button>
+                                      <button type="button" className="return-reject-btn" disabled={tryoutWithdrawId === `${item._id}-${entry._id}`} onClick={() => processWithdrawal(item, entry._id, 'rejected')}>❌ Reject</button>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {tryoutCashbackForm.open === item._id ? (
+                            <div className="tryout-cashback-form">
+                              <input
+                                type="number"
+                                min="1"
+                                placeholder="Cashback amount (₹)"
+                                value={tryoutCashbackForm.amount}
+                                onChange={(event) => setTryoutCashbackForm((current) => ({ ...current, amount: event.target.value }))}
+                              />
+                              <input
+                                type="text"
+                                placeholder="Product / offer name (e.g. Glow Serum)"
+                                value={tryoutCashbackForm.productName}
+                                onChange={(event) => setTryoutCashbackForm((current) => ({ ...current, productName: event.target.value }))}
+                              />
+                              <input
+                                type="text"
+                                placeholder="Note (optional)"
+                                value={tryoutCashbackForm.note}
+                                onChange={(event) => setTryoutCashbackForm((current) => ({ ...current, note: event.target.value }))}
+                              />
+                              <input
+                                type="text"
+                                placeholder="Track ID (optional)"
+                                value={tryoutCashbackForm.trackId}
+                                onChange={(event) => setTryoutCashbackForm((current) => ({ ...current, trackId: event.target.value }))}
+                              />
+                              <div className="tryout-cashback-form-actions">
+                                <button type="button" className="return-reject-btn" onClick={closeCashbackForm}>Cancel</button>
+                                <button type="button" className="return-approve-btn" disabled={tryoutProcessingId === item._id} onClick={() => addTryoutCashback(item)}>
+                                  {tryoutProcessingId === item._id ? "Adding..." : "Add to pending"}
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="return-review-actions">
+                              <button type="button" className="return-approve-btn" onClick={() => openCashbackForm(item)}>💰 Add cashback</button>
+                              <button type="button" className="return-reject-btn" disabled={tryoutProcessingId === item._id} onClick={() => disqualifyApplication(item)}>
+                                {tryoutProcessingId === item._id ? "Disqualifying..." : "✕ Disqualify member"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
                         )}
                       </article>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </section>
