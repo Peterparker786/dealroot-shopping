@@ -373,8 +373,10 @@ function AdminPanel({
     try {
       const data = await request(`${apiUrl}/api/admin/new-product-email/status`);
       setNewsletterStatus(data);
+      return data;
     } catch {
       setNewsletterStatus(null);
+      return null;
     }
   };
 
@@ -387,11 +389,27 @@ function AdminPanel({
         method: "POST",
       });
       setNewsletterResult({ ok: true, text: data.message });
-      showToast(`Newsletter sent to ${data.sent} customer(s)`);
-      checkNewsletterStatus();
+      showToast("Newsletter sending started — it finishes in the background");
+
+      // The backend sends in the background — poll status until it completes.
+      const poll = setInterval(async () => {
+        const status = await checkNewsletterStatus();
+        if (status && !status.running) {
+          clearInterval(poll);
+          setNewsletterLoading(false);
+          if (status.error) {
+            setNewsletterResult({ ok: false, text: `Failed: ${status.error}` });
+          } else {
+            setNewsletterResult({
+              ok: true,
+              text: `Sent to ${status.lastCount} customer(s)`,
+            });
+            showToast(`Newsletter sent to ${status.lastCount} customer(s)`);
+          }
+        }
+      }, 5000);
     } catch (error) {
       setNewsletterResult({ ok: false, text: error.message });
-    } finally {
       setNewsletterLoading(false);
     }
   };
@@ -2273,6 +2291,18 @@ function AdminPanel({
                       <span>Emails sent (last run)</span>
                       <b className="ok-text">{newsletterStatus.lastCount || 0}</b>
                     </div>
+                    {newsletterStatus.running && (
+                      <div className="admin-email-row">
+                        <span>Status</span>
+                        <b style={{ color: '#d97706' }}>⏳ Sending now…</b>
+                      </div>
+                    )}
+                    {newsletterStatus.error && (
+                      <div className="admin-email-row">
+                        <span>Last error</span>
+                        <b style={{ color: '#dc2626' }}>{newsletterStatus.error}</b>
+                      </div>
+                    )}
                     {newsletterStatus.nextRun && (
                       <div className="admin-email-row">
                         <span>Next auto-run</span>
@@ -2297,12 +2327,12 @@ function AdminPanel({
                   type="button"
                   className="admin-primary-btn"
                   onClick={triggerNewsletter}
-                  disabled={newsletterLoading}
+                  disabled={newsletterLoading || newsletterStatus?.running}
                   style={{ marginTop: 8 }}
                 >
                   <FiSend />{' '}
-                  {newsletterLoading
-                    ? 'Sending newsletter...'
+                  {newsletterLoading || newsletterStatus?.running
+                    ? 'Sending in background… (do not close this page)'
                     : 'Send New Products Email Now'}
                 </button>
               </section>
