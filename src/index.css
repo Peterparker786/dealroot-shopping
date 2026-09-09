@@ -467,6 +467,12 @@ img { max-width: 100%; display: block; }
   background: #fff; border-bottom: 1px solid #f0f0f0;
   overflow-x: auto; white-space: nowrap;
   -webkit-overflow-scrolling: touch;
+  /* The last item (e.g. "New Arrivals") was getting hard-clipped at the
+     viewport edge on mobile with no hint that the row scrolls further —
+     it read as a layout bug. Fade the trailing edge instead so it reads
+     as an intentional scrollable chip row. */
+  mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 28px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 calc(100% - 28px), transparent 100%);
 }
 .sub-nav::-webkit-scrollbar { display: none; }
 .sub-nav .shop-by-btn {
@@ -1197,8 +1203,14 @@ img { max-width: 100%; display: block; }
   .footer-grid { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 768px) {
-  .announcement-bar { flex-direction: column; gap: 4px; padding: 6px 16px; font-size: 11px; }
-  .announcement-bar .ann-right { margin-left: 0; }
+  /* On mobile the bar used to stack all 3 rows (delivery line, coupon
+     line, Track Order/Help Center) — ~3 lines of chrome before the user
+     even reaches the header. Keep just the delivery message; Track Order
+     is still one tap away via the bottom nav's Orders tab, and Help
+     Center via the footer/contact page. */
+  .announcement-bar { padding: 6px 16px; font-size: 11px; }
+  .announcement-bar span:last-of-type { display: none; }
+  .announcement-bar .ann-right { display: none; }
   .header-main { padding: 12px 16px; gap: 10px; }
   .header-logo .logo-main { font-size: 20px; }
   .deliver-to-btn { padding: 6px 9px; gap: 5px; }
