@@ -3943,25 +3943,10 @@ function AdminPanel({
                                           ✓ Confirm (make available)
                                         </button>
                                       )}
-                                      {entry.status === "available" && (
-                                        <button
-                                          type="button"
-                                          className="tryout-cb-move"
-                                          disabled={
-                                            tryoutProcessingId ===
-                                            `${item._id}-cb`
-                                          }
-                                          onClick={() =>
-                                            updateCashbackStatus(
-                                              item,
-                                              entry._id,
-                                              "received"
-                                            )
-                                          }
-                                        >
-                                          → Mark as received
-                                        </button>
-                                      )}
+                                      {/* No manual "mark as received" here on purpose —
+                                          available cashback only becomes received when
+                                          the member requests a withdrawal and the admin
+                                          approves it below (see Withdrawals). */}
                                     </div>
                                   ))}
                               </div>
@@ -4161,9 +4146,10 @@ function AdminPanel({
                                     {entry.status === 'pending' && (
                                       <button type="button" className="tryout-cb-move tryout-cb-confirm" disabled={tryoutProcessingId === `${item._id}-cb`} onClick={() => updateCashbackStatus(item, entry._id, 'available')}>✓ Confirm</button>
                                     )}
-                                    {entry.status === 'available' && (
-                                      <button type="button" className="tryout-cb-move" disabled={tryoutProcessingId === `${item._id}-cb`} onClick={() => updateCashbackStatus(item, entry._id, 'received')}>→ Received</button>
-                                    )}
+                                    {/* No manual "mark as received" here on purpose —
+                                        available cashback only becomes received when
+                                        the member requests a withdrawal and the admin
+                                        approves it (see Withdrawals below). */}
                                   </div>
                                 ))}
                               </div>
