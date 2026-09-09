@@ -238,6 +238,13 @@ function AdminPanel({
 
       try {
         response = await fetch(url, {
+          // Force a fresh network response for every admin request. The
+          // public /api/products endpoint sends "Cache-Control: private,
+          // max-age=60" for logged-in admins/tryout members so the browser
+          // was serving a 60s-stale cached list — e.g. right after saving a
+          // stock change, the immediate loadProducts() re-fetch returned the
+          // old number from cache, making the edit look like it didn't save.
+          cache: "no-store",
           ...options,
           headers,
           signal: controller.signal,

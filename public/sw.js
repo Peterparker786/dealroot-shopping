@@ -1,7 +1,7 @@
 /* DEALROOT PWA service worker */
 // Bump this whenever you ship a new deploy so the old cache generation is
 // purged on activate instead of accumulating stale hashed assets forever.
-const CACHE_VERSION = "v2";
+const CACHE_VERSION = "v3";
 const CACHE_NAME = `dealroot-${CACHE_VERSION}`;
 const CORE_ASSETS = ["/", "/index.html", "/manifest.webmanifest"];
 
@@ -49,7 +49,15 @@ self.addEventListener("fetch", (event) => {
       request.url.includes("/api/banners") ||
       request.url.includes("/api/categories");
 
-    if (isReadOnly) {
+    // Authenticated requests (admin panel, logged-in tryout members) send
+    // an Authorization header. Those must never be served from the SW
+    // cache — the admin panel edits stock/products and immediately
+    // re-fetches this same list, and stale-while-revalidate was handing
+    // back the pre-edit numbers on that first re-fetch, making saved
+    // changes look like they hadn't taken effect.
+    const isAuthenticated = request.headers.has("Authorization");
+
+    if (isReadOnly && !isAuthenticated) {
       event.respondWith(
         caches.open(CACHE_NAME).then((cache) =>
           cache.match(request).then((cached) => {
@@ -67,7 +75,8 @@ self.addEventListener("fetch", (event) => {
       return;
     }
 
-    // Checkout, cart, auth: always network-first.
+    // Checkout, cart, auth, and any authenticated product/banner/category
+    // read (admin + tryout members): always network-first.
     event.respondWith(
       fetch(request).catch(() =>
         caches.match(request).then((cached) => cached || Response.error())
