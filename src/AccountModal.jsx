@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Select from "react-select";
-import { FiPackage, FiTruck } from "react-icons/fi";
+import { FiPackage, FiTruck, FiEye, FiEyeOff } from "react-icons/fi";
 import { optimizeImage } from "./utils/cloudinary";
 import {
   INDIAN_STATES,
@@ -13,6 +13,26 @@ const emptyAuthForm = {
   email: "",
   password: "",
 };
+
+// Reusable show/hide toggle for password inputs.
+function PasswordInput(props) {
+  const [visible, setVisible] = useState(false);
+
+  return (
+    <span className="password-wrap">
+      <input {...props} type={visible ? "text" : "password"} />
+      <button
+        type="button"
+        className="password-eye"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? "Hide password" : "Show password"}
+        title={visible ? "Hide password" : "Show password"}
+      >
+        {visible ? <FiEyeOff /> : <FiEye />}
+      </button>
+    </span>
+  );
+}
 
 const emptyProfile = {
   name: "",
@@ -1381,9 +1401,8 @@ export default function AccountModal({
                 <label>
                   Password
 
-                  <input
+                  <PasswordInput
                     name="password"
-                    type="password"
                     minLength="8"
                     value={authForm.password}
                     onChange={updateAuthForm}
@@ -1554,17 +1573,16 @@ export default function AccountModal({
 
                     <label>
                       New password
-                      <input
+                      <PasswordInput
                         name="password"
-                        type="password"
                         minLength="8"
                         value={otpData.password}
                         onChange={updateOtpForm}
                         required
                         placeholder="Minimum 8 characters"
-                    autoComplete="new-password"
-                    aria-describedby={authError ? "account-auth-error" : undefined}
-                  />
+                        autoComplete="new-password"
+                        aria-describedby={authError ? "account-auth-error" : undefined}
+                      />
                     </label>
                   </>
                 )}
@@ -2305,8 +2323,7 @@ export default function AccountModal({
                       </p>
                       <label>
                         Current password
-                        <input
-                          type="password"
+                        <PasswordInput
                           value={secForm.currentPassword}
                           onChange={(e) =>
                             setSecForm((f) => ({
@@ -2324,8 +2341,7 @@ export default function AccountModal({
                       )}
                       <label>
                         New password
-                        <input
-                          type="password"
+                        <PasswordInput
                           value={secForm.newPassword}
                           onChange={(e) =>
                             setSecForm((f) => ({
@@ -2344,8 +2360,7 @@ export default function AccountModal({
                       )}
                       <label>
                         Re-enter new password
-                        <input
-                          type="password"
+                        <PasswordInput
                           value={secForm.confirmPassword}
                           onChange={(e) =>
                             setSecForm((f) => ({

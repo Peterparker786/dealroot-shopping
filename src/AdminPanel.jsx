@@ -22,6 +22,8 @@ import {
   FiUsers,
   FiMail,
   FiSend,
+  FiEye,
+  FiEyeOff,
 } from "react-icons/fi";
 import "./AdminPanel.css";
 import { optimizeImage } from "./utils/cloudinary";
@@ -123,6 +125,7 @@ function AdminPanel({
   const [refundShippingFees, setRefundShippingFees] = useState({});
   // Processing a withdrawal request (paid / rejected).
   const [tryoutWithdrawId, setTryoutWithdrawId] = useState("");
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   // Expanded member card in Tryouts → Members (click name to open).
   const [expandedMemberId, setExpandedMemberId] = useState("");
   const [tryoutProductForm, setTryoutProductForm] = useState({
@@ -1743,18 +1746,29 @@ function AdminPanel({
 
           <label>
             Password
-            <input
-              type="password"
-              required
-              value={credentials.password}
-              onChange={(event) =>
-                setCredentials((current) => ({
-                  ...current,
-                  password: event.target.value,
-                }))
-              }
-              placeholder="Admin password"
-            />
+            <span className="password-wrap">
+              <input
+                type={showAdminPassword ? "text" : "password"}
+                required
+                value={credentials.password}
+                onChange={(event) =>
+                  setCredentials((current) => ({
+                    ...current,
+                    password: event.target.value,
+                  }))
+                }
+                placeholder="Admin password"
+              />
+              <button
+                type="button"
+                className="password-eye"
+                onClick={() => setShowAdminPassword((v) => !v)}
+                aria-label={showAdminPassword ? "Hide password" : "Show password"}
+                title={showAdminPassword ? "Hide password" : "Show password"}
+              >
+                {showAdminPassword ? <FiEyeOff /> : <FiEye />}
+              </button>
+            </span>
           </label>
 
           <button className="admin-login-btn" disabled={loggingIn}>

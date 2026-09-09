@@ -1444,6 +1444,41 @@
   box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.2);
 }
 
+/* Show/hide password eye toggle (admin login) */
+.admin-login-card .password-wrap {
+  position: relative;
+  display: block;
+}
+.admin-login-card .password-wrap input {
+  width: 100%;
+  padding-right: 44px;
+}
+.admin-login-card .password-eye {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #8d93b5;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.admin-login-card .password-eye:hover {
+  color: #a78bfa;
+  background: rgba(167, 139, 250, 0.12);
+}
+.admin-login-card .password-eye svg {
+  width: 17px;
+  height: 17px;
+}
+
 .admin-login-card input::placeholder {
   color: #8d93b5;
 }
