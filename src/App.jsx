@@ -853,7 +853,6 @@ function App() {
           cart={cart}
           setCart={setCart}
           showToast={showToast}
-          giftProducts={products}
           onCheckout={() => {
             if (!cart.length) {
               showToast("Your cart is empty");
@@ -881,12 +880,14 @@ function App() {
             isOpen={checkoutOpen}
             onClose={() => setCheckoutOpen(false)}
             cart={cart}
+            setCart={setCart}
             total={cartTotal}
             showToast={showToast}
             apiUrl={API_URL}
             user={user}
             userToken={userToken}
             giftProduct={giftProduct}
+            giftProducts={products}
             onClearGift={() => setGiftProductId("")}
             onProfileUpdated={setUser}
             onOrderPlaced={() => {
