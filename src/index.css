@@ -3749,3 +3749,99 @@ img { max-width: 100%; display: block; }
   .tryout-poster-price strong { font-size: 24px; }
   .tryout-poster-feature { font-size: 9.5px; }
 }
+
+/* ===================== FREE GIFT OFFER (₹499+ carts) ===================== */
+.cart-gift-box {
+  margin: 0 24px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px dashed #d1d5db;
+  background: #fafafa;
+  font-size: 13px;
+  color: #4b5563;
+}
+.cart-gift-box.locked { border-color: #e5e7eb; color: #6b7280; }
+.cart-gift-box.unlocked {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+}
+.cart-gift-box p { margin: 0 0 6px; }
+.cart-gift-box.unlocked p { margin: 0; }
+.cart-gift-toggle {
+  display: inline-block;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  background: #fff;
+  color: #b45309;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 6px 12px;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: background 0.15s;
+}
+.cart-gift-toggle:hover { background: #fef3c7; }
+.cart-gift-list {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.cart-gift-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.cart-gift-option:hover {
+  border-color: #f59e0b;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+}
+.cart-gift-option img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #f9fafb;
+  flex-shrink: 0;
+}
+.cart-gift-option-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cart-gift-option-info b {
+  font-size: 12.5px;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cart-gift-option-info small { font-size: 11px; color: #6b7280; }
+.cart-gift-pick {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  color: #fff;
+  background: #059669;
+  border-radius: 999px;
+  padding: 4px 10px;
+  flex-shrink: 0;
+}
+.cart-item.cart-free-gift { background: #fffbeb; border-radius: 12px; }
+.cart-free-gift .gift-free-tag { color: #059669; }
+.cart-item.cart-free-gift .remove-item { color: #b45309; }
+.checkout-free-gift span { color: #059669; }
+.checkout-free-gift b { color: #059669; }
+.checkout-free-gift small { color: #6b7280; font-weight: 400; }
+
+@media (max-width: 480px) {
+  .cart-gift-box { margin: 0 16px; }
+}
