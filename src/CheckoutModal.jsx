@@ -67,16 +67,19 @@ function CheckoutModal({
   isOpen,
   onClose,
   cart = [],
+  setCart,
   showToast,
   onOrderPlaced,
   apiUrl,
   user,
   userToken,
   giftProduct = null,
+  giftProducts = [],
   onProfileUpdated,
   deliveryLocation,
 }) {
   const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [giftPickerOpen, setGiftPickerOpen] = useState(false);
   const [placedOrder, setPlacedOrder] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedState, setSelectedState] = useState(null);
@@ -128,6 +131,55 @@ const orderSubtotal = useMemo(
   [cart]
 );
 const codAvailable = orderSubtotal < 499;
+
+// Free gift offer: cart ₹499+ unlocks one product worth up to ₹99 free.
+// Kept in sync with the same offer in CartDrawer.jsx / backend server.js.
+const FREE_GIFT_MIN = 499;
+const FREE_GIFT_MAX_PRICE = 99;
+const giftEligible = orderSubtotal >= FREE_GIFT_MIN;
+const cartGiftItem = cart.find((item) => item.isFreeGift) || null;
+const giftChoices = useMemo(
+  () =>
+    giftProducts.filter(
+      (p) => p.price <= FREE_GIFT_MAX_PRICE && Number(p.stock) > 0
+    ),
+  [giftProducts]
+);
+
+const selectGift = (p) => {
+  if (!setCart) return;
+
+  setCart((currentCart) => [
+    ...currentCart.filter((item) => !item.isFreeGift),
+    {
+      id: `gift-${p.id || p._id}`,
+      productId: p.id || p._id,
+      name: p.name || p.title,
+      brand: p.brand,
+      price: 0,
+      image: p.image || p.images?.[0],
+      quantity: 1,
+      stock: p.stock,
+      isFreeGift: true,
+    },
+  ]);
+  setGiftPickerOpen(false);
+  showToast?.(`🎁 ${p.name || p.title} added as your FREE gift!`);
+};
+
+const removeGift = () => {
+  setCart?.((currentCart) => currentCart.filter((item) => !item.isFreeGift));
+};
+
+// Safety net: if the cart drops below ₹499 while a gift is already
+// attached (e.g. a quantity change elsewhere), drop the gift too.
+useEffect(() => {
+  if (!isOpen || !cartGiftItem) return;
+  if (orderSubtotal < FREE_GIFT_MIN) {
+    removeGift();
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [isOpen, orderSubtotal, cartGiftItem]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -439,7 +491,11 @@ const orderPayload = {
         quantity: item.quantity,
       })),
   ],
-  giftProductId: giftProduct?.productId || giftProduct?.id || "",
+  giftProductId:
+    cartGiftItem?.productId ||
+    giftProduct?.productId ||
+    giftProduct?.id ||
+    "",
   deliveryType: "courier",
   couponCode: appliedCoupon,
   paymentMethod:
@@ -910,6 +966,70 @@ const razorpayCheckout = new window.Razorpay({
                 </b>
               </div>
               )
+            )}
+
+            {giftEligible && (
+              <div className="checkout-gift-box">
+                {cartGiftItem ? (
+                  <p>
+                    🎁 Free gift added: <b>{cartGiftItem.name}</b>
+                    <button
+                      type="button"
+                      className="checkout-gift-remove"
+                      onClick={removeGift}
+                    >
+                      Remove
+                    </button>
+                  </p>
+                ) : (
+                  <>
+                    <p>
+                      🎉 Congratulations! Pick your <b>FREE gift</b> (worth up
+                      to ₹{FREE_GIFT_MAX_PRICE}):
+                    </p>
+
+                    <button
+                      type="button"
+                      className="cart-gift-toggle"
+                      onClick={() => setGiftPickerOpen((v) => !v)}
+                    >
+                      {giftPickerOpen
+                        ? "Hide gift options ▲"
+                        : "Choose free gift ▼"}
+                    </button>
+
+                    {giftPickerOpen && (
+                      <div className="cart-gift-list">
+                        {giftChoices.length === 0 ? (
+                          <small>No gifts available right now.</small>
+                        ) : (
+                          giftChoices.map((p) => (
+                            <button
+                              type="button"
+                              className="cart-gift-option"
+                              key={p.id || p._id}
+                              onClick={() => selectGift(p)}
+                            >
+                              <img
+                                src={p.image || p.images?.[0]}
+                                alt={p.name || p.title}
+                                loading="lazy"
+                              />
+                              <span className="cart-gift-option-info">
+                                <b>{p.name || p.title}</b>
+                                <small>
+                                  {p.brand} · <s>₹{p.price}</s> ₹0
+                                </small>
+                              </span>
+                              <span className="cart-gift-pick">FREE</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             )}
 
             <div className="checkout-item">

@@ -6,6 +6,37 @@
   background: #f8fbff;
 }
 
+/* Free-gift picker inside the checkout order summary. Reuses the
+   .cart-gift-list / .cart-gift-option / .cart-gift-toggle styles defined
+   globally in index.css (shared with CartDrawer's own gift picker) so both
+   entry points look and behave the same way. */
+.checkout-gift-box {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1.5px dashed #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 13px;
+}
+.checkout-gift-box p {
+  margin: 0 0 6px;
+}
+.checkout-gift-box .cart-gift-list {
+  max-height: 200px;
+}
+.checkout-gift-remove {
+  border: none;
+  background: none;
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 6px;
+}
+
 .checkout-coupon > label {
   display: block;
   margin-bottom: 9px;
