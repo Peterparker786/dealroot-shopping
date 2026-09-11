@@ -72,6 +72,7 @@ function CheckoutModal({
   apiUrl,
   user,
   userToken,
+  giftProduct = null,
   onProfileUpdated,
   deliveryLocation,
 }) {
@@ -114,10 +115,24 @@ const cityOptions = useMemo(() => {
   }));
 }, [selectedState, form.city]);
 
+// Cash on Delivery is only offered below the free-delivery threshold; at
+// ₹499+ the customer must pay online (delivery is free either way).
+const orderSubtotal = useMemo(
+  () =>
+    cart
+      .filter((item) => !item.isFreeGift)
+      .reduce(
+        (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+        0
+      ),
+  [cart]
+);
+const codAvailable = orderSubtotal < 499;
+
   useEffect(() => {
     if (!isOpen) return;
 
-    setPaymentMethod("cod");
+    setPaymentMethod(codAvailable ? "cod" : "online");
     setIsSubmitting(false);
     setCouponInput("");
     setAppliedCoupon("");
@@ -204,12 +219,17 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [form.state, form.city]);
 
-  if (!isOpen) return null;
+// If the cart crosses ₹499 while checkout is already open (e.g. coupon or
+// quantity change), drop out of COD instead of silently letting it stay hidden.
+useEffect(() => {
+  if (!isOpen) return;
+  if (!codAvailable && paymentMethod === "cod") {
+    setPaymentMethod("online");
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [isOpen, codAvailable]);
 
-  const orderSubtotal = cart.reduce(
-    (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
-    0
-  );
+  if (!isOpen) return null;
 
   const hasFreeDelivery =
     orderSubtotal === 0 || orderSubtotal >= 499;
@@ -411,10 +431,15 @@ const orderPayload = {
     city: form.city.trim(),
     pincode,
   },
-  items: cart.map((item) => ({
-    productId: item._id || item.id,
-    quantity: item.quantity,
-  })),
+  items: [
+    ...cart
+      .filter((item) => !item.isFreeGift)
+      .map((item) => ({
+        productId: item._id || item.id,
+        quantity: item.quantity,
+      })),
+  ],
+  giftProductId: giftProduct?.productId || giftProduct?.id || "",
   deliveryType: "courier",
   couponCode: appliedCoupon,
   paymentMethod:
@@ -821,7 +846,14 @@ const razorpayCheckout = new window.Razorpay({
             <section className="checkout-card">
               <h3>2. Payment method</h3>
 
+              {!codAvailable && (
+                <p className="checkout-account-note">
+                  Cash on Delivery isn&apos;t available on orders of ₹499 or
+                  more — please pay online to confirm this order.
+                </p>
+              )}
 
+              {codAvailable && (
               <label
                 className={`choice-card ${
                   paymentMethod === "cod" ? "selected" : ""
@@ -839,6 +871,7 @@ const razorpayCheckout = new window.Razorpay({
                 </span>
                 <strong>COD</strong>
               </label>
+              )}
 
               <label
                 className={`choice-card ${
@@ -863,14 +896,21 @@ const razorpayCheckout = new window.Razorpay({
           <aside className="checkout-summary">
             <h3>Order summary</h3>
 
-            {cart.map((item) => (
+            {cart.map((item) =>
+              item.isFreeGift ? (
+                <div className="checkout-item checkout-free-gift" key={item._id || item.id}>
+                  <span>🎁 {item.name || item.title} <small>(FREE Gift)</small></span>
+                  <b>₹0</b>
+                </div>
+              ) : (
               <div className="checkout-item" key={item._id || item.id}>
                 <span>{item.name || item.title}</span>
                 <b>
                   {item.quantity} × ₹{item.price}
                 </b>
               </div>
-            ))}
+              )
+            )}
 
             <div className="checkout-item">
               <span>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { optimizeImage } from "./utils/cloudinary";
 
 function CartDrawer({
@@ -6,12 +7,24 @@ function CartDrawer({
   cart,
   setCart,
   showToast,
+  giftProducts = [],
   onCheckout,
 }) {
+  const [giftPickerOpen, setGiftPickerOpen] = useState(false);
+
   const subtotal = cart.reduce(
     (total, item) => total + item.price * item.quantity,
     0
   );
+
+  // Free gift offer: cart ₹499+ unlocks one product worth up to ₹99 free.
+  const FREE_GIFT_MIN = 499;
+  const FREE_GIFT_MAX_PRICE = 99;
+  const giftEligible = subtotal >= FREE_GIFT_MIN;
+  const giftChoices = giftProducts.filter(
+    (p) => p.price <= FREE_GIFT_MAX_PRICE && Number(p.stock) > 0
+  );
+  const giftProduct = cart.find((item) => item.isFreeGift) || null;
 
   const updateQuantity = (id, change) => {
   setCart((currentCart) =>
@@ -74,7 +87,36 @@ function CartDrawer({
         ) : (
           <>
             <div className="cart-items">
-              {cart.map((item) => (
+              {cart.map((item) =>
+                item.isFreeGift ? (
+                  <div className="cart-item cart-free-gift" key={item.id}>
+                    <img
+                      src={optimizeImage(item.image, 200)}
+                      alt={item.name}
+                      loading="lazy"
+                      decoding="async"
+                    />
+
+                    <div className="cart-item-info">
+                      <p>{item.brand}</p>
+                      <h3>{item.name}</h3>
+                      <strong className="gift-free-tag">FREE 🎁</strong>
+
+                      <div className="quantity-row">
+                        <button
+                          className="remove-item"
+                          onClick={() =>
+                            setCart((currentCart) =>
+                              currentCart.filter((gift) => !gift.isFreeGift)
+                            )
+                          }
+                        >
+                          Remove gift
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
                 <div className="cart-item" key={item.id}>
                   <img
                     src={optimizeImage(item.image, 200)}
@@ -117,7 +159,82 @@ function CartDrawer({
                     </div>
                   </div>
                 </div>
-              ))}
+                )
+              )}
+            </div>
+
+            {/* Free gift banner / picker (₹499+ carts) */}
+            <div className={`cart-gift-box ${giftEligible ? "unlocked" : "locked"}`}>
+              {!giftEligible ? (
+                <p>
+                  🎁 Add ₹{FREE_GIFT_MIN - subtotal} more to unlock a <b>FREE gift</b>
+                </p>
+              ) : giftProduct ? (
+                <p>
+                  🎁 Free gift added: <b>{giftProduct.name}</b>
+                </p>
+              ) : (
+                <>
+                  <p>
+                    🎉 Congratulations! Pick your <b>FREE gift</b> (worth up to ₹{FREE_GIFT_MAX_PRICE}):
+                  </p>
+
+                  <button
+                    type="button"
+                    className="cart-gift-toggle"
+                    onClick={() => setGiftPickerOpen((v) => !v)}
+                  >
+                    {giftPickerOpen ? "Hide gift options ▲" : "Choose free gift ▼"}
+                  </button>
+
+                  {giftPickerOpen && (
+                    <div className="cart-gift-list">
+                      {giftChoices.length === 0 ? (
+                        <small>No gifts available right now.</small>
+                      ) : (
+                        giftChoices.map((p) => (
+                          <button
+                            type="button"
+                            className="cart-gift-option"
+                            key={p.id}
+                            onClick={() => {
+                              setCart((currentCart) => [
+                                ...currentCart.filter((gift) => !gift.isFreeGift),
+                                {
+                                  id: `gift-${p.id}`,
+                                  productId: p.id,
+                                  name: p.name,
+                                  brand: p.brand,
+                                  price: 0,
+                                  image: p.image,
+                                  quantity: 1,
+                                  stock: p.stock,
+                                  isFreeGift: true,
+                                },
+                              ]);
+                              setGiftPickerOpen(false);
+                              showToast(`🎁 ${p.name} added as your FREE gift!`);
+                            }}
+                          >
+                            <img
+                              src={optimizeImage(p.image, 100)}
+                              alt={p.name}
+                              loading="lazy"
+                            />
+                            <span className="cart-gift-option-info">
+                              <b>{p.name}</b>
+                              <small>
+                                {p.brand} · <s>₹{p.price}</s> ₹0
+                              </small>
+                            </span>
+                            <span className="cart-gift-pick">FREE</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <div className="cart-summary">
