@@ -1678,6 +1678,22 @@ export default function AccountModal({
                 </div>
               </div>
 
+              {user.walletBalance > 0 && (
+                <div
+                  className="account-user-card"
+                  style={{ background: "#f5f3ff", marginTop: 8 }}
+                >
+                  <div>
+                    <small style={{ color: "#7c3aed", fontWeight: 600 }}>
+                      WALLET BALANCE
+                    </small>
+                    <b style={{ color: "#7c3aed", fontSize: 18 }}>
+                      ₹{user.walletBalance.toLocaleString("en-IN")}
+                    </b>
+                  </div>
+                </div>
+              )}
+
               <button
                 type="button"
                 className={tab === "profile" ? "active" : ""}

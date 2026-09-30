@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   FiHome,
   FiPackage,
@@ -24,6 +24,7 @@ import {
   FiSend,
   FiEye,
   FiEyeOff,
+  FiCreditCard,
 } from "react-icons/fi";
 import "./AdminPanel.css";
 import { optimizeImage } from "./utils/cloudinary";
@@ -72,6 +73,7 @@ const adminTabs = [
   { id: "tryouts", label: "Tryouts", icon: FiUsers },
   { id: "banners", label: "Offer Banners", icon: FiImage },
   { id: "coupons", label: "Coupons", icon: FiPercent },
+  { id: "wallet", label: "Wallet", icon: FiCreditCard },
   { id: "categories", label: "Categories", icon: FiGrid },
 ];
 
@@ -96,6 +98,19 @@ function AdminPanel({
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [coupons, setCoupons] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [walletAmountInputs, setWalletAmountInputs] = useState({});
+  const [walletNoteInputs, setWalletNoteInputs] = useState({});
+  const [walletUpdatingId, setWalletUpdatingId] = useState("");
+  const [userSearch, setUserSearch] = useState("");
+  const [pendingBonuses, setPendingBonuses] = useState([]);
+  const [pendingBonusesLoading, setPendingBonusesLoading] = useState(false);
+  const [bonusProcessingId, setBonusProcessingId] = useState("");
+  const [expandedUserId, setExpandedUserId] = useState("");
+  const [userOrdersById, setUserOrdersById] = useState({});
+  const [userTxnsById, setUserTxnsById] = useState({});
+  const [userDetailLoadingId, setUserDetailLoadingId] = useState("");
   const [banners, setBanners] = useState([]);
   const [returns, setReturns] = useState([]);
   const [returnsLoading, setReturnsLoading] = useState(false);
@@ -178,6 +193,8 @@ function AdminPanel({
     minimumOrder: "",
     maximumDiscount: "",
     expiryDate: "",
+    assignedUserEmail: "",
+    referralBonus: "",
   });
   const [categoryForm, setCategoryForm] = useState({
     name: "",
@@ -307,6 +324,131 @@ function AdminPanel({
     }
   };
 
+  const loadUsers = async () => {
+    try {
+      setUsersLoading(true);
+      const data = await request(`${apiUrl}/api/admin/users`);
+      setUsers(data.users || []);
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const addWalletBalance = async (userId) => {
+    const raw = walletAmountInputs[userId];
+    const amount = Number(raw);
+
+    if (!raw || !Number.isFinite(amount) || amount === 0) {
+      showToast("Enter a non-zero amount");
+      return;
+    }
+
+    try {
+      setWalletUpdatingId(userId);
+      const data = await request(`${apiUrl}/api/admin/users/${userId}/wallet`, {
+        method: "POST",
+        body: JSON.stringify({
+          amount,
+          note: walletNoteInputs[userId] || "",
+        }),
+      });
+
+      showToast(data.message);
+      setWalletAmountInputs((prev) => ({ ...prev, [userId]: "" }));
+      setWalletNoteInputs((prev) => ({ ...prev, [userId]: "" }));
+      loadUsers();
+
+      if (expandedUserId === userId) {
+        loadUserDetail(userId);
+      }
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setWalletUpdatingId("");
+    }
+  };
+
+  const loadPendingBonuses = async () => {
+    try {
+      setPendingBonusesLoading(true);
+      const data = await request(
+        `${apiUrl}/api/admin/wallet-transactions?status=pending`
+      );
+      setPendingBonuses(data.transactions || []);
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setPendingBonusesLoading(false);
+    }
+  };
+
+  const approveBonus = async (id) => {
+    try {
+      setBonusProcessingId(id);
+      const data = await request(
+        `${apiUrl}/api/admin/wallet-transactions/${id}/approve`,
+        { method: "POST" }
+      );
+      showToast(data.message);
+      loadPendingBonuses();
+      loadUsers();
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setBonusProcessingId("");
+    }
+  };
+
+  const rejectBonus = async (id) => {
+    if (!window.confirm("Reject this referral bonus? It will not be added to their wallet.")) return;
+
+    try {
+      setBonusProcessingId(id);
+      const data = await request(
+        `${apiUrl}/api/admin/wallet-transactions/${id}/reject`,
+        { method: "POST" }
+      );
+      showToast(data.message);
+      loadPendingBonuses();
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setBonusProcessingId("");
+    }
+  };
+
+  const loadUserDetail = async (userId) => {
+    try {
+      setUserDetailLoadingId(userId);
+      const [ordersData, txnsData] = await Promise.all([
+        request(`${apiUrl}/api/admin/users/${userId}/orders`),
+        request(`${apiUrl}/api/admin/users/${userId}/wallet-transactions`),
+      ]);
+
+      setUserOrdersById((prev) => ({ ...prev, [userId]: ordersData.orders || [] }));
+      setUserTxnsById((prev) => ({ ...prev, [userId]: txnsData.transactions || [] }));
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setUserDetailLoadingId("");
+    }
+  };
+
+  const toggleUserExpand = (userId) => {
+    if (expandedUserId === userId) {
+      setExpandedUserId("");
+      return;
+    }
+
+    setExpandedUserId(userId);
+
+    if (!userOrdersById[userId]) {
+      loadUserDetail(userId);
+    }
+  };
+
   const loadBanners = async () => {
     try {
       const data = await request(`${apiUrl}/api/banners`);
@@ -429,6 +571,8 @@ function AdminPanel({
       loadProducts();
       loadOrders();
       loadCoupons();
+      loadUsers();
+      loadPendingBonuses();
       loadBanners();
       loadReturns();
       loadApplications();
@@ -1687,6 +1831,8 @@ function AdminPanel({
         minimumOrder: "",
         maximumDiscount: "",
         expiryDate: "",
+        assignedUserEmail: "",
+        referralBonus: "",
       });
 
       loadCoupons();
@@ -1955,12 +2101,15 @@ function AdminPanel({
                 <span>{item.label}</span>
                 {(item.id === "orders" && pendingOrders > 0) ||
                 (item.id === "returns" && pendingReturns > 0) ||
-                (item.id === "tryouts" && pendingTryouts > 0) ? (
+                (item.id === "tryouts" && pendingTryouts > 0) ||
+                (item.id === "wallet" && pendingBonuses.length > 0) ? (
                   <em className="admin-nav-badge">
                     {item.id === "orders"
                       ? pendingOrders
                       : item.id === "returns"
                       ? pendingReturns
+                      : item.id === "wallet"
+                      ? pendingBonuses.length
                       : pendingTryouts}
                   </em>
                 ) : null}
@@ -2023,12 +2172,15 @@ function AdminPanel({
                 <span>{item.label}</span>
                 {(item.id === "orders" && pendingOrders > 0) ||
                 (item.id === "returns" && pendingReturns > 0) ||
-                (item.id === "tryouts" && pendingTryouts > 0) ? (
+                (item.id === "tryouts" && pendingTryouts > 0) ||
+                (item.id === "wallet" && pendingBonuses.length > 0) ? (
                   <em className="admin-nav-badge">
                     {item.id === "orders"
                       ? pendingOrders
                       : item.id === "returns"
                       ? pendingReturns
+                      : item.id === "wallet"
+                      ? pendingBonuses.length
                       : pendingTryouts}
                   </em>
                 ) : null}
@@ -5120,8 +5272,50 @@ function AdminPanel({
                     />
                   </label>
 
+                  <label>
+                    Assign to customer (optional)
+                    <input
+                      type="email"
+                      placeholder="customer@email.com"
+                      value={couponForm.assignedUserEmail}
+                      onChange={(e) =>
+                        setCouponForm({
+                          ...couponForm,
+                          assignedUserEmail: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+
+                  {couponForm.assignedUserEmail && (
+                    <label>
+                      Referral bonus (₹) for that customer, per use
+                      <input
+                        type="number"
+                        placeholder="e.g. 50"
+                        value={couponForm.referralBonus}
+                        onChange={(e) =>
+                          setCouponForm({
+                            ...couponForm,
+                            referralBonus: e.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                  )}
+
                   <button className="save-product">Create Coupon</button>
                 </form>
+
+                {couponForm.assignedUserEmail && (
+                  <p className="admin-hint">
+                    Every time a customer places an order with this code, they
+                    get the discount above, and{" "}
+                    <strong>{couponForm.assignedUserEmail}</strong> gets ₹
+                    {couponForm.referralBonus || 0} added to their wallet + an
+                    email letting them know.
+                  </p>
+                )}
               </section>
 
               <section className="admin-products-card">
@@ -5144,6 +5338,7 @@ function AdminPanel({
                           <th>Discount</th>
                           <th>Min Order</th>
                           <th>Expiry</th>
+                          <th>Referral owner</th>
                           <th>Action</th>
                         </tr>
                       </thead>
@@ -5162,6 +5357,19 @@ function AdminPanel({
                                 ? new Date(coupon.expiryDate).toLocaleDateString()
                                 : "-"}
                             </td>
+                            <td data-label="Referral owner">
+                              {coupon.assignedUserEmail ? (
+                                <>
+                                  {coupon.assignedUserEmail}
+                                  <br />
+                                  <span style={{ color: "#059669", fontSize: 12 }}>
+                                    +₹{coupon.referralBonus} per use
+                                  </span>
+                                </>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
                             <td data-label="Action">
                               <div className="admin-actions">
                                 <button
@@ -5174,6 +5382,298 @@ function AdminPanel({
                             </td>
                           </tr>
                         ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+            </div>
+          )}
+
+          {/* ===================== WALLET / CUSTOMERS ===================== */}
+          {tab === "wallet" && (
+            <div className="admin-tab-page">
+              <section className="admin-tab-head">
+                <div>
+                  <p>CUSTOMER WALLETS</p>
+                  <h2>All customers</h2>
+                </div>
+                <button
+                  className="admin-refresh"
+                  onClick={() => {
+                    loadUsers();
+                    loadPendingBonuses();
+                  }}
+                  disabled={usersLoading}
+                >
+                  <FiRefreshCw /> {usersLoading ? "Refreshing..." : "Refresh"}
+                </button>
+              </section>
+
+              <section className="admin-products-card">
+                <div className="admin-section-title">
+                  <div>
+                    <p>WAITING ON YOU</p>
+                    <h2>Pending referral bonuses ({pendingBonuses.length})</h2>
+                  </div>
+                </div>
+
+                {pendingBonuses.length === 0 ? (
+                  <div className="admin-empty">
+                    {pendingBonusesLoading
+                      ? "Loading..."
+                      : "No referral bonuses waiting for approval."}
+                  </div>
+                ) : (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Referral owner</th>
+                          <th>Used by</th>
+                          <th>Coupon</th>
+                          <th>Order</th>
+                          <th>Bonus amount</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {pendingBonuses.map((txn) => (
+                          <tr key={txn._id}>
+                            <td data-label="Referral owner">
+                              {txn.user?.name}
+                              <br />
+                              <small>{txn.user?.email}</small>
+                            </td>
+                            <td data-label="Used by">{txn.buyerName}</td>
+                            <td data-label="Coupon">
+                              <span className="coupon-code">{txn.couponCode}</span>
+                            </td>
+                            <td data-label="Order">
+                              {txn.orderNumber}
+                              <br />
+                              <small>₹{txn.orderAmount}</small>
+                            </td>
+                            <td data-label="Bonus amount">
+                              <strong className="ok-text">₹{txn.amount}</strong>
+                            </td>
+                            <td data-label="Action">
+                              <div className="admin-actions">
+                                <button
+                                  className="save-product"
+                                  disabled={bonusProcessingId === txn._id}
+                                  onClick={() => approveBonus(txn._id)}
+                                >
+                                  {bonusProcessingId === txn._id ? "..." : "Approve"}
+                                </button>
+                                <button
+                                  className="delete-button"
+                                  disabled={bonusProcessingId === txn._id}
+                                  onClick={() => rejectBonus(txn._id)}
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
+
+              <section className="admin-form-card">
+                <input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  style={{ width: "100%", maxWidth: 360 }}
+                />
+              </section>
+
+              <section className="admin-products-card">
+                <div className="admin-section-title">
+                  <div>
+                    <p>REGISTERED CUSTOMERS</p>
+                    <h2>All customers ({users.length})</h2>
+                  </div>
+                </div>
+
+                {users.length === 0 ? (
+                  <div className="admin-empty">
+                    {usersLoading ? "Loading..." : "No registered customers yet."}
+                  </div>
+                ) : (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Email</th>
+                          <th>Orders</th>
+                          <th>Total spent</th>
+                          <th>Wallet balance</th>
+                          <th>Add / deduct balance</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {users
+                          .filter((u) => {
+                            const q = userSearch.trim().toLowerCase();
+                            if (!q) return true;
+                            return (
+                              (u.name || "").toLowerCase().includes(q) ||
+                              (u.email || "").toLowerCase().includes(q)
+                            );
+                          })
+                          .map((u) => (
+                            <Fragment key={u._id}>
+                              <tr>
+                                <td data-label="Name">{u.name}</td>
+                                <td data-label="Email">{u.email}</td>
+                                <td data-label="Orders">{u.orderCount || 0}</td>
+                                <td data-label="Total spent">
+                                  ₹{(u.totalSpent || 0).toLocaleString("en-IN")}
+                                </td>
+                                <td data-label="Wallet balance">
+                                  <strong className="ok-text">
+                                    ₹{(u.walletBalance || 0).toLocaleString("en-IN")}
+                                  </strong>
+                                </td>
+                                <td data-label="Add / deduct balance">
+                                  <div className="admin-actions" style={{ flexWrap: "wrap" }}>
+                                    <input
+                                      type="number"
+                                      placeholder="e.g. 50 or -20"
+                                      value={walletAmountInputs[u._id] || ""}
+                                      onChange={(e) =>
+                                        setWalletAmountInputs((prev) => ({
+                                          ...prev,
+                                          [u._id]: e.target.value,
+                                        }))
+                                      }
+                                      style={{ width: 100 }}
+                                    />
+                                    <input
+                                      type="text"
+                                      placeholder="Note (optional)"
+                                      value={walletNoteInputs[u._id] || ""}
+                                      onChange={(e) =>
+                                        setWalletNoteInputs((prev) => ({
+                                          ...prev,
+                                          [u._id]: e.target.value,
+                                        }))
+                                      }
+                                      style={{ width: 130 }}
+                                    />
+                                    <button
+                                      className="save-product"
+                                      disabled={walletUpdatingId === u._id}
+                                      onClick={() => addWalletBalance(u._id)}
+                                    >
+                                      {walletUpdatingId === u._id ? "..." : "Update"}
+                                    </button>
+                                  </div>
+                                </td>
+                                <td data-label="">
+                                  <button
+                                    type="button"
+                                    className="admin-refresh"
+                                    onClick={() => toggleUserExpand(u._id)}
+                                  >
+                                    {expandedUserId === u._id ? "Hide" : "View"}
+                                  </button>
+                                </td>
+                              </tr>
+
+                              {expandedUserId === u._id && (
+                                <tr>
+                                  <td colSpan={7}>
+                                    {userDetailLoadingId === u._id ? (
+                                      <div className="admin-empty">Loading...</div>
+                                    ) : (
+                                      <div style={{ padding: "12px 4px", display: "grid", gap: 16 }}>
+                                        <div>
+                                          <strong>Orders</strong>
+                                          {(userOrdersById[u._id] || []).length === 0 ? (
+                                            <p>No orders yet.</p>
+                                          ) : (
+                                            <table className="admin-table">
+                                              <thead>
+                                                <tr>
+                                                  <th>Order ID</th>
+                                                  <th>Amount</th>
+                                                  <th>Status</th>
+                                                  <th>Payment</th>
+                                                  <th>Date</th>
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                {(userOrdersById[u._id] || []).map((o) => (
+                                                  <tr key={o._id}>
+                                                    <td>{o.orderNumber}</td>
+                                                    <td>₹{o.totalAmount}</td>
+                                                    <td>{o.orderStatus}</td>
+                                                    <td>{o.paymentMethod}</td>
+                                                    <td>
+                                                      {new Date(o.createdAt).toLocaleDateString("en-IN")}
+                                                    </td>
+                                                  </tr>
+                                                ))}
+                                              </tbody>
+                                            </table>
+                                          )}
+                                        </div>
+
+                                        <div>
+                                          <strong>Wallet history</strong>
+                                          {(userTxnsById[u._id] || []).length === 0 ? (
+                                            <p>No wallet activity yet.</p>
+                                          ) : (
+                                            <table className="admin-table">
+                                              <thead>
+                                                <tr>
+                                                  <th>Type</th>
+                                                  <th>Amount</th>
+                                                  <th>Status</th>
+                                                  <th>Order</th>
+                                                  <th>Note</th>
+                                                  <th>Date</th>
+                                                </tr>
+                                              </thead>
+                                              <tbody>
+                                                {(userTxnsById[u._id] || []).map((t) => (
+                                                  <tr key={t._id}>
+                                                    <td>
+                                                      {t.type === "referral"
+                                                        ? "Referral bonus"
+                                                        : "Admin adjustment"}
+                                                    </td>
+                                                    <td>₹{t.amount}</td>
+                                                    <td>{t.status}</td>
+                                                    <td>{t.orderNumber || "-"}</td>
+                                                    <td>{t.note || "-"}</td>
+                                                    <td>
+                                                      {new Date(t.createdAt).toLocaleDateString("en-IN")}
+                                                    </td>
+                                                  </tr>
+                                                ))}
+                                              </tbody>
+                                            </table>
+                                          )}
+                                        </div>
+                                      </div>
+                                    )}
+                                  </td>
+                                </tr>
+                              )}
+                            </Fragment>
+                          ))}
                       </tbody>
                     </table>
                   </div>

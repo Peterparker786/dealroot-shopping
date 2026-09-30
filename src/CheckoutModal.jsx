@@ -96,6 +96,8 @@ const [selectedCity, setSelectedCity] = useState(null);
   });
   const [discountAmount, setDiscountAmount] = useState(0);
   const [availableCoupons] = useState([]);
+  const [useWallet, setUseWallet] = useState(false);
+  const walletBalance = user?.walletBalance || 0;
   const [placedTotal, setPlacedTotal] = useState(null);
   const userKey = user?.id || user?._id || user?.email || "";
 
@@ -281,6 +283,15 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [isOpen, codAvailable]);
 
+// Wallet balance can only be applied to the COD "pay at the door" amount —
+// turn it off automatically if the customer switches to full online payment.
+useEffect(() => {
+  if (paymentMethod !== "cod" && useWallet) {
+    setUseWallet(false);
+  }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [paymentMethod]);
+
   if (!isOpen) return null;
 
   const hasFreeDelivery =
@@ -298,6 +309,14 @@ const remainingCod =
   paymentMethod === "cod"
     ? totalPayable - deliveryFee
     : 0;
+
+// Wallet balance only ever offsets the "pay at the door" COD amount, never
+// the online delivery-charge prepay — same rule the backend enforces.
+const walletDeduction =
+  useWallet && paymentMethod === "cod"
+    ? Math.min(walletBalance, Math.max(0, remainingCod))
+    : 0;
+const finalRemainingCod = Math.max(0, remainingCod - walletDeduction);
 
   const applyCoupon = async () => {
   const code = couponInput.trim().toUpperCase();
@@ -498,6 +517,7 @@ const orderPayload = {
     "",
   deliveryType: "courier",
   couponCode: appliedCoupon,
+  useWallet: walletDeduction > 0,
   paymentMethod:
     paymentMethod === "online"
       ? "razorpay"
@@ -650,12 +670,14 @@ const razorpayCheckout = new window.Razorpay({
     const isOnlineOrder = placedOrder.paymentMethod === "razorpay";
     const isCodPartial = placedOrder.paymentMethod === "cod" && placedOrder.deliveryChargePaid;
     // For a hybrid COD order (delivery charge already paid online), the amount
-    // still due at the door is the total minus what's already been paid —
-    // NOT the full order total. Compute it once and reuse it everywhere below
-    // so the two messages on this screen never disagree with each other.
+    // still due at the door is the backend's own codAmount — it already has
+    // any wallet balance the customer used subtracted out, so this is the
+    // single source of truth (not something re-derived from totalAmount,
+    // which would silently ignore a wallet deduction). Compute it once and
+    // reuse it everywhere below so the two messages on this screen never
+    // disagree with each other.
     const codDueAtDoor = isCodPartial
-      ? (placedOrder.totalAmount || 0) -
-        (placedOrder.deliveryChargeAmount || placedOrder.deliveryFee || 0)
+      ? placedOrder.codAmount ?? 0
       : placedTotal ?? totalPayable;
 
     return (
@@ -674,6 +696,12 @@ const razorpayCheckout = new window.Razorpay({
               : "Your Cash on Delivery order has been placed successfully."}{" "}
             We will send updates to your mobile number.
           </p>
+
+          {placedOrder.walletUsed > 0 && (
+            <p style={{ color: "#059669", fontWeight: 600 }}>
+              ₹{placedOrder.walletUsed} wallet balance applied to this order.
+            </p>
+          )}
 
           <div className="success-order-id">
             Order ID: {placedOrder.orderNumber || placedOrder._id}
@@ -1181,6 +1209,22 @@ const razorpayCheckout = new window.Razorpay({
               </div>
             )}
 
+            {paymentMethod === "cod" && walletBalance > 0 && remainingCod > 0 && (
+              <label className="checkout-item wallet-toggle-row" style={{ cursor: "pointer" }}>
+                <span>
+                  <input
+                    type="checkbox"
+                    checked={useWallet}
+                    onChange={(e) => setUseWallet(e.target.checked)}
+                    disabled={isSubmitting}
+                    style={{ marginRight: 8 }}
+                  />
+                  Use wallet balance (₹{walletBalance} available)
+                </span>
+                {walletDeduction > 0 && <b>−₹{walletDeduction}</b>}
+              </label>
+            )}
+
            <div className="checkout-total">
   <span>Total Order</span>
   <strong>₹{totalPayable}</strong>
@@ -1190,7 +1234,8 @@ const razorpayCheckout = new window.Razorpay({
   <div className="checkout-item cod-info">
     <span>
       ₹{payableNow} delivery charge paid now online.
-      ₹{remainingCod} collected at doorstep.
+      ₹{finalRemainingCod} collected at doorstep.
+      {walletDeduction > 0 && ` (₹${walletDeduction} wallet balance applied)`}
     </span>
   </div>
 )}
