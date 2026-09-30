@@ -65,6 +65,20 @@ const emptyForm = {
   highlights: [],
 };
 
+const emptyManualOrderForm = {
+  userEmail: "",
+  name: "",
+  phone: "",
+  state: "",
+  address: "",
+  city: "",
+  pincode: "",
+  couponCode: "",
+  paymentMethod: "cod",
+  useWallet: false,
+  sendEmail: true,
+};
+
 const adminTabs = [
   { id: "dashboard", label: "Dashboard", icon: FiHome },
   { id: "products", label: "Products", icon: FiPackage },
@@ -111,6 +125,15 @@ function AdminPanel({
   const [userOrdersById, setUserOrdersById] = useState({});
   const [userTxnsById, setUserTxnsById] = useState({});
   const [userDetailLoadingId, setUserDetailLoadingId] = useState("");
+  // "Create an order for a customer" — for phone/WhatsApp orders the admin
+  // places on a registered customer's behalf, so it shows up in their
+  // account exactly like a self-placed order.
+  const [showManualOrderForm, setShowManualOrderForm] = useState(false);
+  const [manualOrderForm, setManualOrderForm] = useState(emptyManualOrderForm);
+  const [manualOrderItems, setManualOrderItems] = useState([]);
+  const [manualOrderProductId, setManualOrderProductId] = useState("");
+  const [manualOrderQty, setManualOrderQty] = useState("1");
+  const [manualOrderSaving, setManualOrderSaving] = useState(false);
   const [banners, setBanners] = useState([]);
   const [returns, setReturns] = useState([]);
   const [returnsLoading, setReturnsLoading] = useState(false);
@@ -446,6 +469,127 @@ function AdminPanel({
 
     if (!userOrdersById[userId]) {
       loadUserDetail(userId);
+    }
+  };
+
+  // Autofill delivery details from that customer's last order the moment the
+  // admin types a registered email into the manual-order form.
+  const applyManualOrderEmail = (email) => {
+    setManualOrderForm((prev) => ({ ...prev, userEmail: email }));
+
+    const matched = users.find(
+      (u) => u.email.toLowerCase() === email.trim().toLowerCase()
+    );
+
+    if (matched) {
+      setManualOrderForm((prev) => ({
+        ...prev,
+        userEmail: email,
+        name: prev.name || matched.name || "",
+        phone: prev.phone || matched.phone || "",
+        state: prev.state || matched.state || "",
+        address: prev.address || matched.address || "",
+        city: prev.city || matched.city || "",
+        pincode: prev.pincode || matched.pincode || "",
+      }));
+    }
+  };
+
+  const addManualOrderItem = () => {
+    if (!manualOrderProductId) {
+      showToast("Pick a product first");
+      return;
+    }
+
+    const product = products.find((p) => p._id === manualOrderProductId);
+    if (!product) return;
+
+    const quantity = Math.max(1, Math.round(Number(manualOrderQty) || 1));
+
+    setManualOrderItems((prev) => {
+      const existing = prev.find((it) => it.productId === product._id);
+
+      if (existing) {
+        return prev.map((it) =>
+          it.productId === product._id
+            ? { ...it, quantity: it.quantity + quantity }
+            : it
+        );
+      }
+
+      return [
+        ...prev,
+        {
+          productId: product._id,
+          title: product.title,
+          price: product.price,
+          quantity,
+        },
+      ];
+    });
+
+    setManualOrderProductId("");
+    setManualOrderQty("1");
+  };
+
+  const removeManualOrderItem = (productId) => {
+    setManualOrderItems((prev) => prev.filter((it) => it.productId !== productId));
+  };
+
+  const manualOrderSubtotal = manualOrderItems.reduce(
+    (sum, it) => sum + it.price * it.quantity,
+    0
+  );
+
+  const createManualOrder = async (e) => {
+    e.preventDefault();
+
+    if (!manualOrderForm.userEmail.trim()) {
+      showToast("Enter the customer's registered email");
+      return;
+    }
+
+    if (!manualOrderItems.length) {
+      showToast("Add at least one product");
+      return;
+    }
+
+    try {
+      setManualOrderSaving(true);
+
+      const data = await request(`${apiUrl}/api/admin/orders`, {
+        method: "POST",
+        body: JSON.stringify({
+          userEmail: manualOrderForm.userEmail.trim(),
+          customer: {
+            name: manualOrderForm.name,
+            phone: manualOrderForm.phone,
+            state: manualOrderForm.state,
+            address: manualOrderForm.address,
+            city: manualOrderForm.city,
+            pincode: manualOrderForm.pincode,
+          },
+          items: manualOrderItems.map((it) => ({
+            productId: it.productId,
+            quantity: it.quantity,
+          })),
+          couponCode: manualOrderForm.couponCode,
+          paymentMethod: manualOrderForm.paymentMethod,
+          useWallet: manualOrderForm.useWallet,
+          sendEmail: manualOrderForm.sendEmail,
+        }),
+      });
+
+      showToast(`Order ${data.order.orderNumber} created for ${manualOrderForm.userEmail}`);
+      setManualOrderForm(emptyManualOrderForm);
+      setManualOrderItems([]);
+      setShowManualOrderForm(false);
+      loadOrders();
+      loadUsers();
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setManualOrderSaving(false);
     }
   };
 
@@ -3342,10 +3486,258 @@ function AdminPanel({
                   <h2>Manage COD orders</h2>
                 </div>
 
-                <button className="admin-refresh" onClick={loadOrders}>
-                  <FiRefreshCw /> Refresh orders
-                </button>
+                <div style={{ display: "flex", gap: "10px" }}>
+                  <button
+                    className="admin-refresh"
+                    type="button"
+                    onClick={() => setShowManualOrderForm((v) => !v)}
+                  >
+                    <FiPlus /> {showManualOrderForm ? "Close" : "Create order for a customer"}
+                  </button>
+
+                  <button className="admin-refresh" onClick={loadOrders}>
+                    <FiRefreshCw /> Refresh orders
+                  </button>
+                </div>
               </section>
+
+              {showManualOrderForm && (
+                <section className="admin-form-card">
+                  <form className="admin-mini-form" onSubmit={createManualOrder}>
+                    <p className="full-field" style={{ margin: "0 0 4px", color: "#666" }}>
+                      For a customer who ordered by phone/WhatsApp instead of
+                      through the site — they must already have a DEALROOT
+                      account. The order will show up under their profile
+                      exactly like a self-placed order.
+                    </p>
+
+                    <label className="full-field">
+                      Customer's registered email
+                      <input
+                        type="email"
+                        required
+                        list="manual-order-user-emails"
+                        value={manualOrderForm.userEmail}
+                        onChange={(e) => applyManualOrderEmail(e.target.value)}
+                        placeholder="customer@email.com"
+                      />
+                      <datalist id="manual-order-user-emails">
+                        {users.map((u) => (
+                          <option key={u.email} value={u.email}>
+                            {u.name}
+                          </option>
+                        ))}
+                      </datalist>
+                    </label>
+
+                    <label>
+                      Name
+                      <input
+                        required
+                        value={manualOrderForm.name}
+                        onChange={(e) =>
+                          setManualOrderForm((prev) => ({ ...prev, name: e.target.value }))
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Phone
+                      <input
+                        required
+                        value={manualOrderForm.phone}
+                        onChange={(e) =>
+                          setManualOrderForm((prev) => ({ ...prev, phone: e.target.value }))
+                        }
+                        placeholder="10-digit mobile number"
+                      />
+                    </label>
+
+                    <label className="full-field">
+                      Address
+                      <input
+                        required
+                        value={manualOrderForm.address}
+                        onChange={(e) =>
+                          setManualOrderForm((prev) => ({ ...prev, address: e.target.value }))
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      City
+                      <input
+                        required
+                        value={manualOrderForm.city}
+                        onChange={(e) =>
+                          setManualOrderForm((prev) => ({ ...prev, city: e.target.value }))
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      State
+                      <input
+                        required
+                        value={manualOrderForm.state}
+                        onChange={(e) =>
+                          setManualOrderForm((prev) => ({ ...prev, state: e.target.value }))
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Pincode
+                      <input
+                        required
+                        value={manualOrderForm.pincode}
+                        onChange={(e) =>
+                          setManualOrderForm((prev) => ({ ...prev, pincode: e.target.value }))
+                        }
+                      />
+                    </label>
+
+                    <hr className="full-field" />
+
+                    <label>
+                      Product
+                      <select
+                        value={manualOrderProductId}
+                        onChange={(e) => setManualOrderProductId(e.target.value)}
+                      >
+                        <option value="">Select a product…</option>
+                        {products.map((p) => (
+                          <option key={p._id} value={p._id}>
+                            {p.title} — ₹{p.price} (stock: {p.stock})
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label>
+                      Quantity
+                      <input
+                        type="number"
+                        min="1"
+                        value={manualOrderQty}
+                        onChange={(e) => setManualOrderQty(e.target.value)}
+                      />
+                    </label>
+
+                    <label style={{ alignSelf: "end" }}>
+                      <button
+                        type="button"
+                        className="admin-refresh"
+                        onClick={addManualOrderItem}
+                        style={{ width: "100%", justifyContent: "center" }}
+                      >
+                        <FiPlus /> Add item
+                      </button>
+                    </label>
+
+                    {manualOrderItems.length > 0 && (
+                      <div className="full-field admin-table-wrap">
+                        <table className="admin-table">
+                          <thead>
+                            <tr>
+                              <th>Product</th>
+                              <th>Qty</th>
+                              <th>Line total</th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {manualOrderItems.map((it) => (
+                              <tr key={it.productId}>
+                                <td data-label="Product">{it.title}</td>
+                                <td data-label="Qty">{it.quantity}</td>
+                                <td data-label="Line total">
+                                  ₹{(it.price * it.quantity).toFixed(2)}
+                                </td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className="delete-button"
+                                    onClick={() => removeManualOrderItem(it.productId)}
+                                  >
+                                    <FiTrash2 />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <p style={{ textAlign: "right", fontWeight: 600, margin: "8px 0 0" }}>
+                          Subtotal: ₹{manualOrderSubtotal.toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+
+                    <hr className="full-field" />
+
+                    <label>
+                      Coupon code (optional)
+                      <input
+                        value={manualOrderForm.couponCode}
+                        onChange={(e) =>
+                          setManualOrderForm((prev) => ({
+                            ...prev,
+                            couponCode: e.target.value.toUpperCase(),
+                          }))
+                        }
+                      />
+                    </label>
+
+                    <label>
+                      Payment
+                      <select
+                        value={manualOrderForm.paymentMethod}
+                        onChange={(e) =>
+                          setManualOrderForm((prev) => ({
+                            ...prev,
+                            paymentMethod: e.target.value,
+                            useWallet: e.target.value === "paid" ? false : prev.useWallet,
+                          }))
+                        }
+                      >
+                        <option value="cod">Cash on Delivery</option>
+                        <option value="paid">Already paid (cash/UPI collected)</option>
+                      </select>
+                    </label>
+
+                    <label className="featured-check full-field">
+                      <input
+                        type="checkbox"
+                        disabled={manualOrderForm.paymentMethod === "paid"}
+                        checked={manualOrderForm.useWallet}
+                        onChange={(e) =>
+                          setManualOrderForm((prev) => ({ ...prev, useWallet: e.target.checked }))
+                        }
+                      />
+                      Use this customer's wallet balance to reduce the COD amount due
+                    </label>
+
+                    <label className="featured-check full-field">
+                      <input
+                        type="checkbox"
+                        checked={manualOrderForm.sendEmail}
+                        onChange={(e) =>
+                          setManualOrderForm((prev) => ({ ...prev, sendEmail: e.target.checked }))
+                        }
+                      />
+                      Send the order confirmation email to the customer
+                    </label>
+
+                    <button
+                      type="submit"
+                      className="save-product full-field"
+                      disabled={manualOrderSaving}
+                    >
+                      {manualOrderSaving ? "Creating order…" : "Create order"}
+                    </button>
+                  </form>
+                </section>
+              )}
 
               <section className="admin-products-card">
                 {ordersLoading ? (
