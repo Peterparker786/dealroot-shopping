@@ -299,6 +299,7 @@ export default function AccountModal({
   const [addressErrors, setAddressErrors] = useState({});
   const [editorSelectedState, setEditorSelectedState] = useState(null);
   const [editorSelectedCity, setEditorSelectedCity] = useState(null);
+  const [pincodeLookupLoading, setPincodeLookupLoading] = useState(false);
 
   const stateOptions = INDIAN_STATES;
   const editorCityOptions = useMemo(() => {
@@ -786,6 +787,50 @@ export default function AccountModal({
     }
   };
 
+  // Auto-fills State + City the moment the customer finishes typing a
+  // 6-digit pincode, so they don't have to search both dropdowns by hand.
+  const lookupAddressPincode = async (pincode) => {
+    const digitsOnly = String(pincode || "").replace(/\D/g, "");
+    if (digitsOnly.length !== 6) return;
+
+    try {
+      setPincodeLookupLoading(true);
+      const res = await fetch(`${apiUrl}/api/pincode/${digitsOnly}`);
+      const data = await res.json();
+
+      if (!data.success) return;
+
+      const matchedState = INDIAN_STATES.find(
+        (s) => s.label.toLowerCase() === String(data.state || "").toLowerCase()
+      );
+      const cityLabel = String(data.city || "").trim();
+
+      if (matchedState) {
+        setEditorSelectedState(matchedState);
+        setEditorSelectedCity(
+          cityLabel ? { value: cityLabel, label: cityLabel } : null
+        );
+        setDraft((current) => ({
+          ...current,
+          state: matchedState.label,
+          city: cityLabel || current.city,
+        }));
+      } else if (cityLabel) {
+        // State name from the API didn't match our list exactly — at least
+        // fill in the city text so the customer isn't starting from scratch.
+        setDraft((current) => ({ ...current, city: cityLabel }));
+      }
+
+      if (addressErrors.state || addressErrors.city) {
+        setAddressErrors((current) => ({ ...current, state: "", city: "" }));
+      }
+    } catch {
+      // Silently ignore — customer can still pick state/city by hand.
+    } finally {
+      setPincodeLookupLoading(false);
+    }
+  };
+
   const startEditAddress = (index) => {
     const nextDraft = index === -1 ? emptyAddress : { ...addresses[index] };
     setDraft(nextDraft);
@@ -1145,12 +1190,21 @@ export default function AccountModal({
     }
   };
 
-  // An order can be returned within 7 days of placing it (Amazon-style).
+  // An order can only be returned once it has actually been delivered, and
+  // then within 7 days of that delivery (Amazon-style) — not 7 days from
+  // when it was placed, which used to show "Return / Refund" on orders that
+  // were still Packed/Shipped and hadn't reached the customer yet.
   const canReturnOrder = (order) => {
-    if (order?.orderStatus === "cancelled") return false;
+    if (order?.orderStatus !== "delivered") return false;
 
-    const placedAt = new Date(order?.createdAt || Date.now()).getTime();
-    return Date.now() - placedAt <= 7 * 24 * 60 * 60 * 1000;
+    const deliveredEntry = [...(order?.statusHistory || [])]
+      .reverse()
+      .find((entry) => entry.status === "delivered");
+    const deliveredAt = new Date(
+      deliveredEntry?.at || order?.updatedAt || order?.createdAt || Date.now()
+    ).getTime();
+
+    return Date.now() - deliveredAt <= 7 * 24 * 60 * 60 * 1000;
   };
 
   const returnInfoFor = (order) =>
@@ -1977,15 +2031,22 @@ export default function AccountModal({
 
                         <input
                           value={draft.pincode}
-                          onChange={(e) =>
-                            updateDraft(
-                              "pincode",
-                              e.target.value.replace(/\D/g, "").slice(0, 6)
-                            )
-                          }
+                          onChange={(e) => {
+                            const pincode = e.target.value
+                              .replace(/\D/g, "")
+                              .slice(0, 6);
+                            updateDraft("pincode", pincode);
+                            if (pincode.length === 6) {
+                              lookupAddressPincode(pincode);
+                            }
+                          }}
                           inputMode="numeric"
                           maxLength="6"
-                          placeholder="6-digit pincode"
+                          placeholder={
+                            pincodeLookupLoading
+                              ? "Looking up…"
+                              : "6-digit pincode"
+                          }
                         />
                         {addressErrors.pincode && (
                           <span className="field-error">
@@ -2522,11 +2583,22 @@ export default function AccountModal({
                               );
                             }
 
+                            if (
+                              order.orderStatus !== "delivered" &&
+                              order.orderStatus !== "cancelled"
+                            ) {
+                              return (
+                                <div className="return-status return-pending-delivery">
+                                  📦 Return / Refund will be available once
+                                  this order is delivered
+                                </div>
+                              );
+                            }
+
                             if (!canReturnOrder(order)) {
                               return (
                                 <div className="return-status return-expired">
-                                  ⌛ Return window closed (7 days from placing
-                                  your order)
+                                  ⌛ Return window closed (7 days from delivery)
                                 </div>
                               );
                             }

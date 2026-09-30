@@ -65,6 +65,45 @@ const emptyForm = {
   highlights: [],
 };
 
+const indianStates = [
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chhattisgarh",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
+  "Andaman and Nicobar Islands",
+  "Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
+  "Jammu and Kashmir",
+  "Ladakh",
+  "Lakshadweep",
+  "Puducherry",
+];
+
 const emptyManualOrderForm = {
   userEmail: "",
   name: "",
@@ -73,6 +112,7 @@ const emptyManualOrderForm = {
   address: "",
   city: "",
   pincode: "",
+  orderNumber: "",
   couponCode: "",
   paymentMethod: "cod",
   useWallet: false,
@@ -134,6 +174,7 @@ function AdminPanel({
   const [manualOrderProductId, setManualOrderProductId] = useState("");
   const [manualOrderQty, setManualOrderQty] = useState("1");
   const [manualOrderSaving, setManualOrderSaving] = useState(false);
+  const [manualOrderPincodeLoading, setManualOrderPincodeLoading] = useState(false);
   const [banners, setBanners] = useState([]);
   const [returns, setReturns] = useState([]);
   const [returnsLoading, setReturnsLoading] = useState(false);
@@ -495,6 +536,31 @@ function AdminPanel({
     }
   };
 
+  // Auto-fills City + State the moment a valid 6-digit pincode is entered,
+  // so the admin doesn't have to type/pick them by hand for a WhatsApp order.
+  const lookupManualOrderPincode = async (pincode) => {
+    const digitsOnly = String(pincode || "").replace(/\D/g, "");
+    if (digitsOnly.length !== 6) return;
+
+    try {
+      setManualOrderPincodeLoading(true);
+      const res = await fetch(`${apiUrl}/api/pincode/${digitsOnly}`);
+      const data = await res.json();
+
+      if (data.success) {
+        setManualOrderForm((prev) => ({
+          ...prev,
+          city: data.city || prev.city,
+          state: data.state || prev.state,
+        }));
+      }
+    } catch {
+      // Silently ignore — admin can still fill city/state by hand.
+    } finally {
+      setManualOrderPincodeLoading(false);
+    }
+  };
+
   const addManualOrderItem = () => {
     if (!manualOrderProductId) {
       showToast("Pick a product first");
@@ -573,6 +639,7 @@ function AdminPanel({
             productId: it.productId,
             quantity: it.quantity,
           })),
+          orderNumber: manualOrderForm.orderNumber,
           couponCode: manualOrderForm.couponCode,
           paymentMethod: manualOrderForm.paymentMethod,
           useWallet: manualOrderForm.useWallet,
@@ -3565,6 +3632,20 @@ function AdminPanel({
                     </label>
 
                     <label>
+                      Pincode
+                      <input
+                        required
+                        value={manualOrderForm.pincode}
+                        onChange={(e) => {
+                          const pincode = e.target.value.replace(/\D/g, "").slice(0, 6);
+                          setManualOrderForm((prev) => ({ ...prev, pincode }));
+                          if (pincode.length === 6) lookupManualOrderPincode(pincode);
+                        }}
+                        placeholder={manualOrderPincodeLoading ? "Looking up…" : "6-digit pincode"}
+                      />
+                    </label>
+
+                    <label>
                       City
                       <input
                         required
@@ -3572,28 +3653,39 @@ function AdminPanel({
                         onChange={(e) =>
                           setManualOrderForm((prev) => ({ ...prev, city: e.target.value }))
                         }
+                        placeholder="Auto-fills from pincode"
                       />
                     </label>
 
                     <label>
                       State
-                      <input
+                      <select
                         required
                         value={manualOrderForm.state}
                         onChange={(e) =>
                           setManualOrderForm((prev) => ({ ...prev, state: e.target.value }))
                         }
-                      />
+                      >
+                        <option value="">Select state (or auto-fills from pincode)</option>
+                        {indianStates.map((s) => (
+                          <option key={s} value={s}>
+                            {s}
+                          </option>
+                        ))}
+                      </select>
                     </label>
 
-                    <label>
-                      Pincode
+                    <label className="full-field">
+                      Order ID (optional)
                       <input
-                        required
-                        value={manualOrderForm.pincode}
+                        value={manualOrderForm.orderNumber}
                         onChange={(e) =>
-                          setManualOrderForm((prev) => ({ ...prev, pincode: e.target.value }))
+                          setManualOrderForm((prev) => ({
+                            ...prev,
+                            orderNumber: e.target.value.toUpperCase(),
+                          }))
                         }
+                        placeholder="Leave blank to auto-generate (e.g. DR-1234567890-1234)"
                       />
                     </label>
 

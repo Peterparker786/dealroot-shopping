@@ -84,6 +84,7 @@ function CheckoutModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedState, setSelectedState] = useState(null);
 const [selectedCity, setSelectedCity] = useState(null);
+  const [pincodeLookupLoading, setPincodeLookupLoading] = useState(false);
   const [form, setForm] = useState(emptyDeliveryForm);
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddr, setSelectedAddr] = useState(null);
@@ -399,6 +400,46 @@ const finalRemainingCod = Math.max(0, remainingCod - walletDeduction);
         ? { value: cityName, label: cityName }
         : null
     );
+  };
+
+  // Auto-fills State + City the moment the customer finishes typing a
+  // 6-digit pincode, so they don't have to search both dropdowns by hand.
+  const lookupCheckoutPincode = async (pincode) => {
+    const digitsOnly = String(pincode || "").replace(/\D/g, "");
+    if (digitsOnly.length !== 6) return;
+
+    try {
+      setPincodeLookupLoading(true);
+      const res = await fetch(`${apiUrl}/api/pincode/${digitsOnly}`);
+      const data = await res.json();
+
+      if (!data.success) return;
+
+      const matchedState = INDIAN_STATES.find(
+        (s) => s.label.toLowerCase() === String(data.state || "").toLowerCase()
+      );
+      const cityLabel = String(data.city || "").trim();
+
+      if (matchedState) {
+        setSelectedState(matchedState);
+        setSelectedCity(cityLabel ? { value: cityLabel, label: cityLabel } : null);
+        setForm((current) => ({
+          ...current,
+          state: matchedState.label,
+          city: cityLabel || current.city,
+        }));
+      } else if (cityLabel) {
+        setForm((current) => ({ ...current, city: cityLabel }));
+      }
+
+      if (formErrors.state || formErrors.city) {
+        setFormErrors((current) => ({ ...current, state: "", city: "" }));
+      }
+    } catch {
+      // Silently ignore — customer can still pick state/city by hand.
+    } finally {
+      setPincodeLookupLoading(false);
+    }
   };
 
   const applySavedAddress = (index) => {
@@ -921,10 +962,14 @@ const razorpayCheckout = new window.Razorpay({
                   <input
                     name="pincode"
                     value={form.pincode}
-                    onChange={updateForm}
+                    onChange={(e) => {
+                      updateForm(e);
+                      const pincode = e.target.value.replace(/\D/g, "").slice(0, 6);
+                      if (pincode.length === 6) lookupCheckoutPincode(pincode);
+                    }}
                     inputMode="numeric"
                     maxLength="6"
-                    placeholder="6-digit pincode"
+                    placeholder={pincodeLookupLoading ? "Looking up…" : "6-digit pincode"}
                     required
                     aria-invalid={formErrors.pincode ? "true" : undefined}
                   />
