@@ -649,6 +649,14 @@ const razorpayCheckout = new window.Razorpay({
   if (placedOrder) {
     const isOnlineOrder = placedOrder.paymentMethod === "razorpay";
     const isCodPartial = placedOrder.paymentMethod === "cod" && placedOrder.deliveryChargePaid;
+    // For a hybrid COD order (delivery charge already paid online), the amount
+    // still due at the door is the total minus what's already been paid —
+    // NOT the full order total. Compute it once and reuse it everywhere below
+    // so the two messages on this screen never disagree with each other.
+    const codDueAtDoor = isCodPartial
+      ? (placedOrder.totalAmount || 0) -
+        (placedOrder.deliveryChargeAmount || placedOrder.deliveryFee || 0)
+      : placedTotal ?? totalPayable;
 
     return (
       <div className="checkout-overlay">
@@ -662,7 +670,7 @@ const razorpayCheckout = new window.Razorpay({
             {isOnlineOrder
               ? "Your online payment is verified and your order is confirmed."
               : isCodPartial
-              ? `Delivery charge ₹${placedOrder.deliveryChargeAmount || placedOrder.deliveryFee} paid online. Remaining ₹${(placedOrder.totalAmount || 0) - (placedOrder.deliveryChargeAmount || placedOrder.deliveryFee)} will be collected at delivery.`
+              ? `Delivery charge ₹${placedOrder.deliveryChargeAmount || placedOrder.deliveryFee} paid online. Remaining ₹${codDueAtDoor} will be collected at delivery.`
               : "Your Cash on Delivery order has been placed successfully."}{" "}
             We will send updates to your mobile number.
           </p>
@@ -683,7 +691,7 @@ const razorpayCheckout = new window.Razorpay({
             {!isOnlineOrder && (
               <div className="success-step">
                 <span className="success-step-icon">💰</span>
-                <span>Pay ₹{placedTotal ?? totalPayable} when your order arrives</span>
+                <span>Pay ₹{codDueAtDoor} when your order arrives</span>
               </div>
             )}
           </div>
