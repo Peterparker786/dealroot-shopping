@@ -3800,13 +3800,21 @@ function AdminPanel({
                     <label className="featured-check full-field">
                       <input
                         type="checkbox"
-                        disabled={manualOrderForm.paymentMethod === "paid"}
+                        disabled={
+                          manualOrderForm.paymentMethod === "paid" ||
+                          manualOrderSubtotal < 100
+                        }
                         checked={manualOrderForm.useWallet}
                         onChange={(e) =>
                           setManualOrderForm((prev) => ({ ...prev, useWallet: e.target.checked }))
                         }
                       />
                       Use this customer's wallet balance to reduce the COD amount due
+                      {manualOrderSubtotal > 0 && manualOrderSubtotal < 100 && (
+                        <small style={{ display: "block", color: "#999" }}>
+                          Only available on carts of ₹100+
+                        </small>
+                      )}
                     </label>
 
                     <label className="featured-check full-field">

@@ -315,9 +315,12 @@ const remainingCod =
     : 0;
 
 // Wallet balance only ever offsets the "pay at the door" COD amount, never
-// the online delivery-charge prepay — same rule the backend enforces.
+// the online delivery-charge prepay — same rule the backend enforces. It
+// also only kicks in once the cart itself is worth at least ₹100.
+const WALLET_MIN_SUBTOTAL = 100;
+const walletEligible = orderSubtotal >= WALLET_MIN_SUBTOTAL;
 const walletDeduction =
-  useWallet && paymentMethod === "cod"
+  useWallet && paymentMethod === "cod" && walletEligible
     ? Math.min(walletBalance, Math.max(0, remainingCod))
     : 0;
 const finalRemainingCod = Math.max(0, remainingCod - walletDeduction);
@@ -1264,20 +1267,30 @@ const razorpayCheckout = new window.Razorpay({
               </div>
             )}
 
-            {paymentMethod === "cod" && walletBalance > 0 && remainingCod > 0 && (
-              <label className="checkout-item wallet-toggle-row" style={{ cursor: "pointer" }}>
-                <span>
-                  <input
-                    type="checkbox"
-                    checked={useWallet}
-                    onChange={(e) => setUseWallet(e.target.checked)}
-                    disabled={isSubmitting}
-                    style={{ marginRight: 8 }}
-                  />
-                  Use wallet balance (₹{walletBalance} available)
-                </span>
-              </label>
-            )}
+            {paymentMethod === "cod" &&
+              walletBalance > 0 &&
+              remainingCod > 0 &&
+              (walletEligible ? (
+                <label className="checkout-item wallet-toggle-row" style={{ cursor: "pointer" }}>
+                  <span>
+                    <input
+                      type="checkbox"
+                      checked={useWallet}
+                      onChange={(e) => setUseWallet(e.target.checked)}
+                      disabled={isSubmitting}
+                      style={{ marginRight: 8 }}
+                    />
+                    Use wallet balance (₹{walletBalance} available)
+                  </span>
+                </label>
+              ) : (
+                <div className="checkout-item wallet-toggle-row" style={{ color: "#999" }}>
+                  <span>
+                    Wallet balance can be used on carts of ₹{WALLET_MIN_SUBTOTAL}
+                    + only
+                  </span>
+                </div>
+              ))}
 
             {walletDeduction > 0 && (
               <div className="checkout-item wallet-discount-row">
