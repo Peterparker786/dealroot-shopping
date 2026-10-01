@@ -5348,6 +5348,20 @@ function AdminPanel({
                                 <span>Refund method (UPI)</span>
                                 <b>{item.upiId || "—"}</b>
                               </div>
+                              {Number(item.order?.discountAmount) > 0 && (
+                                <div>
+                                  <span>Cashback</span>
+                                  <b style={{ color: "#7c3aed" }}>
+                                    ₹{item.order.discountAmount}
+                                    {item.order.couponCode
+                                      ? ` (${item.order.couponCode})`
+                                      : ""}{" "}
+                                    {item.order.cashbackCredited
+                                      ? "— already credited"
+                                      : "— not credited"}
+                                  </b>
+                                </div>
+                              )}
                               {item.status === "approved" && (
                                 <div>
                                   <span>Deduction / Refunded</span>
@@ -5405,6 +5419,26 @@ function AdminPanel({
 
                           {isPending && (
                             <footer className="return-card-actions">
+                              {Number(item.order?.discountAmount) > 0 &&
+                                item.order?.cashbackCredited && (
+                                  <p
+                                    style={{
+                                      color: "#7c3aed",
+                                      fontWeight: 600,
+                                      fontSize: 13,
+                                      margin: "0 0 8px",
+                                    }}
+                                  >
+                                    ⚠️ This order's ₹{item.order.discountAmount}{" "}
+                                    cashback{" "}
+                                    {item.order.couponCode
+                                      ? `(${item.order.couponCode}) `
+                                      : ""}
+                                    is already credited to the customer's
+                                    wallet — approving this return will claw it
+                                    back automatically.
+                                  </p>
+                                )}
                               {!reviewing ? (
                                 <button
                                   type="button"
