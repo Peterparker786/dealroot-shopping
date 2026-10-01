@@ -219,6 +219,11 @@
   color: #087a49;
 }
 
+.wallet-discount-row,
+.wallet-discount-row b {
+  color: #7c3aed;
+}
+
 @media (max-width: 420px) {
   .checkout-coupon {
     padding: 13px;

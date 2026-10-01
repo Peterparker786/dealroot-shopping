@@ -1266,13 +1266,19 @@ const razorpayCheckout = new window.Razorpay({
                   />
                   Use wallet balance (₹{walletBalance} available)
                 </span>
-                {walletDeduction > 0 && <b>−₹{walletDeduction}</b>}
               </label>
+            )}
+
+            {walletDeduction > 0 && (
+              <div className="checkout-item wallet-discount-row">
+                <span>Wallet balance applied</span>
+                <b>−₹{walletDeduction}</b>
+              </div>
             )}
 
            <div className="checkout-total">
   <span>Total Order</span>
-  <strong>₹{totalPayable}</strong>
+  <strong>₹{totalPayable - walletDeduction}</strong>
 </div>
 
 {paymentMethod === "cod" && (
