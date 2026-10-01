@@ -331,6 +331,12 @@ export default function AccountModal({
   const [emailNotFound, setEmailNotFound] = useState(false);
   const [resendIn, setResendIn] = useState(0);
 
+  // Personal referral program — applying a friend's code permanently links
+  // this account to them (one-time; see /api/auth/apply-referral).
+  const [referralCodeInput, setReferralCodeInput] = useState("");
+  const [referralApplying, setReferralApplying] = useState(false);
+  const [referralMessage, setReferralMessage] = useState({ type: "", text: "" });
+
   // Returns & refunds (Amazon-style: reasons + photo/video proof + UPI).
   const RETURN_REASONS = [
     "Product is defective / not working",
@@ -776,6 +782,48 @@ export default function AccountModal({
 
     if (nextAddresses !== null) {
       await persistProfile(nextAddresses);
+    }
+  };
+
+  // Personal referral program — apply a friend's code once, permanently
+  // linking this account to them (see /api/auth/apply-referral). After this,
+  // every order placed automatically earns the friend 50% cashback on
+  // delivery; this account itself earns nothing from the link (only from
+  // applying an actual coupon code at checkout, a separate feature).
+  const applyReferralCode = async () => {
+    const code = referralCodeInput.trim().toUpperCase();
+
+    if (!code) {
+      setReferralMessage({ type: "error", text: "Please enter a referral code" });
+      return;
+    }
+
+    try {
+      setReferralApplying(true);
+      setReferralMessage({ type: "", text: "" });
+
+      const res = await fetch(`${apiUrl}/api/auth/apply-referral`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ code }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.message || "Could not apply referral code");
+      }
+
+      onUserUpdated(data.user);
+      setReferralCodeInput("");
+      setReferralMessage({ type: "success", text: data.message });
+    } catch (err) {
+      setReferralMessage({ type: "error", text: err.message });
+    } finally {
+      setReferralApplying(false);
     }
   };
 
@@ -1783,6 +1831,7 @@ export default function AccountModal({
 
             <div className="account-panel">
               {tab === "profile" ? (
+                <>
                 <form className="profile-form" onSubmit={saveProfile}>
                   <div className="full-field">
                     <span className="eyebrow blue">MY DETAILS</span>
@@ -2100,6 +2149,109 @@ export default function AccountModal({
                     {submitting ? "Saving..." : "Save details"}
                   </button>
                 </form>
+
+                <section
+                  className="referral-card"
+                  style={{
+                    marginTop: 24,
+                    padding: "18px 20px",
+                    borderRadius: 14,
+                    background: "#f5f3ff",
+                    border: "1px solid #ddd6fe",
+                  }}
+                >
+                  <span className="eyebrow blue" style={{ color: "#7c3aed" }}>
+                    REFERRAL PROGRAM
+                  </span>
+                  <h3 style={{ margin: "4px 0 10px" }}>
+                    Refer friends, earn cashback
+                  </h3>
+                  <p style={{ fontSize: 13, color: "#555", lineHeight: 1.6, margin: "0 0 14px" }}>
+                    Share your code with a friend. Once they apply it below (a
+                    one-time, permanent link), you'll automatically earn 50%
+                    of every order they place as wallet cashback, as soon as
+                    it's delivered — no action needed from you after that.
+                  </p>
+
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <span style={{ fontSize: 12, color: "#7c3aed", fontWeight: 600 }}>
+                      YOUR CODE
+                    </span>
+                    <strong style={{ fontSize: 20, letterSpacing: 2, color: "#7c3aed" }}>
+                      {user.referralCode || "—"}
+                    </strong>
+                    {user.referralCode && (
+                      <button
+                        type="button"
+                        className="coupon-apply-button"
+                        onClick={() => {
+                          navigator.clipboard
+                            ?.writeText(user.referralCode)
+                            .then(() => showToast?.("Referral code copied!"))
+                            .catch(() => {});
+                        }}
+                      >
+                        Copy
+                      </button>
+                    )}
+                  </div>
+
+                  <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid #ddd6fe" }}>
+                    {user.referredByCode ? (
+                      <p style={{ fontSize: 13, color: "#333", margin: 0 }}>
+                        ✓ Your account is linked to referral code{" "}
+                        <strong style={{ color: "#7c3aed" }}>{user.referredByCode}</strong>.
+                        That friend earns 50% cashback on every order you place, once delivered.
+                      </p>
+                    ) : (
+                      <>
+                        <span style={{ fontSize: 12, color: "#7c3aed", fontWeight: 600, display: "block", marginBottom: 8 }}>
+                          GOT A FRIEND'S CODE?
+                        </span>
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          <input
+                            type="text"
+                            placeholder="Enter referral code"
+                            value={referralCodeInput}
+                            onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase())}
+                            disabled={referralApplying}
+                            style={{ flex: "1 1 160px" }}
+                          />
+                          <button
+                            type="button"
+                            className="coupon-apply-button"
+                            onClick={applyReferralCode}
+                            disabled={referralApplying}
+                          >
+                            {referralApplying ? "Applying..." : "Apply"}
+                          </button>
+                        </div>
+                        <small style={{ display: "block", color: "#999", marginTop: 6 }}>
+                          This can only be applied once and can't be changed later.
+                        </small>
+                        {referralMessage.text && (
+                          <p
+                            style={{
+                              fontSize: 13,
+                              marginTop: 8,
+                              color: referralMessage.type === "error" ? "#dc2626" : "#16a34a",
+                            }}
+                          >
+                            {referralMessage.text}
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </section>
+                </>
               ) : tab === "security" ? (
                 <section className="security-panel">
                   <div>

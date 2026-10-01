@@ -165,6 +165,12 @@ function AdminPanel({
   const [userOrdersById, setUserOrdersById] = useState({});
   const [userTxnsById, setUserTxnsById] = useState({});
   const [userDetailLoadingId, setUserDetailLoadingId] = useState("");
+  // Personal referral program — admin can override a customer's own code,
+  // and can assign/clear which code a customer's account is permanently
+  // linked to (see /api/admin/users/:id/referred-by).
+  const [referralCodeInputs, setReferralCodeInputs] = useState({});
+  const [referredByInputs, setReferredByInputs] = useState({});
+  const [referralUpdatingId, setReferralUpdatingId] = useState("");
   // "Create an order for a customer" — for phone/WhatsApp orders the admin
   // places on a registered customer's behalf, so it shows up in their
   // account exactly like a self-placed order.
@@ -431,6 +437,53 @@ function AdminPanel({
       showToast(error.message);
     } finally {
       setWalletUpdatingId("");
+    }
+  };
+
+  const saveUserReferralCode = async (userId) => {
+    const code = String(referralCodeInputs[userId] || "").trim();
+    if (!code) {
+      showToast("Enter a referral code");
+      return;
+    }
+
+    try {
+      setReferralUpdatingId(userId);
+      const data = await request(
+        `${apiUrl}/api/admin/users/${userId}/referral-code`,
+        { method: "PATCH", body: JSON.stringify({ code }) }
+      );
+      showToast(data.message);
+      setReferralCodeInputs((prev) => ({ ...prev, [userId]: "" }));
+      loadUsers();
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setReferralUpdatingId("");
+    }
+  };
+
+  // Assign (or clear, when code is "") which referral code a customer's
+  // account is permanently linked to.
+  const saveUserReferredBy = async (userId, codeOverride) => {
+    const code =
+      codeOverride !== undefined
+        ? codeOverride
+        : String(referredByInputs[userId] || "").trim();
+
+    try {
+      setReferralUpdatingId(userId);
+      const data = await request(
+        `${apiUrl}/api/admin/users/${userId}/referred-by`,
+        { method: "PATCH", body: JSON.stringify({ code }) }
+      );
+      showToast(data.message);
+      setReferredByInputs((prev) => ({ ...prev, [userId]: "" }));
+      loadUsers();
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setReferralUpdatingId("");
     }
   };
 
@@ -6081,7 +6134,14 @@ function AdminPanel({
                           .map((u) => (
                             <Fragment key={u._id}>
                               <tr>
-                                <td data-label="Name">{u.name}</td>
+                                <td data-label="Name">
+                                  {u.name}
+                                  {u.referralCode && (
+                                    <small style={{ display: "block", color: "#7c3aed" }}>
+                                      Code: {u.referralCode}
+                                    </small>
+                                  )}
+                                </td>
                                 <td data-label="Email">{u.email}</td>
                                 <td data-label="Orders">{u.orderCount || 0}</td>
                                 <td data-label="Total spent">
@@ -6175,6 +6235,91 @@ function AdminPanel({
                                               </tbody>
                                             </table>
                                           )}
+                                        </div>
+
+                                        <div>
+                                          <strong>Referral program</strong>
+                                          <div
+                                            style={{
+                                              display: "flex",
+                                              flexWrap: "wrap",
+                                              gap: 24,
+                                              marginTop: 8,
+                                            }}
+                                          >
+                                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                              <span style={{ fontSize: 13, color: "#666" }}>
+                                                Their code:{" "}
+                                                <b style={{ color: "#7c3aed" }}>
+                                                  {u.referralCode || "—"}
+                                                </b>
+                                              </span>
+                                              <input
+                                                type="text"
+                                                placeholder="New code"
+                                                value={referralCodeInputs[u._id] || ""}
+                                                onChange={(e) =>
+                                                  setReferralCodeInputs((prev) => ({
+                                                    ...prev,
+                                                    [u._id]: e.target.value.toUpperCase(),
+                                                  }))
+                                                }
+                                                style={{ width: 110 }}
+                                                disabled={referralUpdatingId === u._id}
+                                              />
+                                              <button
+                                                type="button"
+                                                className="save-product"
+                                                disabled={referralUpdatingId === u._id}
+                                                onClick={() => saveUserReferralCode(u._id)}
+                                              >
+                                                {referralUpdatingId === u._id ? "..." : "Set"}
+                                              </button>
+                                            </div>
+
+                                            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                                              <span style={{ fontSize: 13, color: "#666" }}>
+                                                Referred by:{" "}
+                                                <b style={{ color: "#7c3aed" }}>
+                                                  {u.referredByCode || "none"}
+                                                </b>
+                                              </span>
+                                              <input
+                                                type="text"
+                                                placeholder="Assign code"
+                                                value={referredByInputs[u._id] || ""}
+                                                onChange={(e) =>
+                                                  setReferredByInputs((prev) => ({
+                                                    ...prev,
+                                                    [u._id]: e.target.value.toUpperCase(),
+                                                  }))
+                                                }
+                                                style={{ width: 110 }}
+                                                disabled={referralUpdatingId === u._id}
+                                              />
+                                              <button
+                                                type="button"
+                                                className="save-product"
+                                                disabled={referralUpdatingId === u._id}
+                                                onClick={() => saveUserReferredBy(u._id)}
+                                              >
+                                                {referralUpdatingId === u._id ? "..." : "Assign"}
+                                              </button>
+                                              {u.referredByCode && (
+                                                <button
+                                                  type="button"
+                                                  className="delete-button"
+                                                  disabled={referralUpdatingId === u._id}
+                                                  onClick={() => saveUserReferredBy(u._id, "")}
+                                                >
+                                                  Clear
+                                                </button>
+                                              )}
+                                            </div>
+                                          </div>
+                                          <small style={{ display: "block", color: "#999", marginTop: 6 }}>
+                                            Whoever this account is linked to ("Referred by") automatically earns 50% of every order this account places as wallet cashback once delivered — this account itself earns nothing from the link. The link is permanent once the customer applies a code from their profile, but admin can assign or clear it here.
+                                          </small>
                                         </div>
 
                                         <div>

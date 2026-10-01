@@ -1222,6 +1222,7 @@ const razorpayCheckout = new window.Razorpay({
                       setAppliedCoupon("");
                       setCouponMessage({ type: "", text: "" });
                       setDiscountAmount(0);
+                      setIsReferralCode(false);
                     }
                   }}
                   placeholder="Enter coupon code"
