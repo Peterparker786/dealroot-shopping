@@ -2242,7 +2242,7 @@ function AdminPanel({
     },
     {
       label: "Create coupon",
-      desc: "Create a discount coupon",
+      desc: "Create a cashback coupon",
       icon: FiPercent,
       tone: "green",
       onClick: () => switchTab("coupons"),
@@ -3884,6 +3884,20 @@ function AdminPanel({
                               <b>₹{order.totalAmount}</b>
                               {Number(order.deliveryFee) > 0 && (
                                 <small>Delivery: ₹{order.deliveryFee}</small>
+                              )}
+
+                              {Number(order.discountAmount) > 0 && (
+                                <small style={{ color: "#7c3aed", fontWeight: 600 }}>
+                                  Code: {order.couponCode || "—"} · Cashback ₹
+                                  {order.discountAmount}
+                                  {order.orderStatus === "cancelled"
+                                    ? ""
+                                    : order.cashbackCredited
+                                    ? " · ✓ Credited"
+                                    : order.orderStatus === "delivered"
+                                    ? " · ↩ Reversed (returned)"
+                                    : " · ⏳ Pending (on delivery)"}
+                                </small>
                               )}
                             </td>
 
@@ -5665,7 +5679,7 @@ function AdminPanel({
               <section className="admin-tab-head">
                 <div>
                   <p>COUPON MANAGEMENT</p>
-                  <h2>Create Discount Coupon</h2>
+                  <h2>Create Cashback Coupon</h2>
                 </div>
               </section>
 
@@ -5685,7 +5699,7 @@ function AdminPanel({
                   </label>
 
                   <label>
-                    Discount Type
+                    Cashback Type
                     <select
                       value={couponForm.discountType}
                       onChange={(e) =>
@@ -5701,7 +5715,7 @@ function AdminPanel({
                   </label>
 
                   <label>
-                    Discount Value
+                    Cashback Value
                     <input
                       type="number"
                       value={couponForm.discountValue}
@@ -5729,7 +5743,7 @@ function AdminPanel({
                   </label>
 
                   <label>
-                    Maximum Discount
+                    Maximum Cashback
                     <input
                       type="number"
                       value={couponForm.maximumDiscount}
@@ -5791,10 +5805,17 @@ function AdminPanel({
                   <button className="save-product">Create Coupon</button>
                 </form>
 
+                <p className="admin-hint">
+                  Coupons no longer give an instant discount — the customer
+                  pays full price, and the cashback above is automatically
+                  added to their wallet once the order is delivered (it's
+                  clawed back if they later return it).
+                </p>
+
                 {couponForm.assignedUserEmail && (
                   <p className="admin-hint">
                     Every time a customer places an order with this code, they
-                    get the discount above, and{" "}
+                    earn the cashback above, and{" "}
                     <strong>{couponForm.assignedUserEmail}</strong> gets ₹
                     {couponForm.referralBonus || 0} added to their wallet + an
                     email letting them know.
@@ -5819,7 +5840,7 @@ function AdminPanel({
                         <tr>
                           <th>Code</th>
                           <th>Type</th>
-                          <th>Discount</th>
+                          <th>Cashback</th>
                           <th>Min Order</th>
                           <th>Expiry</th>
                           <th>Referral owner</th>
@@ -5834,7 +5855,7 @@ function AdminPanel({
                               <span className="coupon-code">{coupon.code}</span>
                             </td>
                             <td data-label="Type">{coupon.discountType}</td>
-                            <td data-label="Discount">{coupon.discountValue}</td>
+                            <td data-label="Cashback">{coupon.discountValue}</td>
                             <td data-label="Min Order">₹{coupon.minimumOrder}</td>
                             <td data-label="Expiry">
                               {coupon.expiryDate
@@ -6136,6 +6157,8 @@ function AdminPanel({
                                                     <td>
                                                       {t.type === "referral"
                                                         ? "Referral bonus"
+                                                        : t.type === "cashback"
+                                                        ? "Order cashback"
                                                         : "Admin adjustment"}
                                                     </td>
                                                     <td>₹{t.amount}</td>

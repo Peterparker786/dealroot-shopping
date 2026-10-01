@@ -299,8 +299,11 @@ useEffect(() => {
     orderSubtotal === 0 || orderSubtotal >= 499;
   const deliveryFee = hasFreeDelivery ? 0 : 59;
   const deliveryLabel = deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`;
+// Coupons no longer take money off at checkout — the customer always pays
+// the full price, and this amount is instead credited to their wallet as
+// cashback once the order is delivered (see the coupon-cashback-row below).
 const couponDiscount = discountAmount;
-  const totalPayable = orderSubtotal - couponDiscount + deliveryFee;
+  const totalPayable = orderSubtotal + deliveryFee;
   const payableNow =
   paymentMethod === "cod"
     ? deliveryFee
@@ -357,7 +360,7 @@ const finalRemainingCod = Math.max(0, remainingCod - walletDeduction);
 
     setCouponMessage({
       type: "success",
-      text: `Coupon applied! You saved ₹${data.discount}`,
+      text: `Coupon applied! You'll earn ₹${data.discount} cashback in your wallet once this order is delivered.`,
     });
 
   } catch (err) {
@@ -741,6 +744,13 @@ const razorpayCheckout = new window.Razorpay({
           {placedOrder.walletUsed > 0 && (
             <p style={{ color: "#059669", fontWeight: 600 }}>
               ₹{placedOrder.walletUsed} wallet balance applied to this order.
+            </p>
+          )}
+
+          {(placedOrder.discountAmount || couponDiscount) > 0 && (
+            <p style={{ color: "#7c3aed", fontWeight: 600 }}>
+              🎉 ₹{placedOrder.discountAmount || couponDiscount} cashback will be
+              added to your wallet once this order is delivered.
             </p>
           )}
 
@@ -1157,8 +1167,8 @@ const razorpayCheckout = new window.Razorpay({
 
             <div className="coupon-discount">
               {coupon.discountType === "percentage"
-                ? `${coupon.discountValue}% OFF`
-                : `₹${coupon.discountValue} OFF`}
+                ? `${coupon.discountValue}% CASHBACK`
+                : `₹${coupon.discountValue} CASHBACK`}
             </div>
 
             <small>
@@ -1167,7 +1177,7 @@ const razorpayCheckout = new window.Razorpay({
 
             {coupon.maximumDiscount > 0 && (
               <small>
-                Max Discount ₹{coupon.maximumDiscount}
+                Max Cashback ₹{coupon.maximumDiscount}
               </small>
             )}
           </div>
@@ -1249,8 +1259,8 @@ const razorpayCheckout = new window.Razorpay({
 
             {couponDiscount > 0 && (
               <div className="checkout-item coupon-discount-row">
-                <span>{appliedCoupon} Discount</span>
-                <b>−₹{couponDiscount}</b>
+                <span>🎉 {appliedCoupon} cashback (after delivery)</span>
+                <b>+₹{couponDiscount}</b>
               </div>
             )}
 
