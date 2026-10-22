@@ -238,6 +238,7 @@ function AdminPanel({
   const [tryoutImageUploading, setTryoutImageUploading] = useState(false);
   // When set, the Tryout product form edits this product instead of creating one.
   const [tryoutEditingId, setTryoutEditingId] = useState("");
+  const [tryoutEditingProduct, setTryoutEditingProduct] = useState(null);
   // Email health check — shows whether the deployed server can send order
   // confirmation emails and lets the admin send a live test email.
   const [emailStatus, setEmailStatus] = useState(null);
@@ -1792,6 +1793,7 @@ function AdminPanel({
   // edited without deleting and re-adding it.
   const startEditTryoutProduct = (product) => {
     setTryoutEditingId(product._id);
+    setTryoutEditingProduct(product);
     setTryoutProductForm({
       brand: product.brand || "",
       title: product.title || "",
@@ -1811,6 +1813,7 @@ function AdminPanel({
 
   const cancelTryoutEdit = () => {
     setTryoutEditingId("");
+    setTryoutEditingProduct(null);
     setTryoutProductForm({
       brand: "",
       title: "",
@@ -1891,14 +1894,15 @@ function AdminPanel({
             category: tryoutProductForm.category,
             price,
             mrp,
-            rating: "4.5",
-            reviews: "0",
+            rating: String(tryoutEditingProduct?.rating ?? "4.5"),
+            reviews: String(tryoutEditingProduct?.reviews ?? "0"),
             images,
             stock: Number.isFinite(stock) ? stock : 0,
-            isFeatured: false,
+            isFeatured: Boolean(tryoutEditingProduct?.isFeatured),
             dealType: "none",
             tryoutOnly: true,
-            description: "Exclusive Tryout member deal",
+            description:
+              tryoutEditingProduct?.description || "Exclusive Tryout member deal",
             buyLink: tryoutProductForm.buyLink.trim(),
             buyLinkLabel: tryoutProductForm.buyLinkLabel.trim(),
             buyLinkTerms: tryoutProductForm.buyLinkTerms.trim(),
@@ -1909,6 +1913,7 @@ function AdminPanel({
 
       const wasEditing = Boolean(tryoutEditingId);
       setTryoutEditingId("");
+      setTryoutEditingProduct(null);
       setTryoutProductForm({
         brand: "",
         title: "",
