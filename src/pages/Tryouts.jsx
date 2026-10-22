@@ -235,16 +235,45 @@ export default function Tryouts({
                 />
               </div>
               <div className="tryout-poster-info">
+                <div className="tryout-poster-topchips">
+                  <span className="tryout-poster-chip chip-green">
+                    🟢 Tryout exclusive
+                  </span>
+                  <span className="tryout-poster-chip chip-blue">
+                    🔒 Member price
+                  </span>
+                </div>
                 <p className="tryout-poster-brand">{currentTryout.brand}</p>
                 <h3 className="tryout-poster-name">{currentTryout.name}</h3>
                 <div className="tryout-poster-rating">
                   ★ <b>{currentTryout.rating}</b> ({currentTryout.reviews})
                 </div>
                 <div className="tryout-poster-features">
-                  <span className="tryout-poster-feature">✅ 100% Original</span>
-                  <span className="tryout-poster-feature">💸 Member Price</span>
-                  <span className="tryout-poster-feature">🚚 Fast Delivery</span>
-                  <span className="tryout-poster-feature">🔄 Easy Returns</span>
+                  <span className="tryout-poster-feature feat-green">✅ 100% Original</span>
+                  <span className="tryout-poster-feature feat-blue">💸 Member Price</span>
+                  <span className="tryout-poster-feature feat-pink">🚚 Fast Delivery</span>
+                  <span className="tryout-poster-feature feat-purple">🔄 Easy Returns</span>
+                </div>
+                <div className="tryout-poster-cashback">
+                  <div className="tryout-poster-cashback-head">
+                    💸 <b>Cashback Reward</b>
+                  </div>
+                  <p>
+                    Buy this pick, then submit your purchase form from the
+                    Tryout dashboard — verified purchases earn cashback in
+                    your Dealroot wallet.
+                  </p>
+                  <ol className="tryout-poster-steps">
+                    <li>
+                      <b>1.</b> Buy via the deal link
+                    </li>
+                    <li>
+                      <b>2.</b> Submit purchase form
+                    </li>
+                    <li>
+                      <b>3.</b> Cashback after verify
+                    </li>
+                  </ol>
                 </div>
                 <div className="tryout-poster-price">
                   <small>YOURS AT JUST</small>
