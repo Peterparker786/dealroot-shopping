@@ -282,6 +282,9 @@ export default function Tryouts({
                     <del>₹{currentTryout.originalPrice}</del>
                   )}
                 </div>
+                <div className="tryout-poster-tnc">
+                  <b>Terms:</b> {currentTryout.tnc || "Fill internal form, live review compulsory"}
+                </div>
                 <Link
                   to={`/product/${currentTryout.id}`}
                   className="tryout-poster-shop"

@@ -224,6 +224,7 @@ function AdminPanel({
     buyLink: "",
     buyLinkLabel: "",
     buyLinkTerms: "",
+    tnc: "",
   });
   const [tryoutProductSaving, setTryoutProductSaving] = useState(false);
   const [tryoutImageUploading, setTryoutImageUploading] = useState(false);
@@ -5215,6 +5216,16 @@ function AdminPanel({
                         updateTryoutProductForm("buyLinkTerms", e.target.value)
                       }
                       placeholder="e.g. Price & availability may vary on the marketplace"
+                    />
+                  </label>
+                  <label className="tryout-product-form-full">
+                    Offer TNC / T&C
+                    <textarea
+                      value={tryoutProductForm.tnc}
+                      onChange={(e) => updateTryoutProductForm("tnc", e.target.value)}
+                      placeholder="Enter terms & conditions – e.g. fill internal form, live review compulsory, product limits..."
+                      rows={4}
+                      style={{width: '100%', border: '1px solid #d7e1ec', borderRadius: '9px', padding: '12px', marginTop: '8px', fontSize: '13px'}}
                     />
                   </label>
                   <div className="tryout-product-form-actions">
