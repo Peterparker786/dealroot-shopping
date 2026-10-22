@@ -1850,6 +1850,7 @@ function AdminPanel({
           buyLink: tryoutProductForm.buyLink.trim(),
           buyLinkLabel: tryoutProductForm.buyLinkLabel.trim(),
           buyLinkTerms: tryoutProductForm.buyLinkTerms.trim(),
+          tnc: tryoutProductForm.tnc.trim(),
         }),
       });
 
