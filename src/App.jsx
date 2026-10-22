@@ -390,7 +390,9 @@ function App() {
       }
 
       const query = params.toString();
-      const cacheKey = `dealroot_products_${query || "all"}`;
+      // Keep signed-in and guest results in separate cache buckets so a member
+      // never gets the guest list (which has no Tryout products) from cache.
+      const cacheKey = `dealroot_products_${userToken ? "member" : "guest"}_${query || "all"}`;
       const cachedRaw = localStorage.getItem(cacheKey);
 
       // Serve from cache if fresh (< 2 minutes old), show immediately,
@@ -413,6 +415,10 @@ function App() {
       const response = await fetch(
         `${API_URL}/api/products${query ? `?${query}` : ""}`,
         {
+          // Signed-in members must bypass the browser HTTP cache: the guest
+          // response is cached as "public", so reusing it after login would
+          // hide Tryout-exclusive products.
+          cache: userToken ? "no-store" : "default",
           headers: userToken
             ? { Authorization: `Bearer ${userToken}` }
             : undefined,

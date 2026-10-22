@@ -3935,3 +3935,51 @@ img { max-width: 100%; display: block; }
 @media (max-width: 480px) {
   .cart-gift-box { margin: 0 16px; }
 }
+
+.tryout-poster-tnc {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f6f4ff;
+  border: 1px solid #e6dffb;
+  color: #4b5563;
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.tryout-poster-tnc b {
+  color: #7c3aed;
+}
+
+.tryout-purchase-cta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin: 22px auto;
+  max-width: 760px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  background: #fff;
+  border: 1px solid #e8e4f2;
+  box-shadow: 0 12px 30px rgba(80, 60, 160, 0.08);
+}
+
+.tryout-purchase-cta-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tryout-purchase-cta-text b {
+  color: #1a1a2e;
+  font-size: 14px;
+}
+
+.tryout-purchase-cta-text span {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.5;
+}

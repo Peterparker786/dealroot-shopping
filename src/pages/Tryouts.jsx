@@ -3,7 +3,6 @@ import {
   FiAward,
   FiShoppingBag,
   FiCheckCircle,
-  FiX,
 } from "react-icons/fi";
 import { useEffect, useState } from "react";
 import { optimizeImage } from "../utils/cloudinary";
@@ -24,12 +23,6 @@ export default function Tryouts({
   // Status: loading | none | pending | approved | rejected | disqualified
   const [tryoutStatus, setTryoutStatus] = useState("loading");
   const [tryoutApplyOpen, setTryoutApplyOpen] = useState(false);
-  // Purchase flow state
-  const [isPurchasing, setIsPurchasing] = useState(false);
-  const [purchaseError, setPurchaseError] = useState("");
-  const [screenshotUploading, setScreenshotUploading] = useState(false);
-  const [screenshotUrl, setScreenshotUrl] = useState("");
-  const [purchaseSubmitted, setPurchaseSubmitted] = useState(false);
   const [tryoutForm, setTryoutForm] = useState({
     name: "",
     phone: "",
@@ -194,69 +187,6 @@ export default function Tryouts({
     }
   };
 
-  const handlePurchaseSubmit = async (event) => {
-    event.preventDefault();
-    setPurchaseError("");
-
-    if (!screenshotUrl) {
-      setPurchaseError("Please upload a screenshot first");
-      return;
-    }
-
-    try {
-      setIsPurchasing(true);
-
-      const response = await fetch(`${apiUrl}/api/tryouts/purchase-form`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${userToken}`,
-        },
-        body: JSON.stringify({
-          tryoutId: currentTryout?._id,
-          screenshotUrl,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Could not submit purchase form");
-      }
-
-      setPurchaseSubmitted(true);
-      showToast("Purchase form submitted — cashback under verification");
-    } catch (error) {
-      setPurchaseError(error.message);
-    } finally {
-      setIsPurchasing(false);
-    }
-  };
-
-  const uploadScreenshot = async (file) => {
-    if (!file) return;
-    try {
-      setScreenshotUploading(true);
-      const formData = new FormData();
-      formData.append("screenshot", file);
-      const response = await fetch(`${apiUrl}/api/upload`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${userToken}` },
-        body: formData,
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || "Upload failed");
-      }
-      setScreenshotUrl(data.images?.[0] || "");
-      showToast("Screenshot uploaded");
-    } catch (error) {
-      showToast(error.message);
-    } finally {
-      setScreenshotUploading(false);
-    }
-  };
-
   return (
     <main className="tryouts-page">
       <div className="tryouts-page-head">
@@ -355,16 +285,17 @@ export default function Tryouts({
                 <div className="tryout-poster-tnc">
                   <b>Terms:</b> {currentTryout.tnc || "Fill internal form, live review compulsory"}
                 </div>
-                {currentTryout.buyLink && (
+{currentTryout.buyLink ? (
                   <a
                     href={currentTryout.buyLink}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="tryout-poster-shop"
                   >
-                    {tryoutApproved ? "Shop this pick →" : "View deal"}
+                    {currentTryout.buyLinkLabel ||
+                      (tryoutApproved ? "Shop this pick →" : "View deal")}
                   </a>
-                ) || (
+                ) : (
                   <Link
                     to={`/product/${currentTryout.id}`}
                     className="tryout-poster-shop"
@@ -479,139 +410,23 @@ export default function Tryouts({
         </p>
       </div>
 
-      {/* Purchase confirmation flow */}
-      {currentTryout && tryoutApproved && purchaseSubmitted ? (
-        <div className="tryout-purchase-completed">
-          <div className="tryout-purchase-completed-icon">✓</div>
-          <h3>Purchase Form Submitted</h3>
-          <p>Your purchase form has been submitted for verification.
-          Cashback will be added to your wallet within 60-90 days.</p>
-          <button
-            type="button"
-            className="tryout-apply-btn"
-            onClick={() => setPurchaseSubmitted(false)}
-          >
-            New Purchase
-          </button>
-        </div>
-      ) : (!purchaseSubmitted && currentTryout && tryoutApproved && (
-        <div className="tryout-purchase-form">
-          <div className="tryout-purchase-form-head">
-            <h3>Submit Purchase Confirmation</h3>
-            <small>After ordering, upload your purchase screenshot</small>
+      {tryoutApproved && currentTryout && (
+        <div className="tryout-purchase-cta">
+          <div className="tryout-purchase-cta-text">
+            <b>🛒 Purchased this pick?</b>
+            <span>
+              Upload your purchase screenshot from the dashboard — our team
+              verifies it and releases your cashback.
+            </span>
           </div>
-
-          {purchaseError && (
-            <div className="tryout-purchase-error">{purchaseError}</div>
-          )}
-
-          {screenshotUploading ? (
-            <div className="tryout-purchase-uploading">
-              ⏳ Uploading screenshot...
-            </div>
-          ) : (
-            <label className="tryout-purchase-image-label">
-              {screenshotUrl ? (
-                <div className="tryout-purchase-image-preview">
-                  <img
-                    src={screenshotUrl}
-                    alt="Purchase screenshot"
-                    style={{maxWidth: '100%',borderRadius:8,maxHeight:200}}
-                  />
-                </div>
-              ) : (
-                <div className="tryout-purchase-image-dropzone" onClick={() => document.querySelector('.tryout-purchase-image-input').click()}>\n                  <input
-                    type="file"
-                    accept="image/*"
-                    className="tryout-purchase-image-input"
-                    hidden
-                  />
-                  <span>📷 Click to upload screenshot</span>
-                  {screenshotUploading ? (<span>⏳ Uploading...</span>) : null}
-                </div>
-              )}
-            </label>
-          )
-
-          {/* Purchase button section commented out for now */}
-
-          {screenshotUrl && (
-            <button
-              type="button"
-              className="tryout-purchase-submit-btn"
-              onClick={handlePurchaseSubmit}
-            >
-              Submit for Verification
-            </button>
-          ) || (
-            <button
-              type="button"
-              className="tryout-purchase-submit-btn"
-              onClick={handlePurchaseSubmit}
-            >
-              Submit for Verification
-            </button>
-          )}
-
-          {!screenshotUrl && (
-            <p className="tryout-purchase-note">
-              Screenshot should show the order confirmation page/product details
-            </p>
-          )}
+          <Link to="/tryouts/dashboard" className="tryout-apply-btn">
+            Submit purchase form →
+          </Link>
         </div>
       )}
 
       {!user ? (
         <div className="tryout-status-card tryout-locked">
-          <span className="tryout-status-emoji">🔒</span>
-          <h3>Tryout deals are for members only</h3>
-          <p>
-            Sign in to apply for the Dealroot Tryout program and unlock
-            exclusive member deals.
-          </p>
-          <button
-            type="button"
-            className="tryout-apply-btn"
-            onClick={() => setAccountOpen?.(true)}
-          >
-            Sign in & apply
-          </button>
-        </div>
-      ) : tryoutStatus === "loading" ? (
-        <div className="tryout-status-card">
-          <span className="tryout-status-emoji">⏳</span>
-          <h3>Checking your Tryout status...</h3>
-        </div>
-      ) : tryoutStatus === "pending" ? (
-        <div className="tryout-status-card tryout-pending">
-          <span className="tryout-status-emoji">⏳</span>
-          <h3>Your application is under review</h3>
-          <p>
-            Our team is reviewing your Tryout application. You will be able to
-            shop Tryout deals as soon as you are approved.
-          </p>
-        </div>
-      ) : tryoutStatus === "rejected" ? (
-        <div className="tryout-status-card tryout-rejected">
-          <span className="tryout-status-emoji">😔</span>
-          <h3>Your application was not approved this time.</h3>
-          <p>
-            Unfortunately your Tryout application was not approved this time.
-            You can apply again below.
-          </p>
-          <button
-            type="button"
-            className="tryout-apply-btn"
-            onClick={openTryoutApply}
-          >
-            Apply again
-          </button>
-        </div>
-      ) : tryoutApplyOpen ? (
-        /* Form always shows first when open — even for disqualified users */
-        <form className="tryout-form" onSubmit={submitTryoutApply}>
-          <div className="tryout-form-head">
-
           <span className="tryout-status-emoji">🔒</span>
           <h3>Tryout deals are for members only</h3>
           <p>
