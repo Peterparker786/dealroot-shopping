@@ -187,6 +187,14 @@ function AdminPanel({
   const [applications, setApplications] = useState([]);
   const [applicationsLoading, setApplicationsLoading] = useState(false);
   const [tryoutProcessingId, setTryoutProcessingId] = useState("");
+  // Rejecting a Tryout purchase form — the reason is stored on the form and
+  // emailed to the member, so they know exactly what to fix.
+  const [purchaseRejectForm, setPurchaseRejectForm] = useState({
+    appId: "",
+    formId: "",
+    reason: "",
+  });
+  const [purchaseRejectProcessing, setPurchaseRejectProcessing] = useState(false);
   const [tryoutCashbackForm, setTryoutCashbackForm] = useState({
     open: "",
     amount: "",
@@ -1955,6 +1963,42 @@ function AdminPanel({
   const verifyRefundForm = (item, formId) => {
     setTryoutVerifyForm({ appId: item._id, formId, kind: "refund" });
     setTryoutCashbackForm({ open: item._id, amount: "", note: "" });
+  };
+
+  // Reject a purchase-form submission with a written reason; the backend
+  // stores it on the form and emails the member.
+  const rejectPurchaseForm = async (item, formId) => {
+    const reason =
+      purchaseRejectForm.formId === formId
+        ? purchaseRejectForm.reason.trim()
+        : "";
+
+    if (!reason) {
+      showToast("Please write the reason for rejection");
+      return;
+    }
+
+    try {
+      setPurchaseRejectProcessing(true);
+
+      const data = await request(
+        `${apiUrl}/api/tryouts/${item._id}/purchase-form/${formId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ status: "rejected", rejectionReason: reason }),
+        }
+      );
+
+      setApplications((current) =>
+        current.map((a) => (a._id === item._id ? data.application : a))
+      );
+      setPurchaseRejectForm({ appId: "", formId: "", reason: "" });
+      showToast("Purchase form rejected — member informed by email");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setPurchaseRejectProcessing(false);
+    }
   };
 
   // Admin processes a member's withdrawal request (paid or rejected).
@@ -4925,9 +4969,72 @@ function AdminPanel({
                                       <span className="tryout-pf-noshot">No screenshot</span>
                                     )}
                                     {form.status === 'submitted' && (
-                                      <button type="button" className="return-approve-btn" disabled={tryoutProcessingId === item._id} onClick={() => verifyPurchaseForm(item, form._id)}>✅ Verify & Add Cashback</button>
+                                      <>
+                                        <button type="button" className="return-approve-btn" disabled={tryoutProcessingId === item._id} onClick={() => verifyPurchaseForm(item, form._id)}>✅ Verify & Add Cashback</button>
+                                        <button
+                                          type="button"
+                                          className="return-reject-btn"
+                                          disabled={purchaseRejectProcessing}
+                                          onClick={() =>
+                                            setPurchaseRejectForm(
+                                              purchaseRejectForm.formId === form._id
+                                                ? { appId: '', formId: '', reason: '' }
+                                                : { appId: item._id, formId: form._id, reason: '' }
+                                            )
+                                          }
+                                        >
+                                          ✖ Reject
+                                        </button>
+                                      </>
                                     )}
                                   </div>
+
+                                  {purchaseRejectForm.formId === form._id && (
+                                    <div className="tryout-pf-reject-box">
+                                      <label>
+                                        <b>Rejection reason</b>
+                                        <textarea
+                                          rows={3}
+                                          value={purchaseRejectForm.reason}
+                                          onChange={(e) =>
+                                            setPurchaseRejectForm((current) => ({
+                                              ...current,
+                                              reason: e.target.value,
+                                            }))
+                                          }
+                                          placeholder="e.g. Order id doesn't match the screenshot / screenshot is blurry / order was cancelled"
+                                        />
+                                      </label>
+                                      <small>
+                                        This reason is saved on the form and emailed to the member.
+                                      </small>
+                                      <div className="tryout-pf-reject-actions">
+                                        <button
+                                          type="button"
+                                          className="return-reject-btn"
+                                          disabled={purchaseRejectProcessing}
+                                          onClick={() => rejectPurchaseForm(item, form._id)}
+                                        >
+                                          {purchaseRejectProcessing ? 'Rejecting...' : 'Confirm reject & email member'}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="tryout-cb-cancel"
+                                          onClick={() =>
+                                            setPurchaseRejectForm({ appId: '', formId: '', reason: '' })
+                                          }
+                                        >
+                                          Cancel
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {form.status === 'rejected' && form.rejectionReason && (
+                                    <div className="tryout-pf-reject-reason">
+                                      <b>Rejected — reason:</b> {form.rejectionReason}
+                                    </div>
+                                  )}
                                 </div>
                               ))}
                             </div>

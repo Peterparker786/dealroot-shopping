@@ -1245,6 +1245,11 @@ export default function TryoutDashboard({
                               </span>
                             )}
                           </div>
+                          {form.status === "rejected" && form.rejectionReason && (
+                            <div className="tryout-form-reject-note">
+                              <b>Rejected — reason:</b> {form.rejectionReason}
+                            </div>
+                          )}
                           {form.screenshotUrl && (
                             <div className="tryout-responses-actions">
                               <a

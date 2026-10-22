@@ -3983,3 +3983,14 @@ img { max-width: 100%; display: block; }
   font-size: 12px;
   line-height: 1.5;
 }
+
+.tryout-form-reject-note {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #7f1d1d;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
