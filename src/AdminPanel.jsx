@@ -1780,6 +1780,23 @@ function AdminPanel({
   const saveTryoutProduct = async (event) => {
     event.preventDefault();
 
+    // The image upload is async. If "Add Tryout product" is clicked while
+    // "⏳ Uploading..." is still showing, the image URL has not landed in
+    // state yet and the product would be created WITHOUT any photo.
+    if (tryoutImageUploading) {
+      showToast("Wait for the image to finish uploading first");
+      return;
+    }
+
+    if (
+      !tryoutProductForm.image.trim() &&
+      !window.confirm(
+        "No product photo selected — the product will show a placeholder image on the storefront. Add anyway?"
+      )
+    ) {
+      return;
+    }
+
     const title = tryoutProductForm.title.trim();
     const brand = tryoutProductForm.brand.trim();
     const price = Number(tryoutProductForm.price);
@@ -5204,11 +5221,13 @@ function AdminPanel({
                     <button
                       type="submit"
                       className="return-approve-btn"
-                      disabled={tryoutProductSaving}
+                      disabled={tryoutProductSaving || tryoutImageUploading}
                     >
                       {tryoutProductSaving
                         ? "Adding..."
-                        : "➕ Add Tryout product"}
+                        : tryoutImageUploading
+                          ? "⏳ Uploading image..."
+                          : "➕ Add Tryout product"}
                     </button>
                   </div>
                 </form>
