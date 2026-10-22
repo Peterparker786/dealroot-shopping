@@ -4611,25 +4611,120 @@ function AdminPanel({
                                           </a>
                                         )}
                                         {form.status === "submitted" && (
-                                          <button
-                                            type="button"
-                                            className="return-approve-btn"
-                                            disabled={
-                                              tryoutProcessingId ===
-                                              item._id
-                                            }
-                                            onClick={() =>
-                                              verifyPurchaseForm(
-                                                item,
-                                                form._id
-                                              )
-                                            }
-                                          >
-                                            ✅ Verify & Add
-                                            Cashback
-                                          </button>
+                                          <>
+                                            <button
+                                              type="button"
+                                              className="return-approve-btn"
+                                              disabled={
+                                                tryoutProcessingId ===
+                                                item._id
+                                              }
+                                              onClick={() =>
+                                                verifyPurchaseForm(
+                                                  item,
+                                                  form._id
+                                                )
+                                              }
+                                            >
+                                              ✅ Verify & Add
+                                              Cashback
+                                            </button>
+                                            <button
+                                              type="button"
+                                              className="return-reject-btn"
+                                              disabled={
+                                                purchaseRejectProcessing
+                                              }
+                                              onClick={() =>
+                                                setPurchaseRejectForm(
+                                                  purchaseRejectForm.formId ===
+                                                  form._id
+                                                    ? {
+                                                        appId: "",
+                                                        formId: "",
+                                                        reason: "",
+                                                      }
+                                                    : {
+                                                        appId: item._id,
+                                                        formId: form._id,
+                                                        reason: "",
+                                                      }
+                                                )
+                                              }
+                                            >
+                                              ✖ Reject
+                                            </button>
+                                          </>
                                         )}
                                       </div>
+
+                                      {purchaseRejectForm.formId ===
+                                        form._id && (
+                                        <div className="tryout-pf-reject-box">
+                                          <label>
+                                            <b>Rejection reason</b>
+                                            <textarea
+                                              rows={3}
+                                              value={
+                                                purchaseRejectForm.reason
+                                              }
+                                              onChange={(e) =>
+                                                setPurchaseRejectForm(
+                                                  (current) => ({
+                                                    ...current,
+                                                    reason: e.target.value,
+                                                  })
+                                                )
+                                              }
+                                              placeholder="e.g. Order id doesn't match the screenshot / screenshot is blurry / order was cancelled"
+                                            />
+                                          </label>
+                                          <small>
+                                            This reason is saved on the form
+                                            and emailed to the member.
+                                          </small>
+                                          <div className="tryout-pf-reject-actions">
+                                            <button
+                                              type="button"
+                                              className="return-reject-btn"
+                                              disabled={
+                                                purchaseRejectProcessing
+                                              }
+                                              onClick={() =>
+                                                rejectPurchaseForm(
+                                                  item,
+                                                  form._id
+                                                )
+                                              }
+                                            >
+                                              {purchaseRejectProcessing
+                                                ? "Rejecting..."
+                                                : "Confirm reject & email member"}
+                                            </button>
+                                            <button
+                                              type="button"
+                                              className="tryout-cb-cancel"
+                                              onClick={() =>
+                                                setPurchaseRejectForm({
+                                                  appId: "",
+                                                  formId: "",
+                                                  reason: "",
+                                                })
+                                              }
+                                            >
+                                              Cancel
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {form.status === "rejected" &&
+                                        form.rejectionReason && (
+                                          <div className="tryout-pf-reject-reason">
+                                            <b>Rejected — reason:</b>{" "}
+                                            {form.rejectionReason}
+                                          </div>
+                                        )}
                                     </div>
                                   ))}
                               </div>

@@ -454,6 +454,7 @@ function App() {
         buyLink: product.buyLink || "",
         buyLinkLabel: product.buyLinkLabel || "",
         buyLinkTerms: product.buyLinkTerms || "",
+        tnc: product.tnc || "",
       }));
 
       setProducts(mapped);
