@@ -236,6 +236,8 @@ function AdminPanel({
   });
   const [tryoutProductSaving, setTryoutProductSaving] = useState(false);
   const [tryoutImageUploading, setTryoutImageUploading] = useState(false);
+  // When set, the Tryout product form edits this product instead of creating one.
+  const [tryoutEditingId, setTryoutEditingId] = useState("");
   // Email health check — shows whether the deployed server can send order
   // confirmation emails and lets the admin send a live test email.
   const [emailStatus, setEmailStatus] = useState(null);
@@ -1786,6 +1788,44 @@ function AdminPanel({
     }
   };
 
+  // Load an existing Tryout product into the form so its details / TNC can be
+  // edited without deleting and re-adding it.
+  const startEditTryoutProduct = (product) => {
+    setTryoutEditingId(product._id);
+    setTryoutProductForm({
+      brand: product.brand || "",
+      title: product.title || "",
+      category: product.category || "Skincare",
+      price: String(product.price ?? ""),
+      mrp: String(product.mrp ?? ""),
+      stock: String(product.stock ?? 0),
+      image: product.images?.[0] || "",
+      buyLink: product.buyLink || "",
+      buyLinkLabel: product.buyLinkLabel || "",
+      buyLinkTerms: product.buyLinkTerms || "",
+      tnc: product.tnc || "",
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    showToast("Editing Tryout product — change what you need and save");
+  };
+
+  const cancelTryoutEdit = () => {
+    setTryoutEditingId("");
+    setTryoutProductForm({
+      brand: "",
+      title: "",
+      category: "Skincare",
+      price: "",
+      mrp: "",
+      stock: "10",
+      image: "",
+      buyLink: "",
+      buyLinkLabel: "",
+      buyLinkTerms: "",
+      tnc: "",
+    });
+  };
+
   const saveTryoutProduct = async (event) => {
     event.preventDefault();
 
@@ -1836,32 +1876,39 @@ function AdminPanel({
         ? [tryoutProductForm.image.trim()]
         : [];
 
-      await request(`${apiUrl}/api/products`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          brand,
-          title,
-          category: tryoutProductForm.category,
-          price,
-          mrp,
-          rating: "4.5",
-          reviews: "0",
-          images,
-          stock: Number.isFinite(stock) ? stock : 0,
-          isFeatured: false,
-          dealType: "none",
-          tryoutOnly: true,
-          description: "Exclusive Tryout member deal",
-          buyLink: tryoutProductForm.buyLink.trim(),
-          buyLinkLabel: tryoutProductForm.buyLinkLabel.trim(),
-          buyLinkTerms: tryoutProductForm.buyLinkTerms.trim(),
-          tnc: tryoutProductForm.tnc.trim(),
-        }),
-      });
+      await request(
+        tryoutEditingId
+          ? `${apiUrl}/api/products/${tryoutEditingId}`
+          : `${apiUrl}/api/products`,
+        {
+          method: tryoutEditingId ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            brand,
+            title,
+            category: tryoutProductForm.category,
+            price,
+            mrp,
+            rating: "4.5",
+            reviews: "0",
+            images,
+            stock: Number.isFinite(stock) ? stock : 0,
+            isFeatured: false,
+            dealType: "none",
+            tryoutOnly: true,
+            description: "Exclusive Tryout member deal",
+            buyLink: tryoutProductForm.buyLink.trim(),
+            buyLinkLabel: tryoutProductForm.buyLinkLabel.trim(),
+            buyLinkTerms: tryoutProductForm.buyLinkTerms.trim(),
+            tnc: tryoutProductForm.tnc.trim(),
+          }),
+        }
+      );
 
+      const wasEditing = Boolean(tryoutEditingId);
+      setTryoutEditingId("");
       setTryoutProductForm({
         brand: "",
         title: "",
@@ -1873,8 +1920,13 @@ function AdminPanel({
         buyLink: "",
         buyLinkLabel: "",
         buyLinkTerms: "",
+        tnc: "",
       });
-      showToast("Tryout product added — only Tryout members will see it");
+      showToast(
+        wasEditing
+          ? "Tryout product updated"
+          : "Tryout product added — only Tryout members will see it"
+      );
       loadProducts();
     } catch (error) {
       showToast(error.message);
@@ -5163,9 +5215,19 @@ function AdminPanel({
                 <div className="admin-section-title">
                   <div>
                     <p>TRYOUT MEMBER DEALS</p>
-                    <h2>Add a Tryout product</h2>
+                    <h2>
+                      {tryoutEditingId
+                        ? "Edit Tryout product"
+                        : "Add a Tryout product"}
+                    </h2>
                   </div>
                 </div>
+                {tryoutEditingId && (
+                  <p className="admin-section-note tryout-editing-note">
+                    ✏️ You are editing an existing Tryout product. Change the
+                    details, photo, buy link or TNC and press Save changes.
+                  </p>
+                )}
                 <p className="admin-section-note">
                   Add products here that should be sold exclusively through
                   the Tryout program. These products stay separate from your
@@ -5343,11 +5405,24 @@ function AdminPanel({
                       disabled={tryoutProductSaving || tryoutImageUploading}
                     >
                       {tryoutProductSaving
-                        ? "Adding..."
+                        ? tryoutEditingId
+                          ? "Saving..."
+                          : "Adding..."
                         : tryoutImageUploading
                           ? "⏳ Uploading image..."
-                          : "➕ Add Tryout product"}
+                          : tryoutEditingId
+                            ? "💾 Save changes"
+                            : "➕ Add Tryout product"}
                     </button>
+                    {tryoutEditingId && (
+                      <button
+                        type="button"
+                        className="tryout-cb-cancel"
+                        onClick={cancelTryoutEdit}
+                      >
+                        Cancel edit
+                      </button>
+                    )}
                   </div>
                 </form>
               </section>
@@ -5418,6 +5493,14 @@ function AdminPanel({
                               </span>
                             </td>
                             <td data-label="Action">
+                              <div className="tryout-product-actions">
+                              <button
+                                type="button"
+                                className="return-review-btn"
+                                onClick={() => startEditTryoutProduct(product)}
+                              >
+                                ✏ Edit
+                              </button>
                               <button
                                 type="button"
                                 className="return-reject-btn"
@@ -5430,6 +5513,7 @@ function AdminPanel({
                                   ? "Removing..."
                                   : "🗑 Remove"}
                               </button>
+                              </div>
                             </td>
                           </tr>
                         ))}

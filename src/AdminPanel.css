@@ -3223,3 +3223,36 @@
   font-size: 12.5px;
   line-height: 1.5;
 }
+
+.tryout-product-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.return-review-btn {
+  border: 1px solid #c7d2fe;
+  background: #eef2ff;
+  color: #4338ca;
+  font-weight: 700;
+  font-size: 12.5px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.return-review-btn:hover {
+  background: #e0e7ff;
+  transform: translateY(-1px);
+}
+
+.tryout-editing-note {
+  background: #f5f3ff;
+  border: 1px solid #ddd6fe;
+  color: #5b21b6;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin: 0 0 14px;
+  font-size: 12.5px;
+}
