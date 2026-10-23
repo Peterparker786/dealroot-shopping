@@ -282,6 +282,9 @@ function AdminPanel({
     // you already rely on.
     paymentModes: ["cod", "prepaid"],
   });
+  // When set, the coupon form is in edit mode: it holds the _id of the coupon
+  // being edited and the submit button switches to "Save changes".
+  const [editingCouponId, setEditingCouponId] = useState("");
 
   const toggleCouponPaymentMode = (mode) => {
     setCouponForm((current) => {
@@ -2231,16 +2234,21 @@ function AdminPanel({
     }
 
     try {
-      const data = await request(`${apiUrl}/api/coupons`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      const data = await request(
+        editingCouponId
+          ? `${apiUrl}/api/coupons/${editingCouponId}`
+          : `${apiUrl}/api/coupons`,
+        {
+          method: editingCouponId ? "PUT" : "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            ...couponForm,
+            paymentModes: couponForm.paymentModes,
+          }),
         },
-        body: JSON.stringify({
-          ...couponForm,
-          paymentModes: couponForm.paymentModes,
-        }),
-      });
+      );
 
       showToast(data.message);
 
@@ -2255,11 +2263,46 @@ function AdminPanel({
         referralBonus: "",
         paymentModes: ["cod", "prepaid"],
       });
+      setEditingCouponId("");
 
       loadCoupons();
     } catch (error) {
       showToast(error.message);
     }
+  };
+
+  const editCoupon = (coupon) => {
+    setEditingCouponId(coupon._id);
+    setCouponForm({
+      code: coupon.code || "",
+      discountType: coupon.discountType || "percentage",
+      discountValue: coupon.discountValue ?? "",
+      minimumOrder: coupon.minimumOrder ?? "",
+      maximumDiscount: coupon.maximumDiscount ?? "",
+      expiryDate: coupon.expiryDate ? coupon.expiryDate.slice(0, 10) : "",
+      assignedUserEmail: coupon.assignedUserEmail || "",
+      referralBonus: coupon.referralBonus ?? "",
+      paymentModes: Array.isArray(coupon.paymentModes) && coupon.paymentModes.length
+        ? coupon.paymentModes
+        : ["cod", "prepaid"],
+    });
+    // Bring the form into view so the admin can see it's now editing.
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const cancelCouponEdit = () => {
+    setEditingCouponId("");
+    setCouponForm({
+      code: "",
+      discountType: "percentage",
+      discountValue: "",
+      minimumOrder: "",
+      maximumDiscount: "",
+      expiryDate: "",
+      assignedUserEmail: "",
+      referralBonus: "",
+      paymentModes: ["cod", "prepaid"],
+    });
   };
 
   const deleteCoupon = async (id) => {
@@ -6133,7 +6176,7 @@ function AdminPanel({
               <section className="admin-tab-head">
                 <div>
                   <p>COUPON MANAGEMENT</p>
-                  <h2>Create Cashback Coupon</h2>
+                  <h2>{editingCouponId ? "Edit Cashback Coupon" : "Create Cashback Coupon"}</h2>
                 </div>
               </section>
 
@@ -6143,6 +6186,12 @@ function AdminPanel({
                     Coupon Code
                     <input
                       value={couponForm.code}
+                      disabled={!!editingCouponId}
+                      title={
+                        editingCouponId
+                          ? "Coupon code can't be changed — edit the other fields instead."
+                          : ""
+                      }
                       onChange={(e) =>
                         setCouponForm({
                           ...couponForm,
@@ -6279,7 +6328,21 @@ function AdminPanel({
                     </label>
                   )}
 
-                  <button className="save-product">Create Coupon</button>
+                  <div className="coupon-form-actions">
+                    <button className="save-product" type="submit">
+                      {editingCouponId ? "💾 Save changes" : "Create Coupon"}
+                    </button>
+
+                    {editingCouponId && (
+                      <button
+                        className="coupon-cancel-edit"
+                        type="button"
+                        onClick={cancelCouponEdit}
+                      >
+                        Cancel edit
+                      </button>
+                    )}
+                  </div>
                 </form>
 
                 <p className="admin-hint">
@@ -6366,6 +6429,10 @@ function AdminPanel({
                             </td>
                             <td data-label="Action">
                               <div className="admin-actions">
+                                <button onClick={() => editCoupon(coupon)}>
+                                  <FiEdit2 /> Edit
+                                </button>
+
                                 <button
                                   className="delete-button"
                                   onClick={() => deleteCoupon(coupon._id)}
