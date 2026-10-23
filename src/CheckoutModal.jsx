@@ -97,6 +97,17 @@ const [selectedCity, setSelectedCity] = useState(null);
   });
   const [discountAmount, setDiscountAmount] = useState(0);
   const [availableCoupons] = useState([]);
+
+  // Which payment methods a coupon accepts. The backend now returns
+  // `paymentModes` on the coupon, and treats anything missing (coupons
+  // created before this field existed) as "both".
+  const couponModes = (coupon) => {
+    const modes = Array.isArray(coupon?.paymentModes)
+      ? coupon.paymentModes
+      : [];
+
+    return modes.length ? modes : ["cod", "prepaid"];
+  };
   const [useWallet, setUseWallet] = useState(false);
   const walletBalance = user?.walletBalance || 0;
   const [placedTotal, setPlacedTotal] = useState(null);
@@ -325,9 +336,39 @@ const walletDeduction =
     : 0;
 const finalRemainingCod = Math.max(0, remainingCod - walletDeduction);
 
+  const removeCoupon = () => {
+    setAppliedCoupon("");
+    setDiscountAmount(0);
+    setIsReferralCode(false);
+    setCouponMessage({ type: "", text: "" });
+  };
+
+  // A coupon the customer already applied can become unusable when they
+  // switch payment method (e.g. a prepaid-only coupon while selecting COD).
+  // Clear it with a clear reason instead of letting it silently fail at
+  // order time.
+  useEffect(() => {
+    if (!appliedCoupon) return;
+
+    const modes = couponModes(appliedCoupon);
+
+    if (!modes.includes(paymentMethod === "cod" ? "cod" : "prepaid")) {
+      setAppliedCoupon("");
+      setDiscountAmount(0);
+      setIsReferralCode(false);
+      setCouponMessage({
+        type: "error",
+        text:
+          paymentMethod === "cod"
+            ? "Coupon removed — it cannot be used on Cash on Delivery orders."
+            : "Coupon removed — it can only be used on Cash on Delivery orders.",
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentMethod, appliedCoupon]);
+
   const applyCoupon = async () => {
   const code = couponInput.trim().toUpperCase();
-
   if (!code) {
     setAppliedCoupon("");
     setDiscountAmount(0);
@@ -349,6 +390,10 @@ const finalRemainingCod = Math.max(0, remainingCod - walletDeduction);
       body: JSON.stringify({
         code,
         subtotal: orderSubtotal,
+        // Tell the backend which payment method is currently selected so a
+        // COD-only / prepaid-only coupon is rejected right here instead of
+        // at order time.
+        paymentMethod: paymentMethod === "cod" ? "cod" : "prepaid",
       }),
     });
 
@@ -376,13 +421,6 @@ const finalRemainingCod = Math.max(0, remainingCod - walletDeduction);
     });
   }
 };
-
-  const removeCoupon = () => {
-    setCouponInput("");
-    setAppliedCoupon("");
-    setCouponMessage({ type: "", text: "" });
-    setDiscountAmount(0);
-  };
 
   const updateForm = (event) => {
     const { name, value } = event.target;

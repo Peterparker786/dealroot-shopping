@@ -277,7 +277,33 @@ function AdminPanel({
     expiryDate: "",
     assignedUserEmail: "",
     referralBonus: "",
+    // Which payment methods this coupon may be used with: COD, prepaid
+    // (online), or both. Both is the default so nothing changes for coupons
+    // you already rely on.
+    paymentModes: ["cod", "prepaid"],
   });
+
+  const toggleCouponPaymentMode = (mode) => {
+    setCouponForm((current) => {
+      const next = current.paymentModes.includes(mode)
+        ? current.paymentModes.filter((item) => item !== mode)
+        : [...current.paymentModes, mode];
+
+      return { ...current, paymentModes: next };
+    });
+  };
+
+  const couponPaymentLabel = (modes) => {
+    if (!Array.isArray(modes) || !modes.length) return "COD + Prepaid";
+
+    const hasCod = modes.includes("cod");
+    const hasPrepaid = modes.includes("prepaid");
+
+    if (hasCod && hasPrepaid) return "COD + Prepaid";
+    if (hasCod) return "COD only";
+    if (hasPrepaid) return "Prepaid only";
+    return "COD + Prepaid";
+  };
   const [categoryForm, setCategoryForm] = useState({
     name: "",
     emoji: "✨",
@@ -2197,13 +2223,23 @@ function AdminPanel({
   const createCoupon = async (e) => {
     e.preventDefault();
 
+    if (!couponForm.paymentModes.length) {
+      showToast(
+        "Pick at least one payment method for this coupon: COD, prepaid or both"
+      );
+      return;
+    }
+
     try {
       const data = await request(`${apiUrl}/api/coupons`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(couponForm),
+        body: JSON.stringify({
+          ...couponForm,
+          paymentModes: couponForm.paymentModes,
+        }),
       });
 
       showToast(data.message);
@@ -2217,6 +2253,7 @@ function AdminPanel({
         expiryDate: "",
         assignedUserEmail: "",
         referralBonus: "",
+        paymentModes: ["cod", "prepaid"],
       });
 
       loadCoupons();
@@ -6188,6 +6225,29 @@ function AdminPanel({
                   </label>
 
                   <label>
+                    Valid for payment method
+                    <span className="coupon-payment-modes">
+                      <span
+                        className={`coupon-mode-chip ${couponForm.paymentModes.includes("cod") ? "active" : ""}`}
+                        onClick={() => toggleCouponPaymentMode("cod")}
+                      >
+                        💵 COD order
+                      </span>
+                      <span
+                        className={`coupon-mode-chip ${couponForm.paymentModes.includes("prepaid") ? "active" : ""}`}
+                        onClick={() => toggleCouponPaymentMode("prepaid")}
+                      >
+                        💳 Prepaid (online)
+                      </span>
+                    </span>
+                    <small className="coupon-mode-hint">
+                      {couponPaymentLabel(couponForm.paymentModes)} — customer
+                      ko coupon tabhi apply karne dega website jab wahi
+                      payment method choose karega.
+                    </small>
+                  </label>
+
+                  <label>
                     Assign to customer (optional)
                     <input
                       type="email"
@@ -6259,6 +6319,7 @@ function AdminPanel({
                           <th>Type</th>
                           <th>Cashback</th>
                           <th>Min Order</th>
+                          <th>Payment method</th>
                           <th>Expiry</th>
                           <th>Referral owner</th>
                           <th>Action</th>
@@ -6274,6 +6335,17 @@ function AdminPanel({
                             <td data-label="Type">{coupon.discountType}</td>
                             <td data-label="Cashback">{coupon.discountValue}</td>
                             <td data-label="Min Order">₹{coupon.minimumOrder}</td>
+                            <td data-label="Payment method">
+                              <span
+                                className={`coupon-mode-badge ${
+                                  coupon.paymentModes?.length === 1
+                                    ? coupon.paymentModes[0]
+                                    : "both"
+                                }`}
+                              >
+                                {couponPaymentLabel(coupon.paymentModes)}
+                              </span>
+                            </td>
                             <td data-label="Expiry">
                               {coupon.expiryDate
                                 ? new Date(coupon.expiryDate).toLocaleDateString()

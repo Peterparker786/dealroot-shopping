@@ -3256,3 +3256,57 @@
   margin: 0 0 14px;
   font-size: 12.5px;
 }
+
+/* Coupon payment-method chips — COD only / prepaid only / both */
+.coupon-payment-modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.coupon-mode-chip {
+  padding: 8px 13px;
+  border-radius: 999px;
+  border: 1.5px solid #d7e1ec;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.18s ease;
+}
+.coupon-mode-chip:hover {
+  border-color: #2c76d5;
+}
+.coupon-mode-chip.active {
+  background: #2c76d5;
+  border-color: #2c76d5;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(44, 118, 213, 0.28);
+}
+.coupon-mode-hint {
+  display: block;
+  margin-top: 7px;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.coupon-mode-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 800;
+  background: #eef2ff;
+  color: #4338ca;
+  white-space: nowrap;
+}
+.coupon-mode-badge.cod {
+  background: #fef3c7;
+  color: #92400e;
+}
+.coupon-mode-badge.prepaid {
+  background: #dcfce7;
+  color: #166534;
+}
