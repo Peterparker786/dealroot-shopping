@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Select from "react-select";
 import {
   INDIAN_STATES,
@@ -82,6 +82,15 @@ function CheckoutModal({
   const [giftPickerOpen, setGiftPickerOpen] = useState(false);
   const [placedOrder, setPlacedOrder] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // UPI payments confirm asynchronously: Razorpay can report an attempt as
+  // failed while the bank has already debited the customer and the
+  // confirmation is still in flight. "You can retry" is exactly the wrong
+  // advice in that moment — it is how one order becomes two payments — so a
+  // failure leaves a persistent note in the panel instead of a toast that
+  // disappears after 2.4 seconds.
+  const [paymentNotice, setPaymentNotice] = useState("");
+  const paymentFailedRef = useRef(false);
   const [selectedState, setSelectedState] = useState(null);
 const [selectedCity, setSelectedCity] = useState(null);
   const [pincodeLookupLoading, setPincodeLookupLoading] = useState(false);
@@ -634,6 +643,9 @@ const orderPayload = {
     };
 
     try {
+      // A fresh attempt: the previous failure note no longer applies.
+      paymentFailedRef.current = false;
+      setPaymentNotice("");
       setIsSubmitting(true);
 
       // Both COD and online go through Razorpay: COD collects only the
@@ -685,7 +697,12 @@ const razorpayCheckout = new window.Razorpay({
           ondismiss: () => {
             if (!paymentHandled) {
               setIsSubmitting(false);
-              showToast?.("Payment cancelled. Your cart is still saved.");
+
+              // When an attempt was just reported as failed, saying
+              // "cancelled" would contradict the payment note below it.
+              if (!paymentFailedRef.current) {
+                showToast?.("Payment cancelled. Your cart is still saved.");
+              }
             }
           },
         },
@@ -719,9 +736,18 @@ const razorpayCheckout = new window.Razorpay({
             completeOrder(verifyData.order);
             showToast?.("Payment successful. Your order is confirmed.");
           } catch (error) {
+            // The bank may well have taken the money even though we could not
+            // confirm it on the spot, so ask the customer to wait rather than
+            // pay a second time. The backend's own reason is kept in front of
+            // the guidance — it is the only place things like "refund
+            // initiated" reach the customer.
+            const reason = String(error?.message || "").trim();
+
+            setPaymentNotice(
+              `${reason ? `${reason} ` : ""}Please do not pay again — check My Orders in a couple of minutes before retrying. Any amount debited without an order is refunded automatically.`
+            );
             showToast?.(
-              error.message ||
-                "Payment received. Please check My Orders before trying again."
+              "Payment confirmation pending — please read the note below."
             );
           } finally {
             setIsSubmitting(false);
@@ -729,11 +755,13 @@ const razorpayCheckout = new window.Razorpay({
         },
       });
 
-      razorpayCheckout.on("payment.failed", (failure) => {
-        showToast?.(
-          failure?.error?.description ||
-            "Payment failed. You can retry or choose Cash on Delivery."
+      razorpayCheckout.on("payment.failed", () => {
+        paymentFailedRef.current = true;
+
+        setPaymentNotice(
+          "Payment not confirmed yet. If your UPI app showed a successful payment, please do not pay again — confirmation can take 2-3 minutes. Check My Orders first; any amount debited without an order is refunded automatically."
         );
+        showToast?.("Payment not confirmed — please read the note below.");
       });
 
       razorpayCheckout.open();
@@ -1352,6 +1380,13 @@ const razorpayCheckout = new window.Razorpay({
     </span>
   </div>
 )}
+
+            {paymentNotice && (
+              <div className="checkout-payment-notice" role="status">
+                <strong>Before you try again</strong>
+                <span>{paymentNotice}</span>
+              </div>
+            )}
 
             <button
               className="primary-button checkout-submit"

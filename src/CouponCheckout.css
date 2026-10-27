@@ -735,6 +735,29 @@ box-shadow:0 20px 45px rgba(124,58,237,.35);
 
 }
 
+/* Persistent note shown inside the checkout panel when Razorpay reports an
+   attempt as failed. It has to stay readable after the payment popup closes,
+   so it wraps instead of being clipped like the toast does. */
+.checkout-payment-notice{
+	display:flex;
+	flex-direction:column;
+	gap:4px;
+	margin:0 0 12px;
+	padding:12px 14px;
+	border:1px solid #f3c98b;
+	border-radius:10px;
+	background:#fff8ec;
+	color:#7a4a06;
+	font-size:12.5px;
+	line-height:1.55;
+}
+
+.checkout-payment-notice strong{
+	font-size:13px;
+	font-weight:700;
+	color:#8a4b00;
+}
+
 .checkout-summary h3 {
   margin: 0 0 16px;
   font-size: 17px;
