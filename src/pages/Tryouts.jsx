@@ -282,9 +282,15 @@ export default function Tryouts({
                     <del>₹{currentTryout.originalPrice}</del>
                   )}
                 </div>
-                <div className="tryout-poster-tnc">
-                  <b>Terms:</b> {currentTryout.tnc || "Fill internal form, live review compulsory"}
-                </div>
+                {/* Only shown when the admin actually entered terms — this
+                    used to fall back to a hardcoded sample line ("Fill
+                    internal form, live review compulsory"), which looked like
+                    store terms nobody had written. */}
+                {String(currentTryout.tnc || "").trim() && (
+                  <div className="tryout-poster-tnc">
+                    <b>Terms:</b> {currentTryout.tnc}
+                  </div>
+                )}
 {currentTryout.buyLink ? (
                   <a
                     href={currentTryout.buyLink}
