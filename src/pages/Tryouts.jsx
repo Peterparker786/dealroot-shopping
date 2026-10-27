@@ -271,7 +271,7 @@ export default function Tryouts({
                       <b>2.</b> Submit purchase form
                     </li>
                     <li>
-                      <b>3.</b> Cashback after verify
+                      <b>3.</b>
                     </li>
                   </ol>
                 </div>
