@@ -3343,3 +3343,18 @@
 .coupon-cancel-edit:hover {
   background: #e9e3ff;
 }
+
+/* Product names in the Orders table link to the storefront product page so the
+   admin can open the item the customer actually ordered and check its images
+   (a new tab keeps the admin panel exactly where it was). */
+.order-item-link {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px dashed rgba(37, 99, 235, 0.45);
+}
+
+.order-item-link:hover {
+  color: #1d4ed8;
+  border-bottom: 1px solid #1d4ed8;
+}

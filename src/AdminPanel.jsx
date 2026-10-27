@@ -4134,11 +4134,39 @@ function AdminPanel({
                             </td>
 
                             <td data-label="Items">
-                              {order.items?.map((item) => (
-                                <small key={item._id || item.product}>
-                                  {item.title} × {item.quantity} — ₹{item.subtotal}
-                                </small>
-                              ))}
+                              {order.items?.map((item) => {
+                                // `product` is normally the ObjectId, but an
+                                // order that was populated elsewhere can carry
+                                // the whole document — accept both.
+                                const productId =
+                                  typeof item.product === "object" &&
+                                  item.product !== null
+                                    ? item.product._id
+                                    : item.product;
+
+                                return (
+                                  <small key={item._id || productId || item.title}>
+                                    {productId ? (
+                                      // Opens the storefront product page in a
+                                      // new tab, so the admin can see the exact
+                                      // item (and all its images) the customer
+                                      // ordered without losing this panel.
+                                      <a
+                                        className="order-item-link"
+                                        href={`/product/${productId}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title="Open product page"
+                                      >
+                                        {item.title}
+                                      </a>
+                                    ) : (
+                                      item.title
+                                    )}{" "}
+                                    × {item.quantity} — ₹{item.subtotal}
+                                  </small>
+                                );
+                              })}
                             </td>
 
                             <td data-label="Amount">
