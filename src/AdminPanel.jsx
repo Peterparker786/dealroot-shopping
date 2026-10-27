@@ -25,6 +25,7 @@ import {
   FiEye,
   FiEyeOff,
   FiCreditCard,
+  FiSettings,
 } from "react-icons/fi";
 import "./AdminPanel.css";
 import { optimizeImage } from "./utils/cloudinary";
@@ -129,6 +130,7 @@ const adminTabs = [
   { id: "coupons", label: "Coupons", icon: FiPercent },
   { id: "wallet", label: "Wallet", icon: FiCreditCard },
   { id: "categories", label: "Categories", icon: FiGrid },
+  { id: "settings", label: "Settings", icon: FiSettings },
 ];
 
 function AdminPanel({
@@ -336,6 +338,15 @@ function AdminPanel({
   const [showProductForm, setShowProductForm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Store-wide delivery charge, edited in the Settings tab. Loaded as soon as
+  // an admin is signed in so the Settings form and the tryout refund default
+  // both show what the backend actually charges.
+  const [storeDeliveryFee, setStoreDeliveryFee] = useState(59);
+  const [storeFreeDeliveryThreshold, setStoreFreeDeliveryThreshold] =
+    useState(499);
+  const [deliveryFeeDraft, setDeliveryFeeDraft] = useState("");
+  const [savingDeliveryFee, setSavingDeliveryFee] = useState(false);
+
   const logOut = (message = "Logged out successfully") => {
     sessionStorage.removeItem("dealroot_admin_token");
     setToken("");
@@ -398,6 +409,59 @@ function AdminPanel({
     }
 
     return data;
+  };
+
+  useEffect(() => {
+    if (!token) return;
+
+    let active = true;
+
+    (async () => {
+      try {
+        const data = await request(`${apiUrl}/api/store-settings`);
+
+        if (!active || !data.success) return;
+
+        setStoreDeliveryFee(data.deliveryFee);
+        setStoreFreeDeliveryThreshold(data.freeDeliveryThreshold || 499);
+        setDeliveryFeeDraft(String(data.deliveryFee));
+      } catch {
+        // Not worth an error toast — the panel keeps showing the default.
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [token, apiUrl]);
+
+  const saveDeliveryFee = async (event) => {
+    event.preventDefault();
+
+    const value = Number(deliveryFeeDraft);
+
+    if (!Number.isInteger(value) || value < 1 || value > 1000) {
+      showToast("Delivery charge must be a whole number between ₹1 and ₹1000");
+      return;
+    }
+
+    try {
+      setSavingDeliveryFee(true);
+
+      const data = await request(`${apiUrl}/api/admin/store-settings`, {
+        method: "PUT",
+        body: JSON.stringify({ deliveryFee: value }),
+      });
+
+      setStoreDeliveryFee(data.deliveryFee);
+      setStoreFreeDeliveryThreshold(data.freeDeliveryThreshold || 499);
+      setDeliveryFeeDraft(String(data.deliveryFee));
+      showToast(data.message || "Delivery charge updated");
+    } catch (error) {
+      showToast(error.message || "Could not save the delivery charge");
+    } finally {
+      setSavingDeliveryFee(false);
+    }
   };
 
   const loadProducts = async () => {
@@ -4489,7 +4553,10 @@ function AdminPanel({
                                             step="1"
                                             value={
                                               refundShippingFees[form._id] ??
-                                              (form.orderAmount >= 499 ? 0 : 49)
+                                              (form.orderAmount >=
+                                              storeFreeDeliveryThreshold
+                                                ? 0
+                                                : storeDeliveryFee)
                                             }
                                             onChange={(event) =>
                                               setRefundShippingFees((current) => ({
@@ -4512,9 +4579,10 @@ function AdminPanel({
                                                 (refundShippingFees[
                                                   form._id
                                                 ] ??
-                                                  (form.orderAmount >= 499
+                                                  (form.orderAmount >=
+                                                  storeFreeDeliveryThreshold
                                                     ? 0
-                                                    : 49))
+                                                    : storeDeliveryFee))
                                             ).toLocaleString("en-IN")}
                                           </b>
                                         </div>
@@ -6475,6 +6543,56 @@ function AdminPanel({
                     </table>
                   </div>
                 )}
+              </section>
+            </div>
+          )}
+
+          {/* ===================== STORE SETTINGS ===================== */}
+          {tab === "settings" && (
+            <div className="admin-tab-page">
+              <section className="admin-tab-head">
+                <div>
+                  <p>STORE SETTINGS</p>
+                  <h2>Delivery charges</h2>
+                </div>
+              </section>
+
+              <section className="admin-form-card">
+                <form className="admin-mini-form" onSubmit={saveDeliveryFee}>
+                  <label>
+                    Delivery charge (₹)
+                    <input
+                      type="number"
+                      min="1"
+                      max="1000"
+                      step="1"
+                      value={deliveryFeeDraft}
+                      onChange={(event) =>
+                        setDeliveryFeeDraft(event.target.value)
+                      }
+                    />
+                  </label>
+
+                  <div className="coupon-mode-hint">
+                    Currently charging <b>₹{storeDeliveryFee}</b> on every
+                    order below ₹{storeFreeDeliveryThreshold} — applied
+                    automatically at online checkout, on the COD
+                    delivery-charge payment and on orders created from this
+                    panel. Orders of ₹{storeFreeDeliveryThreshold} or more
+                    always ship free (and Cash on Delivery stops being offered
+                    at that amount).
+                  </div>
+
+                  <div className="coupon-form-actions">
+                    <button
+                      className="save-product"
+                      type="submit"
+                      disabled={savingDeliveryFee}
+                    >
+                      {savingDeliveryFee ? "Saving…" : "Save delivery charge"}
+                    </button>
+                  </div>
+                </form>
               </section>
             </div>
           )}

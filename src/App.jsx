@@ -142,6 +142,13 @@ function App() {
   const [categories, setCategories] = useState(getStoredCategories);
   const [toast, setToast] = useState("");
   const [toastAction, setToastAction] = useState(null);
+
+  // Delivery charge comes from the backend (admin can change it) instead of
+  // being hardcoded here and in checkout.
+  const [storeSettings, setStoreSettings] = useState({
+    deliveryFee: 59,
+    freeDeliveryThreshold: 499,
+  });
   const toastTimer = useRef(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [wishlistOpen, setWishlistOpen] = useState(false);
@@ -791,12 +798,40 @@ function App() {
     scroll();
   };
 
+  useEffect(() => {
+    let active = true;
+
+    fetch(`${API_URL}/api/store-settings`)
+      .then((response) => response.json())
+      .then((data) => {
+        if (!active || !data?.success) return;
+
+        setStoreSettings({
+          deliveryFee: Number(data.deliveryFee) || 59,
+          freeDeliveryThreshold: Number(data.freeDeliveryThreshold) || 499,
+        });
+      })
+      .catch(() => {
+        // Keep the defaults — the backend still decides the real charge.
+      });
+
+    return () => {
+      active = false;
+    };
+    // Re-read when checkout opens: the admin may have changed the charge while
+    // this tab was already open, and the order must not be priced differently
+    // from the summary the customer is looking at.
+  }, [checkoutOpen]);
+
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
   const cartSubtotal = cart.reduce(
     (total, item) => total + item.price * item.quantity,
     0
   );
-  const cartDelivery = cartSubtotal === 0 || cartSubtotal >= 499 ? 0 : 49;
+  const cartDelivery =
+    cartSubtotal === 0 || cartSubtotal >= storeSettings.freeDeliveryThreshold
+      ? 0
+      : storeSettings.deliveryFee;
   const cartTotal = cartSubtotal + cartDelivery;
 
   // Free gift stays valid only while the cart stays above ₹499 and the
@@ -889,6 +924,7 @@ function App() {
             cart={cart}
             setCart={setCart}
             total={cartTotal}
+            storeDeliveryFee={storeSettings.deliveryFee}
             showToast={showToast}
             apiUrl={API_URL}
             user={user}

@@ -69,6 +69,9 @@ function CheckoutModal({
   cart = [],
   setCart,
   showToast,
+  // Admin-configured delivery charge (App fetches it from the backend); the
+  // backend re-applies the same number when it prices the order.
+  storeDeliveryFee = 59,
   onOrderPlaced,
   apiUrl,
   user,
@@ -317,7 +320,7 @@ useEffect(() => {
 
   const hasFreeDelivery =
     orderSubtotal === 0 || orderSubtotal >= 499;
-  const deliveryFee = hasFreeDelivery ? 0 : 59;
+  const deliveryFee = hasFreeDelivery ? 0 : storeDeliveryFee;
   const deliveryLabel = deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`;
 // Coupons no longer take money off at checkout — the customer always pays
 // the full price, and this amount is instead credited to their wallet as
