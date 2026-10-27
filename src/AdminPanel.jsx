@@ -277,6 +277,7 @@ function AdminPanel({
     minimumOrder: "",
     maximumDiscount: "",
     expiryDate: "",
+    maxUses: "",
     assignedUserEmail: "",
     referralBonus: "",
     // Which payment methods this coupon may be used with: COD, prepaid
@@ -6367,6 +6368,24 @@ function AdminPanel({
                         })
                       }
                     />
+                  </label>
+
+                  <label>
+                    Max uses
+                    <input
+                      type="number"
+                      placeholder="e.g. 1 (single use), 5 (five times), leave blank for unlimited"
+                      value={couponForm.maxUses}
+                      onChange={(e) =>
+                        setCouponForm({
+                          ...couponForm,
+                          maxUses: e.target.value === "" ? "" : Number(e.target.value),
+                        })
+                      }
+                    />
+                    <small className="admin-hint">
+                      Coupon usage limit. Leave blank for unlimited uses.
+                    </small>
                   </label>
 
                   <label>
