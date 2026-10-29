@@ -6388,10 +6388,10 @@ function AdminPanel({
                   </label>
 
                   <label>
-                    Max uses
+                    Max uses per customer
                     <input
                       type="number"
-                      placeholder="e.g. 1 (single use), 5 (five times), leave blank for unlimited"
+                      placeholder="e.g. 1 (once per customer), 5 (five times per customer), blank for unlimited"
                       value={couponForm.maxUses}
                       onChange={(e) =>
                         setCouponForm({
@@ -6401,7 +6401,8 @@ function AdminPanel({
                       }
                     />
                     <small className="admin-hint">
-                      Coupon usage limit. Leave blank for unlimited uses.
+                      How many times ONE customer can use this code. Leave blank
+                      for unlimited uses per customer.
                     </small>
                   </label>
 
