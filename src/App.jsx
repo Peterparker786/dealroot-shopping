@@ -43,6 +43,12 @@ import {
   saveStoredCategories,
 } from "./utils/categories";
 import {
+  captureEvent,
+  capturePageview,
+  identifyUser,
+  resetAnalytics,
+} from "./utils/analytics";
+import {
   PAGE_META,
   setSeo,
   buildStoreJsonLd,
@@ -110,6 +116,10 @@ function RouteSeo() {
       url: `${SITE_URL}${path}`,
       jsonLd: path === "/" ? buildStoreJsonLd() : null,
     });
+
+    // PostHog has no automatic pageviews in a single-page app, so every route
+    // change is captured here for funnels and paths.
+    capturePageview(path);
   }, [path]);
 
   return null;
@@ -262,6 +272,10 @@ function App() {
   };
 
   const logOutCustomer = () => {
+    // Forget the PostHog person so the next visitor on this device is not
+    // attributed to the customer who just logged out.
+    resetAnalytics();
+
     localStorage.removeItem("dealroot_user_token");
     localStorage.removeItem("dealroot_user");
     localStorage.removeItem("dealroot_cart");
@@ -295,6 +309,10 @@ function App() {
     localStorage.setItem("dealroot_user_token", token);
     setUserToken(token);
     setUser(nextUser);
+
+    // Identify right after login/signup so checkout and order events belong to
+    // the customer instead of an anonymous visitor.
+    identifyUser(nextUser);
   };
 
   useEffect(() => {
@@ -316,6 +334,8 @@ function App() {
         const data = await response.json();
         if (!response.ok) throw new Error();
         setUser(data.user);
+        // Re-link the restored session to its PostHog person.
+        identifyUser(data.user);
       } catch {
         localStorage.removeItem("dealroot_user_token");
         localStorage.removeItem("dealroot_user");
@@ -663,6 +683,14 @@ function App() {
     ];
   });
 
+  captureEvent("add_to_cart", {
+    productId: product.id,
+    productName: product.name,
+    category: product.category,
+    price: Number(product.price) || 0,
+    quantity: qty,
+  });
+
   showToast("Product added to cart!", {
     label: "View Bag",
     onClick: () => setCartOpen(true),
@@ -900,6 +928,11 @@ function App() {
               showToast("Your cart is empty");
               return;
             }
+            captureEvent("checkout_started", {
+              itemCount: cartCount,
+              value: cartTotal,
+              currency: "INR",
+            });
             setCartOpen(false);
             setCheckoutOpen(true);
           }}
@@ -933,7 +966,13 @@ function App() {
             giftProducts={products}
             onClearGift={() => setGiftProductId("")}
             onProfileUpdated={setUser}
-            onOrderPlaced={() => {
+            onOrderPlaced={(order) => {
+              captureEvent("order_placed", {
+                orderNumber: order?.orderNumber || "",
+                itemCount: cartCount,
+                value: cartTotal,
+                currency: "INR",
+              });
               setCart([]);
               setGiftProductId("");
               loadProducts();

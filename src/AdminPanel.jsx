@@ -7123,7 +7123,7 @@ function AdminPanel({
               </section>
             </div>
               {/* Sales Panel */
-              {tab === "sales" && (
+               {tab === "sales" ? (
                 <div className="admin-tab-page">
                   <section className="admin-tab-head">
                     <div>
@@ -7172,7 +7172,7 @@ function AdminPanel({
                     <div className="sales-stats-error" id="sales-stats-error" style="display: none;"></div>
                   </section>
                 </div>
-              )}}
+              ) : null}
           )}
         </main>
       </div>

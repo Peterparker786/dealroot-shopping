@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import Select from "react-select";
 import { FiPackage, FiTruck, FiEye, FiEyeOff } from "react-icons/fi";
 import { optimizeImage } from "./utils/cloudinary";
+import { captureEvent } from "./utils/analytics";
 import {
   INDIAN_STATES,
   CITIES_BY_STATE,
@@ -702,6 +703,12 @@ export default function AccountModal({
       }
 
       onAuth(data.token, data.user);
+
+      // Top of the onboarding funnel: App identifies the customer, this marks
+      // whether the visit created an account or returned to an existing one.
+      captureEvent(mode === "login" ? "login" : "sign_up", {
+        method: "password",
+      });
       setAuthForm(emptyAuthForm);
       setAuthError?.("");
 
