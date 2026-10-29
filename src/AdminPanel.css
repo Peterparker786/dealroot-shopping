@@ -3358,3 +3358,52 @@
   color: #1d4ed8;
   border-bottom: 1px solid #1d4ed8;
 }
+
+/* Sales → profit overview cards */
+.sales-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.sales-stat-card {
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid #ece7fb;
+  box-shadow: 0 1px 2px rgba(76, 29, 149, 0.05);
+}
+
+.sales-stat-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #7c6ba8;
+}
+
+.sales-stat-value {
+  margin-top: 6px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #2d1b69;
+}
+
+.sales-stats-footer {
+  margin-top: 14px;
+  color: #7a7391;
+}
+
+.sales-stats-loading {
+  padding: 18px 0;
+  color: #7a7391;
+  font-weight: 600;
+}
+
+.sales-stats-error {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-weight: 600;
+}

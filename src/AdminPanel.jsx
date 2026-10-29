@@ -25,6 +25,7 @@ import {
   FiEye,
   FiEyeOff,
   FiCreditCard,
+  FiDollarSign,
   FiSettings,
 } from "react-icons/fi";
 import "./AdminPanel.css";
@@ -130,7 +131,7 @@ const adminTabs = [
   { id: "coupons", label: "Coupons", icon: FiPercent },
   { id: "wallet", label: "Wallet", icon: FiCreditCard },
   { id: "categories", label: "Categories", icon: FiGrid },
-  { id: "sales", label: "Sales", icon: FiDollar },
+  { id: "sales", label: "Sales", icon: FiDollarSign },
   { id: "settings", label: "Settings", icon: FiSettings },
 ];
 
@@ -841,18 +842,18 @@ function AdminPanel({
       showToast(error.message);
     } finally {
       setReturnsLoading(false);
-  
+    }
+  };
+
   const loadSalesStats = async () => {
     try {
       setSalesStatsLoading(true);
       const data = await request(`${apiUrl}/api/admin/sales-stats`);
       setSalesStatsData(data.stats || {});
-      setSalesStatsLoading(false);
     } catch (error) {
       showToast(error.message);
+    } finally {
       setSalesStatsLoading(false);
-    }
-  };
     }
   };
 
@@ -7122,9 +7123,11 @@ function AdminPanel({
                 )}
               </section>
             </div>
-              {/* Sales Panel */
-               {tab === "sales" ? (
-                <div className="admin-tab-page">
+          )}
+
+          {/* ===================== SALES ===================== */}
+          {tab === "sales" && (
+            <div className="admin-tab-page">
                   <section className="admin-tab-head">
                     <div>
                       <p>SALES STATISTICS</p>
@@ -7133,46 +7136,48 @@ function AdminPanel({
                   </section>
 
                   <section className="admin-form-card">
-                    <div className="sales-stats-loading" id="sales-stats-loading">Loading...</div>
-                    <div className="sales-stats-content" id="sales-stats-content" style="display: none;">
-                      <div className="sales-stats-grid">
-                        <div className="sales-stat-card">
-                          <div className="sales-stat-label">Total Orders</div>
-                          <div className="sales-stat-value" id="total-orders">0</div>
+                    {salesStatsLoading ? (
+                      <div className="sales-stats-loading">Loading…</div>
+                    ) : (
+                      <>
+                        <div className="sales-stats-grid">
+                          <div className="sales-stat-card">
+                            <div className="sales-stat-label">Total Orders</div>
+                            <div className="sales-stat-value">{Math.round(Number(salesStatsData.totalOrders) || 0).toLocaleString("en-IN")}</div>
+                          </div>
+                          <div className="sales-stat-card">
+                            <div className="sales-stat-label">Total Sales</div>
+                            <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.totalSales) || 0).toLocaleString("en-IN")}</div>
+                          </div>
+                          <div className="sales-stat-card">
+                            <div className="sales-stat-label">Total Profit</div>
+                            <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.totalProfit) || 0).toLocaleString("en-IN")}</div>
+                          </div>
+                          <div className="sales-stat-card">
+                            <div className="sales-stat-label">Delivery Fees</div>
+                            <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.totalDeliveryFees) || 0).toLocaleString("en-IN")}</div>
+                          </div>
+                          <div className="sales-stat-card">
+                            <div className="sales-stat-label">Cashback Given</div>
+                            <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.totalCashbackGiven) || 0).toLocaleString("en-IN")}</div>
+                          </div>
+                          <div className="sales-stat-card">
+                            <div className="sales-stat-label">Avg Order Value</div>
+                            <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.avgOrderValue) || 0).toLocaleString("en-IN")}</div>
+                          </div>
+                          <div className="sales-stat-card">
+                            <div className="sales-stat-label">Razorpay Deduction (2%)</div>
+                            <div className="sales-stat-value">₹{Math.round(Number((salesStatsData.totalSales * 0.02)) || 0).toLocaleString("en-IN")}</div>
+                          </div>
                         </div>
-                        <div className="sales-stat-card">
-                          <div className="sales-stat-label">Total Sales</div>
-                          <div className="sales-stat-value" id="total-sales">₹0</div>
+                        <div className="sales-stats-footer">
+                          <small>Based on delivered/completed orders. Razorpay fee @ 2% of order total.</small>
                         </div>
-                        <div className="sales-stat-card">
-                          <div className="sales-stat-label">Total Profit</div>
-                          <div className="sales-stat-value" id="total-profit">₹0</div>
-                        </div>
-                        <div className="sales-stat-card">
-                          <div className="sales-stat-label">Delivery Fees</div>
-                          <div className="sales-stat-value" id="total-delivery">₹0</div>
-                        </div>
-                        <div className="sales-stat-card">
-                          <div className="sales-stat-label">Cashback Given</div>
-                          <div className="sales-stat-value" id="total-cashback">₹0</div>
-                        </div>
-                        <div className="sales-stat-card">
-                          <div className="sales-stat-label">Avg Order Value</div>
-                          <div className="sales-stat-value" id="avg-order">₹0</div>
-                        </div>
-                        <div className="sales-stat-card">
-                          <div className="sales-stat-label">Razorpay Deduction (2%)</div>
-                          <div className="sales-stat-value" id="razorpay-deduction">₹0</div>
-                        </div>
-                      </div>
-                      <div className="sales-stats-footer">
-                        <small>Based on delivered/completed orders. Razorpay fee @ 2% of order total.</small>
-                      </div>
-                    </div>
+                      </>
+                    )}
                     <div className="sales-stats-error" id="sales-stats-error" style="display: none;"></div>
                   </section>
-                </div>
-              ) : null}
+            </div>
           )}
         </main>
       </div>
