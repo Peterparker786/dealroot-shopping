@@ -755,15 +755,32 @@ function AdminPanel({
     const product = products.find((p) => p._id === manualOrderProductId);
     if (!product) return;
 
+    if (Number(product.stock) <= 0) {
+      showToast(`${product.title} is out of stock`);
+      return;
+    }
+
     const quantity = Math.max(1, Math.round(Number(manualOrderQty) || 1));
+
+    if (quantity > Number(product.stock)) {
+      showToast(`Only ${product.stock} item(s) of ${product.title} available`);
+      return;
+    }
 
     setManualOrderItems((prev) => {
       const existing = prev.find((it) => it.productId === product._id);
 
       if (existing) {
+        const nextQty = existing.quantity + quantity;
+
+        if (nextQty > Number(product.stock)) {
+          showToast(`Only ${product.stock} item(s) of ${product.title} available`);
+          return prev;
+        }
+
         return prev.map((it) =>
           it.productId === product._id
-            ? { ...it, quantity: it.quantity + quantity }
+            ? { ...it, quantity: nextQty }
             : it
         );
       }
@@ -4137,11 +4154,18 @@ function AdminPanel({
                         onChange={(e) => setManualOrderProductId(e.target.value)}
                       >
                         <option value="">Select a product…</option>
-                        {products.map((p) => (
-                          <option key={p._id} value={p._id}>
-                            {p.title} — ₹{p.price} (stock: {p.stock})
+                        {products.filter((p) => Number(p.stock) > 0).length === 0 && (
+                          <option value="" disabled>
+                            No products in stock
                           </option>
-                        ))}
+                        )}
+                        {products
+                          .filter((p) => Number(p.stock) > 0)
+                          .map((p) => (
+                            <option key={p._id} value={p._id}>
+                              {p.title} — ₹{p.price} (stock: {p.stock})
+                            </option>
+                          ))}
                       </select>
                     </label>
 
