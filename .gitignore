@@ -23,3 +23,12 @@ dist-ssr
 *.sln
 *.sw?
 .freebuff/
+
+# Android signing material — NEVER commit these.
+# The keystore holds the private key that proves our identity to Play Store;
+# leaking it lets anyone publish updates as DEALROOT.
+*.keystore
+*.jks
+signing-key-info.txt
+.env
+.env.local

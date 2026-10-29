@@ -23,7 +23,7 @@ DEALROOT is a **PWA (Progressive Web App)**. To get it on the Play Store, we wra
 3. Click **"Create app"**
 4. Fill in app details:
    - Name: **DEALROOT — Premium Beauty**
-   - Package: **com.dealroot.beauty**
+   - Package: **com.dealroot.app** (must match the live app — see `.well-known/assetlinks.json`)
    - Category: **Shopping**
 5. Upload the `.aab` file from PWABuilder
 6. Add screenshots (see below)
@@ -38,7 +38,7 @@ DEALROOT is a **PWA (Progressive Web App)**. To get it on the Play Store, we wra
 2. Install **Android Studio**: https://developer.android.com/studio
 3. Install **Bubblewrap CLI**:
    ```bash
-   npm install -g @nicedoc/nickvdh @nicedoc/nickvdh @nicedoc/nickvdh
+   npm install -g @bubblewrap/cli
    ```
 
 ### Step 1: Create signing key
@@ -48,7 +48,7 @@ keytool -genkey -v -keystore release-key.jks -keyalg RSA -keysize 2048 -validity
 
 ### Step 2: Initialize project
 ```bash
-npx @nicedoc/nickvdh init
+npx @bubblewrap/cli init --manifest https://www.dealroot.store/manifest.webmanifest
 ```
 Enter:
 - Domain: `www.dealroot.store`
@@ -58,11 +58,40 @@ Enter:
 
 ### Step 3: Build APK
 ```bash
-npx @nicedoc/nickvdh build
+npx @bubblewrap/cli build
 ```
 
 ### Step 4: Upload to Play Store
 Same as Method 1 Step 2.
+
+---
+
+---
+
+## 🔑 Signing key (needed for every future update)
+
+| | |
+|---|---|
+| Keystore | `android/signing.keystore` (git-ignored) |
+| Alias | `my-key-alias` |
+| Password | **not in this repo** — see the original `signing-key-info.txt` |
+| Cert SHA-256 | `64:98:7F:24:0A:7E:C5:BB:74:95:A0:33:AF:B7:45:60:D0:98:9A:46:51:53:C9:7C:FE:52:B7:B0:B9:86:B3:A7` |
+| Cert valid until | 2081 |
+
+**Back this file up offline** (email to yourself, drive, USB). If you lose it you cannot publish an update to the existing Play listing — you'd have to request an upload-key reset from Play support.
+
+Verify the fingerprint anytime:
+```bash
+keytool -list -v -keystore android/signing.keystore -alias my-key-alias
+```
+
+That SHA-256 **must** appear in `.well-known/assetlinks.json`, otherwise the installed app opens with Chrome's URL bar instead of fullscreen.
+
+Passing the password to Bubblewrap without committing it:
+```bash
+export BUBBLEWRAP_KEYSTORE_PASSWORD='...'
+export BUBBLEWRAP_KEY_PASSWORD='...'
+```
 
 ---
 
@@ -91,6 +120,8 @@ You push to GitHub → Vercel auto-deploys → Users see changes on next app ope
 ```
 
 **No Play Store resubmission needed!** The app is just a Chrome wrapper around your website.
+
+> ⚠️ This only covers **content** changes. The domain itself (`host` in `android/twa-manifest.json`) is compiled into the APK — changing the domain **does** require a new AAB upload with a higher `app_version_code`.
 
 If you want to force an update:
 - The service worker auto-updates on page load

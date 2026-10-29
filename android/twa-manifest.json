@@ -1,7 +1,7 @@
 {
   "app_name": "DEALROOT",
   "short_name": "DEALROOT",
-  "package": "com.dealroot.beauty",
+  "package": "com.dealroot.app",
   "host": "www.dealroot.store",
   "start_url": "/",
   "theme_color": "#7c3aed",
@@ -11,8 +11,8 @@
   "navigation_color": "#7c3aed",
   "splash_screen_color": "#7c3aed",
   "signing": {
-    "path": "./android/release-key.jks",
-    "alias": "dealroot",
+    "path": "./android/signing.keystore",
+    "alias": "my-key-alias",
     "keystore_password": "",
     "key_password": ""
   },
