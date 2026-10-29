@@ -187,6 +187,9 @@ function AdminPanel({
   // places on a registered customer's behalf, so it shows up in their
   // account exactly like a self-placed order.
   const [showManualOrderForm, setShowManualOrderForm] = useState(false);
+  // Guest mode: order for someone who does not have (or does not want) an
+  // account. Only their email + delivery details are needed.
+  const [manualOrderGuest, setManualOrderGuest] = useState(false);
   const [manualOrderForm, setManualOrderForm] = useState(emptyManualOrderForm);
   const [manualOrderItems, setManualOrderItems] = useState([]);
   const [manualOrderProductId, setManualOrderProductId] = useState("");
@@ -793,7 +796,11 @@ function AdminPanel({
     e.preventDefault();
 
     if (!manualOrderForm.userEmail.trim()) {
-      showToast("Enter the customer's registered email");
+      showToast(
+        manualOrderGuest
+          ? "Enter the customer's email"
+          : "Enter the customer's registered email"
+      );
       return;
     }
 
@@ -826,6 +833,7 @@ function AdminPanel({
           paymentMethod: manualOrderForm.paymentMethod,
           useWallet: manualOrderForm.useWallet,
           sendEmail: manualOrderForm.sendEmail,
+          guest: manualOrderGuest,
         }),
       });
 
@@ -833,6 +841,7 @@ function AdminPanel({
       setManualOrderForm(emptyManualOrderForm);
       setManualOrderItems([]);
       setShowManualOrderForm(false);
+      setManualOrderGuest(false);
       loadOrders();
       loadUsers();
     } catch (error) {
@@ -3983,15 +3992,33 @@ function AdminPanel({
               {showManualOrderForm && (
                 <section className="admin-form-card">
                   <form className="admin-mini-form" onSubmit={createManualOrder}>
+                    <div className="full-field manual-order-mode">
+                      <button
+                        type="button"
+                        className={manualOrderGuest ? "" : "active"}
+                        onClick={() => setManualOrderGuest(false)}
+                      >
+                        Registered customer
+                      </button>
+                      <button
+                        type="button"
+                        className={manualOrderGuest ? "active" : ""}
+                        onClick={() => setManualOrderGuest(true)}
+                      >
+                        Guest (no account)
+                      </button>
+                    </div>
+
                     <p className="full-field" style={{ margin: "0 0 4px", color: "#666" }}>
-                      For a customer who ordered by phone/WhatsApp instead of
-                      through the site — they must already have a DEALROOT
-                      account. The order will show up under their profile
-                      exactly like a self-placed order.
+                      {manualOrderGuest
+                        ? "For someone who ordered by phone/WhatsApp and does not want a DEALROOT account. Enter their email and delivery address — the confirmation mail goes to them, and the order is counted in Orders and Sales."
+                        : "For a customer who ordered by phone/WhatsApp instead of through the site — they must already have a DEALROOT account. The order will show up under their profile exactly like a self-placed order."}
                     </p>
 
                     <label className="full-field">
-                      Customer's registered email
+                      {manualOrderGuest
+                        ? "Customer's email"
+                        : "Customer's registered email"}
                       <input
                         type="email"
                         required

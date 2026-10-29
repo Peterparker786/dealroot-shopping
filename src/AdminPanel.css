@@ -3653,3 +3653,29 @@
   color: #2d1b69;
   white-space: nowrap;
 }
+
+/* Create order → registered vs guest toggle */
+.manual-order-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.manual-order-mode button {
+  padding: 8px 14px;
+  border: 1px solid #e3ddf7;
+  border-radius: 999px;
+  background: #fff;
+  color: #6b5a92;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.manual-order-mode button.active {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: #fff;
+}
