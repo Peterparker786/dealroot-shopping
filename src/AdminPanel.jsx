@@ -324,6 +324,16 @@ function AdminPanel({
   const [salesStatsLoading, setSalesStatsLoading] = useState(false);
   const [salesStatsData, setSalesStatsData] = useState({});
   const [salesRange, setSalesRange] = useState("all");
+  // Manual book-keeping: offline sales (money in) and extra expenses (out).
+  const [salesEntries, setSalesEntries] = useState([]);
+  const [salesEntrySaving, setSalesEntrySaving] = useState(false);
+  const [salesEntryDeletingId, setSalesEntryDeletingId] = useState("");
+  const [salesEntryForm, setSalesEntryForm] = useState({
+    type: "expense",
+    amount: "",
+    note: "",
+    date: "",
+  });
   const [saving, setSaving] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -849,14 +859,70 @@ function AdminPanel({
   const loadSalesStats = async (range = salesRange) => {
     try {
       setSalesStatsLoading(true);
-      const data = await request(
-        `${apiUrl}/api/admin/sales-stats?range=${range}`
-      );
-      setSalesStatsData(data.stats || {});
+      const [statsData, entriesData] = await Promise.all([
+        request(`${apiUrl}/api/admin/sales-stats?range=${range}`),
+        request(`${apiUrl}/api/admin/sales-entries?range=${range}`),
+      ]);
+      setSalesStatsData(statsData.stats || {});
+      setSalesEntries(entriesData.entries || []);
     } catch (error) {
       showToast(error.message);
     } finally {
       setSalesStatsLoading(false);
+    }
+  };
+
+  const addSalesEntry = async (event) => {
+    event.preventDefault();
+
+    const amount = Number(salesEntryForm.amount);
+
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showToast("Enter an amount greater than zero");
+      return;
+    }
+
+    try {
+      setSalesEntrySaving(true);
+      const data = await request(`${apiUrl}/api/admin/sales-entries`, {
+        method: "POST",
+        body: JSON.stringify({
+          type: salesEntryForm.type,
+          amount,
+          note: salesEntryForm.note,
+          date: salesEntryForm.date || undefined,
+        }),
+      });
+
+      showToast(data.message || "Entry added");
+      setSalesEntryForm((current) => ({
+        ...current,
+        amount: "",
+        note: "",
+        date: "",
+      }));
+      loadSalesStats();
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setSalesEntrySaving(false);
+    }
+  };
+
+  const deleteSalesEntry = async (id) => {
+    if (!window.confirm("Delete this entry?")) return;
+
+    try {
+      setSalesEntryDeletingId(id);
+      const data = await request(`${apiUrl}/api/admin/sales-entries/${id}`, {
+        method: "DELETE",
+      });
+      showToast(data.message || "Entry deleted");
+      loadSalesStats();
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setSalesEntryDeletingId("");
     }
   };
 
@@ -7178,6 +7244,18 @@ function AdminPanel({
                             <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.totalProfit) || 0).toLocaleString("en-IN")}</div>
                           </div>
                           <div className="sales-stat-card">
+                            <div className="sales-stat-label">Net Profit</div>
+                            <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.netProfit) || 0).toLocaleString("en-IN")}</div>
+                          </div>
+                          <div className="sales-stat-card">
+                            <div className="sales-stat-label">Offline Sales</div>
+                            <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.offlineIncome) || 0).toLocaleString("en-IN")}</div>
+                          </div>
+                          <div className="sales-stat-card">
+                            <div className="sales-stat-label">Extra Expenses</div>
+                            <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.extraExpenses) || 0).toLocaleString("en-IN")}</div>
+                          </div>
+                          <div className="sales-stat-card">
                             <div className="sales-stat-label">Delivery Fees</div>
                             <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.totalDeliveryFees) || 0).toLocaleString("en-IN")}</div>
                           </div>
@@ -7195,9 +7273,138 @@ function AdminPanel({
                           </div>
                         </div>
                         <div className="sales-stats-footer">
-                          <small>Profit = sales − delivery charge − Razorpay fee (2% of online-paid amount) − cashback. Based on delivered/completed orders.</small>
+                          <small>Profit = sales − delivery charge − Razorpay fee (2% of online-paid amount) − cashback. Net Profit = ordered profit + offline sales − extra expenses. Based on delivered/completed orders.</small>
                         </div>
                       </>
+                    )}
+                  </section>
+
+                  <section className="admin-form-card sales-manual-card">
+                    <div className="sales-manual-head">
+                      <p>MANUAL ENTRIES</p>
+                      <h3>Offline sales & extra expenses</h3>
+                      <small>
+                        Add money you took outside the website (WhatsApp /
+                        Instagram orders) or costs like ads, packaging and
+                        courier. These change Net Profit for the selected period.
+                      </small>
+                    </div>
+
+                    <form className="sales-entry-form" onSubmit={addSalesEntry}>
+                      <select
+                        value={salesEntryForm.type}
+                        onChange={(event) =>
+                          setSalesEntryForm((current) => ({
+                            ...current,
+                            type: event.target.value,
+                          }))
+                        }
+                      >
+                        <option value="expense">Extra expense</option>
+                        <option value="income">Offline sale</option>
+                      </select>
+
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        placeholder="Amount (₹)"
+                        value={salesEntryForm.amount}
+                        onChange={(event) =>
+                          setSalesEntryForm((current) => ({
+                            ...current,
+                            amount: event.target.value,
+                          }))
+                        }
+                      />
+
+                      <input
+                        type="text"
+                        placeholder="Note (e.g. Instagram order, Meta ads)"
+                        value={salesEntryForm.note}
+                        onChange={(event) =>
+                          setSalesEntryForm((current) => ({
+                            ...current,
+                            note: event.target.value,
+                          }))
+                        }
+                      />
+
+                      <input
+                        type="date"
+                        value={salesEntryForm.date}
+                        onChange={(event) =>
+                          setSalesEntryForm((current) => ({
+                            ...current,
+                            date: event.target.value,
+                          }))
+                        }
+                      />
+
+                      <button
+                        type="submit"
+                        className="save-product"
+                        disabled={salesEntrySaving}
+                      >
+                        {salesEntrySaving ? "Saving…" : "Add entry"}
+                      </button>
+                    </form>
+
+                    {salesEntries.length === 0 ? (
+                      <p className="sales-manual-empty">
+                        No offline sales or expenses recorded for this period.
+                      </p>
+                    ) : (
+                      <div className="admin-table-wrap">
+                        <table className="admin-table">
+                          <thead>
+                            <tr>
+                              <th>Type</th>
+                              <th>Amount</th>
+                              <th>Note</th>
+                              <th>Date</th>
+                              <th></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {salesEntries.map((entry) => (
+                              <tr key={entry._id}>
+                                <td>
+                                  {entry.type === "income"
+                                    ? "Offline sale"
+                                    : "Expense"}
+                                </td>
+                                <td>
+                                  ₹
+                                  {Math.round(
+                                    Number(entry.amount) || 0
+                                  ).toLocaleString("en-IN")}
+                                </td>
+                                <td>{entry.note || "-"}</td>
+                                <td>
+                                  {new Date(entry.date).toLocaleDateString(
+                                    "en-IN"
+                                  )}
+                                </td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className="sales-entry-delete"
+                                    onClick={() => deleteSalesEntry(entry._id)}
+                                    disabled={
+                                      salesEntryDeletingId === entry._id
+                                    }
+                                  >
+                                    {salesEntryDeletingId === entry._id
+                                      ? "Deleting…"
+                                      : "Delete"}
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
                     )}
                   </section>
             </div>

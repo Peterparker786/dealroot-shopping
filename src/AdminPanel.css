@@ -3437,3 +3437,75 @@
   border-color: #7c3aed;
   color: #fff;
 }
+
+/* Sales → manual offline sales / extra expenses */
+.sales-manual-card {
+  margin-top: 18px;
+}
+
+.sales-manual-head p {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #7c6ba8;
+}
+
+.sales-manual-head h3 {
+  margin: 4px 0 6px;
+  color: #2d1b69;
+}
+
+.sales-manual-head small {
+  display: block;
+  color: #7a7391;
+  max-width: 640px;
+  line-height: 1.5;
+}
+
+.sales-entry-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.sales-entry-form select,
+.sales-entry-form input {
+  min-width: 150px;
+  padding: 10px 12px;
+  border: 1px solid #e3ddf7;
+  border-radius: 10px;
+  background: #fff;
+  color: #2d1b69;
+  font: inherit;
+}
+
+.sales-entry-form input[type="text"] {
+  flex: 1 1 240px;
+}
+
+.sales-entry-form .save-product {
+  height: 42px;
+}
+
+.sales-manual-empty {
+  margin: 8px 0 0;
+  color: #7a7391;
+}
+
+.sales-entry-delete {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sales-entry-delete:hover {
+  background: #fee2e2;
+}
