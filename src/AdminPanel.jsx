@@ -130,6 +130,7 @@ const adminTabs = [
   { id: "coupons", label: "Coupons", icon: FiPercent },
   { id: "wallet", label: "Wallet", icon: FiCreditCard },
   { id: "categories", label: "Categories", icon: FiGrid },
+  { id: "sales", label: "Sales", icon: FiDollar },
   { id: "settings", label: "Settings", icon: FiSettings },
 ];
 
@@ -319,6 +320,8 @@ function AdminPanel({
   const [editingId, setEditingId] = useState("");
   const [loading, setLoading] = useState(false);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [salesStatsLoading, setSalesStatsLoading] = useState(false);
+  const [salesStatsData, setSalesStatsData] = useState({});
   const [saving, setSaving] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -838,6 +841,18 @@ function AdminPanel({
       showToast(error.message);
     } finally {
       setReturnsLoading(false);
+  
+  const loadSalesStats = async () => {
+    try {
+      setSalesStatsLoading(true);
+      const data = await request(`${apiUrl}/api/admin/sales-stats`);
+      setSalesStatsData(data.stats || {});
+      setSalesStatsLoading(false);
+    } catch (error) {
+      showToast(error.message);
+      setSalesStatsLoading(false);
+    }
+  };
     }
   };
 
@@ -945,6 +960,7 @@ function AdminPanel({
       loadPendingBonuses();
       loadBanners();
       loadReturns();
+      loadSalesStats();
       loadApplications();
       checkEmailStatus();
       checkNewsletterStatus();
@@ -7106,6 +7122,57 @@ function AdminPanel({
                 )}
               </section>
             </div>
+              {/* Sales Panel */
+              {tab === "sales" && (
+                <div className="admin-tab-page">
+                  <section className="admin-tab-head">
+                    <div>
+                      <p>SALES STATISTICS</p>
+                      <h2>Order Profit & Loss Overview</h2>
+                    </div>
+                  </section>
+
+                  <section className="admin-form-card">
+                    <div className="sales-stats-loading" id="sales-stats-loading">Loading...</div>
+                    <div className="sales-stats-content" id="sales-stats-content" style="display: none;">
+                      <div className="sales-stats-grid">
+                        <div className="sales-stat-card">
+                          <div className="sales-stat-label">Total Orders</div>
+                          <div className="sales-stat-value" id="total-orders">0</div>
+                        </div>
+                        <div className="sales-stat-card">
+                          <div className="sales-stat-label">Total Sales</div>
+                          <div className="sales-stat-value" id="total-sales">₹0</div>
+                        </div>
+                        <div className="sales-stat-card">
+                          <div className="sales-stat-label">Total Profit</div>
+                          <div className="sales-stat-value" id="total-profit">₹0</div>
+                        </div>
+                        <div className="sales-stat-card">
+                          <div className="sales-stat-label">Delivery Fees</div>
+                          <div className="sales-stat-value" id="total-delivery">₹0</div>
+                        </div>
+                        <div className="sales-stat-card">
+                          <div className="sales-stat-label">Cashback Given</div>
+                          <div className="sales-stat-value" id="total-cashback">₹0</div>
+                        </div>
+                        <div className="sales-stat-card">
+                          <div className="sales-stat-label">Avg Order Value</div>
+                          <div className="sales-stat-value" id="avg-order">₹0</div>
+                        </div>
+                        <div className="sales-stat-card">
+                          <div className="sales-stat-label">Razorpay Deduction (2%)</div>
+                          <div className="sales-stat-value" id="razorpay-deduction">₹0</div>
+                        </div>
+                      </div>
+                      <div className="sales-stats-footer">
+                        <small>Based on delivered/completed orders. Razorpay fee @ 2% of order total.</small>
+                      </div>
+                    </div>
+                    <div className="sales-stats-error" id="sales-stats-error" style="display: none;"></div>
+                  </section>
+                </div>
+              )}}
           )}
         </main>
       </div>
