@@ -3509,3 +3509,147 @@
 .sales-entry-delete:hover {
   background: #fee2e2;
 }
+
+/* Sales → trend chart */
+.sales-chart-card,
+.sales-top-card {
+  margin-top: 18px;
+}
+
+.sales-section-head p {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #7c6ba8;
+}
+
+.sales-section-head h3 {
+  margin: 4px 0 0;
+  color: #2d1b69;
+}
+
+.sales-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 200px;
+  margin-top: 18px;
+  padding: 0 2px;
+  overflow-x: auto;
+}
+
+.sales-chart-col {
+  flex: 1 1 0;
+  min-width: 22px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.sales-chart-bar-wrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sales-chart-bar {
+  width: 70%;
+  max-width: 34px;
+  min-height: 3px;
+  border-radius: 8px 8px 3px 3px;
+  background: linear-gradient(180deg, #a78bfa 0%, #7c3aed 100%);
+  transition: height 0.35s ease, filter 0.2s ease;
+}
+
+.sales-chart-col:hover .sales-chart-bar {
+  filter: brightness(1.12);
+}
+
+.sales-chart-col span {
+  min-height: 10px;
+  font-size: 9px;
+  line-height: 1;
+  color: #8a82a6;
+  white-space: nowrap;
+}
+
+/* Sales → top products */
+.sales-top-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.sales-top-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sales-top-rank {
+  width: 26px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #b9aee0;
+}
+
+.sales-top-img {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  object-fit: cover;
+  background: #f4f0ff;
+  display: grid;
+  place-items: center;
+  font-size: 18px;
+}
+
+.sales-top-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sales-top-info b {
+  display: block;
+  overflow: hidden;
+  font-size: 13px;
+  color: #2d1b69;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sales-top-info small {
+  display: block;
+  margin-top: 2px;
+  color: #8a82a6;
+  font-size: 12px;
+}
+
+.sales-top-bar {
+  height: 6px;
+  margin-top: 6px;
+  border-radius: 999px;
+  background: #f1ecff;
+  overflow: hidden;
+}
+
+.sales-top-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8b5cf6, #d946ef);
+}
+
+.sales-top-revenue {
+  font-size: 13px;
+  font-weight: 800;
+  color: #2d1b69;
+  white-space: nowrap;
+}

@@ -135,6 +135,14 @@ const adminTabs = [
   { id: "settings", label: "Settings", icon: FiSettings },
 ];
 
+// Chart helpers for the Sales tab — scale every bar against the biggest value
+// so the tallest one always fills the chart.
+const salesTimelineMax = (timeline) =>
+  Math.max(1, ...(timeline || []).map((point) => Number(point.sales) || 0));
+
+const topProductsMaxQty = (products) =>
+  Math.max(1, ...(products || []).map((product) => Number(product.qty) || 0));
+
 function AdminPanel({
   apiUrl,
   onBack,
@@ -7276,6 +7284,125 @@ function AdminPanel({
                           <small>Profit = sales − delivery charge − Razorpay fee (2% of online-paid amount) − cashback. Net Profit = ordered profit + offline sales − extra expenses. Based on delivered/completed orders.</small>
                         </div>
                       </>
+                    )}
+                  </section>
+
+                  <section className="admin-form-card sales-chart-card">
+                    <div className="sales-section-head">
+                      <p>SALES TREND</p>
+                      <h3>Sales over time</h3>
+                    </div>
+
+                    {(salesStatsData.timeline || []).length === 0 ? (
+                      <p className="sales-manual-empty">
+                        No sales in this period.
+                      </p>
+                    ) : (
+                      <div className="sales-chart">
+                        {(salesStatsData.timeline || []).map((point, index) => {
+                          const points = salesStatsData.timeline || [];
+                          const max = salesTimelineMax(points);
+                          const height = Math.max(
+                            ((Number(point.sales) || 0) / max) * 100,
+                            2
+                          );
+                          const showLabel =
+                            points.length <= 12 ||
+                            index % 5 === 0 ||
+                            index === points.length - 1;
+
+                          return (
+                            <div
+                              className="sales-chart-col"
+                              key={point.key}
+                              title={`${point.label} · ₹${Math.round(
+                                Number(point.sales) || 0
+                              ).toLocaleString("en-IN")} · ${point.orders} order${
+                                point.orders === 1 ? "" : "s"
+                              }`}
+                            >
+                              <div className="sales-chart-bar-wrap">
+                                <div
+                                  className="sales-chart-bar"
+                                  style={{ height: `${height}%` }}
+                                />
+                              </div>
+                              <span>{showLabel ? point.label : ""}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </section>
+
+                  <section className="admin-form-card sales-top-card">
+                    <div className="sales-section-head">
+                      <p>TOP PRODUCTS</p>
+                      <h3>Most sold in this period</h3>
+                    </div>
+
+                    {(salesStatsData.topProducts || []).length === 0 ? (
+                      <p className="sales-manual-empty">
+                        No product sales yet.
+                      </p>
+                    ) : (
+                      <div className="sales-top-list">
+                        {(salesStatsData.topProducts || []).map(
+                          (product, index) => {
+                            const maxQty = topProductsMaxQty(
+                              salesStatsData.topProducts
+                            );
+                            const width = Math.max(
+                              ((Number(product.qty) || 0) / maxQty) * 100,
+                              4
+                            );
+
+                            return (
+                              <div
+                                className="sales-top-row"
+                                key={`${product.title}-${index}`}
+                              >
+                                <span className="sales-top-rank">
+                                  #{index + 1}
+                                </span>
+
+                                {product.image ? (
+                                  <img
+                                    className="sales-top-img"
+                                    src={product.image}
+                                    alt={product.title}
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <span className="sales-top-img placeholder">
+                                    🛍️
+                                  </span>
+                                )}
+
+                                <div className="sales-top-info">
+                                  <b>{product.title}</b>
+                                  <small>
+                                    {product.brand
+                                      ? `${product.brand} · `
+                                      : ""}
+                                    {product.qty} sold
+                                  </small>
+                                  <div className="sales-top-bar">
+                                    <span style={{ width: `${width}%` }} />
+                                  </div>
+                                </div>
+
+                                <span className="sales-top-revenue">
+                                  ₹
+                                  {Math.round(
+                                    Number(product.revenue) || 0
+                                  ).toLocaleString("en-IN")}
+                                </span>
+                              </div>
+                            );
+                          }
+                        )}
+                      </div>
                     )}
                   </section>
 
