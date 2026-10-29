@@ -323,6 +323,7 @@ function AdminPanel({
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [salesStatsLoading, setSalesStatsLoading] = useState(false);
   const [salesStatsData, setSalesStatsData] = useState({});
+  const [salesRange, setSalesRange] = useState("all");
   const [saving, setSaving] = useState(false);
   const [selectedImages, setSelectedImages] = useState([]);
   const [uploadingImages, setUploadingImages] = useState(false);
@@ -845,10 +846,12 @@ function AdminPanel({
     }
   };
 
-  const loadSalesStats = async () => {
+  const loadSalesStats = async (range = salesRange) => {
     try {
       setSalesStatsLoading(true);
-      const data = await request(`${apiUrl}/api/admin/sales-stats`);
+      const data = await request(
+        `${apiUrl}/api/admin/sales-stats?range=${range}`
+      );
       setSalesStatsData(data.stats || {});
     } catch (error) {
       showToast(error.message);
@@ -7133,6 +7136,26 @@ function AdminPanel({
                     <div>
                       <p>SALES STATISTICS</p>
                       <h2>Order Profit & Loss Overview</h2>
+                    </div>
+                    <div className="sales-range-filter">
+                      {[
+                        { id: "all", label: "All time" },
+                        { id: "7d", label: "Last 7 days" },
+                        { id: "30d", label: "Last 1 month" },
+                        { id: "1y", label: "Last 1 year" },
+                      ].map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          className={salesRange === option.id ? "active" : ""}
+                          onClick={() => {
+                            setSalesRange(option.id);
+                            loadSalesStats(option.id);
+                          }}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
                     </div>
                   </section>
 

@@ -3407,3 +3407,33 @@
   color: #b91c1c;
   font-weight: 600;
 }
+
+/* Sales → date range filter */
+.sales-range-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sales-range-filter button {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #e3ddf7;
+  background: #fff;
+  color: #6b5a92;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.sales-range-filter button:hover {
+  background: #f5f1ff;
+}
+
+.sales-range-filter button.active {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: #fff;
+}
