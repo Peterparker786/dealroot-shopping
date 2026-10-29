@@ -7176,7 +7176,6 @@ function AdminPanel({
                         </div>
                       </>
                     )}
-                    <div className="sales-stats-error" id="sales-stats-error" style="display: none;"></div>
                   </section>
             </div>
           )}
