@@ -7168,11 +7168,11 @@ function AdminPanel({
                           </div>
                           <div className="sales-stat-card">
                             <div className="sales-stat-label">Razorpay Deduction (2%)</div>
-                            <div className="sales-stat-value">₹{Math.round(Number((salesStatsData.totalSales * 0.02)) || 0).toLocaleString("en-IN")}</div>
+                            <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.totalRazorpayFees ?? (salesStatsData.totalSales || 0) * 0.02) || 0).toLocaleString("en-IN")}</div>
                           </div>
                         </div>
                         <div className="sales-stats-footer">
-                          <small>Based on delivered/completed orders. Razorpay fee @ 2% of order total.</small>
+                          <small>Profit = sales − delivery charge − Razorpay fee (2% of online-paid amount) − cashback. Based on delivered/completed orders.</small>
                         </div>
                       </>
                     )}
