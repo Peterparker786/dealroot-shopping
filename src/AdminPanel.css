@@ -3763,6 +3763,21 @@
   border-color: #fecaca;
 }
 
+.admin-icon-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+@keyframes dropship-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-icon {
+  animation: dropship-spin 0.9s linear infinite;
+}
+
 .admin-icon-btn.danger:hover {
   background: #fee2e2;
 }

@@ -10,7 +10,7 @@ import { optimizeImage } from "../utils/cloudinary";
 
 // Marketplace choices for the source link. Kept in one place so the dropdown,
 // the badge and the backend enum always agree.
-const PLATFORMS = ["Amazon", "Flipkart", "Meesho"];
+const PLATFORMS = ["Amazon", "Flipkart", "Meesho", "DigiHaat"];
 
 const emptyForm = {
   title: "",
@@ -35,6 +35,8 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  // id of the row currently re-checking its source price (per-row Sync button).
+  const [syncingId, setSyncingId] = useState("");
   const [lastResult, setLastResult] = useState(null);
 
   // Default to the store's first category once the category list arrives.
@@ -170,7 +172,7 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
       setSyncing(true);
       const data = await request(
         `${apiUrl}/api/admin/dropship-products/sync`,
-        { method: "POST" }
+        { method: "POST", timeoutMs: 120000 }
       );
       showToast(data.message || "Sync complete");
       loadEntries();
@@ -178,6 +180,25 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
       showToast(error.message);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  // Per-row Sync: re-fetches just this product's live source price and stock.
+  const syncEntry = async (entry) => {
+    try {
+      setSyncingId(entry._id);
+      const data = await request(
+        `${apiUrl}/api/admin/dropship-products/${entry._id}/sync`,
+        // A live marketplace fetch can take ~30-75s server-side; the default
+        // 12s admin timeout would report a false failure.
+        { method: "POST", timeoutMs: 90000 }
+      );
+      showToast(data.message || "Sync complete");
+      loadEntries();
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setSyncingId("");
     }
   };
 
@@ -215,7 +236,7 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
             onClick={syncNow}
             disabled={syncing}
           >
-            <FiRefreshCw /> {syncing ? "Syncing..." : "Sync prices now"}
+            <FiRefreshCw /> {syncing ? "Syncing..." : "Sync all prices"}
           </button>
         </div>
       </section>
@@ -224,7 +245,7 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
         <div className="admin-section-title">
           <div>
             <p>NEW DROPSHIP PRODUCT</p>
-            <h2>Add a product from Amazon / Flipkart / Meesho</h2>
+            <h2>Add a product from Amazon / Flipkart / Meesho / DigiHaat</h2>
           </div>
         </div>
 
@@ -459,6 +480,19 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
                     </td>
                     <td>
                       <div className="admin-row-actions">
+                        <button
+                          type="button"
+                          className="admin-icon-btn"
+                          onClick={() => syncEntry(entry)}
+                          disabled={syncingId === entry._id}
+                          title="Sync this product's live price"
+                        >
+                          <FiRefreshCw
+                            className={
+                              syncingId === entry._id ? "spin-icon" : undefined
+                            }
+                          />
+                        </button>
                         <a
                           className="admin-icon-btn"
                           href={entry.sourceUrl}

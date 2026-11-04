@@ -390,12 +390,16 @@ function AdminPanel({
   };
 
   const request = async (url, options = {}) => {
+    // Dropship sync calls make the backend fetch a marketplace page, which can
+    // take much longer than a normal admin request — those callers pass their
+    // own timeoutMs. timeoutMs itself must not reach fetch().
+    const { timeoutMs = 12000, ...fetchOptions } = options;
     const headers = {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
+      ...fetchOptions.headers,
     };
     // Auto-set JSON content-type when sending a string body.
-    if (typeof options.body === "string" && !headers["Content-Type"]) {
+    if (typeof fetchOptions.body === "string" && !headers["Content-Type"]) {
       headers["Content-Type"] = "application/json";
     }
 
@@ -406,7 +410,7 @@ function AdminPanel({
       // Abort after 12s so a slow/hanging backend can never leave the UI
       // stuck on a spinner (e.g. the email health check during SMTP verify).
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 12000);
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
         response = await fetch(url, {
@@ -417,7 +421,7 @@ function AdminPanel({
           // stock change, the immediate loadProducts() re-fetch returned the
           // old number from cache, making the edit look like it didn't save.
           cache: "no-store",
-          ...options,
+          ...fetchOptions,
           headers,
           signal: controller.signal,
         });
