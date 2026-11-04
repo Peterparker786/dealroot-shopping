@@ -23,8 +23,16 @@ const platformForUrl = (url) => {
     return "";
   }
 
-  if (host.includes("amazon")) return "Amazon";
-  if (host.includes("flipkart")) return "Flipkart";
+  // Short links too: amzn.in/amzn.to/a.co are Amazon's own, fkrt.it is
+  // Flipkart's. The backend follows the redirect to the real product page.
+  if (
+    host.includes("amazon") ||
+    /(^|\.)amzn\.(in|to|eu)$/.test(host) ||
+    host === "a.co"
+  ) {
+    return "Amazon";
+  }
+  if (host.includes("flipkart") || /(^|\.)fkrt\.it$/.test(host)) return "Flipkart";
   if (host.includes("meesho")) return "Meesho";
   if (host.includes("digihaat") || host.includes("digihat")) return "DigiHaat";
   return "";
