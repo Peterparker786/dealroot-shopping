@@ -3728,6 +3728,92 @@
   font-weight: 600;
 }
 
+.dropship-detected {
+  display: block;
+  margin-top: 4px;
+  color: #15803d;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Margin rule block in the dropship form (percentage vs flat). */
+.margin-control {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 1px solid #e5d9ff;
+  border-radius: 14px;
+  background: #faf7ff;
+}
+
+.margin-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.margin-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4c1d95;
+}
+
+.margin-toggle input[type="radio"] {
+  accent-color: #7c3aed;
+}
+
+.margin-fields {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+  gap: 12px;
+  align-items: end;
+}
+
+.margin-fields > label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.margin-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.margin-preview b {
+  font-size: 15px;
+  color: #111827;
+}
+
+.margin-preview.is-selling b {
+  color: #15803d;
+}
+
+.margin-hint {
+  color: #6b7280;
+  font-size: 11px;
+}
+
+@media (max-width: 640px) {
+  .margin-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
 .dropship-notes ul {
   margin: 0;
   padding-left: 18px;
