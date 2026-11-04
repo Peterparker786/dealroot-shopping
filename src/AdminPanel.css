@@ -3679,3 +3679,115 @@
   border-color: #7c3aed;
   color: #fff;
 }
+
+/* ================= DROPSHIP PRODUCT ADD ================= */
+.admin-secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #ddd3f7;
+  border-radius: 12px;
+  padding: 12px 18px;
+  background: #fff;
+  color: #5b21b6;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.admin-secondary-btn:hover {
+  background: #f5f0ff;
+  border-color: #c4b5fd;
+}
+
+.admin-secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.dropship-live-result {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #b7ebc9;
+  background: #effaf3;
+  color: #14532d;
+  font-size: 13px;
+}
+
+.dropship-sync-error {
+  display: block;
+  margin-top: 4px;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.dropship-notes ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #4b5563;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.admin-row-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.admin-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #4b5563;
+  cursor: pointer;
+}
+
+.admin-icon-btn:hover {
+  background: #f3f4f6;
+}
+
+.admin-icon-btn.danger {
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.admin-icon-btn.danger:hover {
+  background: #fee2e2;
+}
+
+.admin-product-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-product-cell img {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.admin-product-cell div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-product-cell small {
+  color: #6b7280;
+  font-size: 11px;
+}
+

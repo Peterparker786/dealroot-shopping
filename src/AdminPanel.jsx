@@ -27,9 +27,11 @@ import {
   FiCreditCard,
   FiDollarSign,
   FiSettings,
+  FiTruck,
 } from "react-icons/fi";
 import "./AdminPanel.css";
 import { optimizeImage } from "./utils/cloudinary";
+import DropshipProductTab from "./admin/DropshipProductTab";
 
 const orderStatuses = [
   "placed",
@@ -124,6 +126,7 @@ const emptyManualOrderForm = {
 const adminTabs = [
   { id: "dashboard", label: "Dashboard", icon: FiHome },
   { id: "products", label: "Products", icon: FiPackage },
+  { id: "dropship", label: "Dropship Product Add", icon: FiTruck },
   { id: "orders", label: "Orders", icon: FiShoppingBag },
   { id: "returns", label: "Returns", icon: FiCornerUpLeft },
   { id: "tryouts", label: "Tryouts", icon: FiUsers },
@@ -3291,6 +3294,13 @@ function AdminPanel({
                   >
                     <FiPlus /> Add product
                   </button>
+                  <button
+                    type="button"
+                    className="admin-secondary-btn"
+                    onClick={() => switchTab("dropship")}
+                  >
+                    <FiTruck /> Dropship Product Add
+                  </button>
                 </div>
               </section>
 
@@ -3983,6 +3993,17 @@ function AdminPanel({
           )}
 
           {/* ===================== ORDERS ===================== */}
+          {/* ============ DROPSHIP PRODUCT ADD (separate from Products) ============ */}
+          {tab === "dropship" && (
+            <DropshipProductTab
+              apiUrl={apiUrl}
+              token={token}
+              request={request}
+              showToast={showToast}
+              categories={categories}
+            />
+          )}
+
           {tab === "orders" && (
             <div className="admin-tab-page">
               <section className="admin-tab-head">
