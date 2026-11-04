@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FiExternalLink,
   FiLink,
@@ -76,6 +76,12 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
   const [extractingLink, setExtractingLink] = useState(false);
   const [extractPreview, setExtractPreview] = useState(null);
   const [previewDraft, setPreviewDraft] = useState(null);
+  // Partial-result notes from the scraper (blocked images, proxy fallback) and
+  // the block reason that switches on the screenshot / local-upload fallback.
+  const [extractWarnings, setExtractWarnings] = useState([]);
+  const [linkBlocked, setLinkBlocked] = useState(null);
+  const screenshotInputRef = useRef(null);
+  const imagesInputRef = useRef(null);
 
   // Default to the store's first category once the category list arrives.
   useEffect(() => {
@@ -289,6 +295,7 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
 
       const info = data.info || {};
       const specCount = (info.specifications || []).length;
+
       const highlightCount = (info.highlights || []).length;
 
       setScreenshotFile(null);
@@ -337,6 +344,7 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
 
     try {
       setExtractingLink(true);
+      setLinkBlocked(null);
 
       const response = await fetch(
         `${apiUrl}/api/admin/dropship-products/extract`,
@@ -353,10 +361,15 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(data.message || "Could not extract from link");
+        const error = new Error(data.message || "Could not extract from link");
+        error.code = data.code || "";
+        throw error;
       }
 
       const info = data.info || {};
+      const warnings = Array.isArray(data.warnings) ? data.warnings : [];
+
+      setExtractWarnings(warnings);
 
       if (data.platform) {
         setForm((current) => ({ ...current, platform: data.platform }));
@@ -378,9 +391,16 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
         } points + ${(data.images || []).length} images` +
           (Number(data.sourcePrice) > 0
             ? ` · source ₹${data.sourcePrice}`
-            : " · price na mila, save par dobara try hoga")
+            : " · price na mila, save par dobara try hoga") +
+          (warnings.length > 0 ? ` · ${warnings.length} warning` : "")
       );
     } catch (error) {
+      // Blocked / unloadable link: keep the form usable and offer the clean
+      // fallbacks (AI screenshot or manual image upload) instead of a dead end.
+      if (error.code === "BLOCKED" || error.code === "FETCH_FAILED") {
+        setLinkBlocked(error.message);
+      }
+
       showToast(error.message);
     } finally {
       setExtractingLink(false);
@@ -725,8 +745,8 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
             <input
               type="file"
               multiple
-              accept="image/*"
-              onChange={(event) => uploadImages(event.target.files)}
+              accept="image/*"                ref={imagesInputRef}
+                onChange={(event) => uploadImages(event.target.files)}
             />
 
             {uploading && <small>Uploading images...</small>}
@@ -796,6 +816,7 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
               <input
                 type="file"
                 accept="image/*"
+                ref={screenshotInputRef}
                 onChange={(event) =>
                   setScreenshotFile(event.target.files[0] || null)
                 }
@@ -847,7 +868,43 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
                   : "🔗 Extract from link"}
               </button>
             </div>
+
+            {linkBlocked && (
+              <div className="extract-notice">
+                <span>⚠️ {linkBlocked}</span>
+                <div className="extract-notice-actions">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      screenshotInputRef.current?.focus();
+                      screenshotInputRef.current?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
+                    }}
+                  >
+                    🤖 AI Screenshot Extract use karein
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      imagesInputRef.current?.click();
+                    }}
+                  >
+                    📁 Images local upload karein
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
+
+          {extractWarnings.length > 0 && (
+            <div className="full-field extract-warnings">
+              {extractWarnings.map((warning, index) => (
+                <p key={index}>⚠️ {warning}</p>
+              ))}
+            </div>
+          )}
 
           {extractPreview && previewDraft && (
             <div className="ai-preview-box">
@@ -861,6 +918,7 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
                       applyExtractedInfo(previewDraft, extractPreview.images);
                       setExtractPreview(null);
                       setPreviewDraft(null);
+                      setExtractWarnings([]);
                       showToast("✅ Extract result saved to the form");
                     }}
                   >
@@ -872,6 +930,7 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
                     onClick={() => {
                       setExtractPreview(null);
                       setPreviewDraft(null);
+                      setExtractWarnings([]);
                     }}
                   >
                     ✖ Discard
