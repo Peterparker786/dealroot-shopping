@@ -1306,11 +1306,15 @@ function AdminPanel({
   const visibleProducts = useMemo(() => {
     const text = search.trim().toLowerCase();
 
+    // Tryout-exclusive products are managed only from the Tryouts screens, so
+    // they never appear in the regular Products tab (or its search).
+    const catalogue = products.filter((product) => !product.tryoutOnly);
+
     if (!text) {
-      return products;
+      return catalogue;
     }
 
-    return products.filter((product) =>
+    return catalogue.filter((product) =>
       [
         product.brand,
         product.title,
