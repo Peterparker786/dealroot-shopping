@@ -3060,6 +3060,18 @@ function AdminPanel({
                             : emailStatus.smtp || "Unknown"}
                         </b>
                       </div>
+
+                      {emailStatus.deliverability &&
+                        emailStatus.deliverability.ok === false && (
+                          <div className="admin-email-row admin-email-warning">
+                            <span>Deliverability</span>
+                            <b className="bad-text">
+                              {emailStatus.deliverability.problem}
+                              <br />
+                              <small>{emailStatus.deliverability.fix}</small>
+                            </b>
+                          </div>
+                        )}
                     </div>
 
                     {emailTestResult && (

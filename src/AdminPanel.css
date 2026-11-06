@@ -3945,3 +3945,25 @@
   font-size: 11px;
 }
 
+
+/* Amber warning row inside the admin email diagnostics card. */
+.admin-email-warning {
+  align-items: flex-start;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.admin-email-warning b {
+  text-align: left;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.admin-email-warning small {
+  display: block;
+  margin-top: 4px;
+  font-weight: 500;
+  color: #92400e;
+}
