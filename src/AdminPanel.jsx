@@ -502,7 +502,9 @@ function AdminPanel({
     try {
       setLoading(true);
 
-      const data = await request(`${apiUrl}/api/products`);
+      // Tryout-exclusive products are hidden from the storefront catalogue,
+      // so the panel asks for them explicitly to keep managing them here.
+      const data = await request(`${apiUrl}/api/products?includeTryout=1`);
       setProducts(data.products || []);
     } catch (error) {
       showToast(error.message);
