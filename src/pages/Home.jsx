@@ -51,12 +51,14 @@ export default function Home({
   // Status: loading | none | pending | approved | rejected | disqualified
   const [tryoutStatus, setTryoutStatus] = useState("loading");
 
-  // Tryout-only products stay out of the general catalogue until the user
-  // is an approved Tryout member.
   const tryoutApproved = tryoutStatus === "approved";
-  const shopProducts = tryoutApproved
-    ? filteredProducts
-    : filteredProducts.filter((p) => !p.tryoutOnly);
+
+  // Tryout-exclusive products never appear on the storefront home page — not
+  // even for approved members. They live only in the Tryout dashboard/pages,
+  // so the public sections (Flash Deals, Deal of the Day, product grid) all
+  // read from this filtered list.
+  const storefrontProducts = filteredProducts.filter((p) => !p.tryoutOnly);
+  const shopProducts = storefrontProducts;
 
   useEffect(() => {
     if (!user || !userToken) {
@@ -96,10 +98,7 @@ export default function Home({
 
   // Flash Deals shows the same products as the ₹99 collection — only items
   // priced at ₹99 or less, or explicitly marked as a ₹99 deal.
-  const flashProducts = (tryoutApproved
-    ? filteredProducts
-    : filteredProducts.filter((p) => !p.tryoutOnly)
-  )
+  const flashProducts = storefrontProducts
     .filter((p) => p.dealType === "99" || Number(p.price) <= 99)
     .slice(0, 5);
 
@@ -107,9 +106,7 @@ export default function Home({
   // marked as a ₹199 deal — anything above ₹199 never appears here.
   const dealProducts = useMemo(() => {
     const pool = products && products.length ? products : filteredProducts;
-    const shopPool = tryoutApproved
-      ? pool
-      : pool.filter((p) => !p.tryoutOnly);
+    const shopPool = pool.filter((p) => !p.tryoutOnly);
 
     return [...shopPool]
       .filter(
@@ -120,7 +117,7 @@ export default function Home({
       )
       .sort((a, b) => Number(a.price) - Number(b.price))
       .slice(0, 5);
-  }, [products, filteredProducts, tryoutApproved]);
+  }, [products, filteredProducts]);
 
   // Deal of the Day countdown — resets every midnight.
   const [dealTimeLeft, setDealTimeLeft] = useState({ h: 0, m: 0, s: 0 });
@@ -463,7 +460,7 @@ export default function Home({
           </div>
         )}
 
-        {!loadingProducts && !productsError && filteredProducts.length === 0 && (
+        {!loadingProducts && !productsError && storefrontProducts.length === 0 && (
           <div className="empty-state">
             No products found. Try another search or category.
           </div>
