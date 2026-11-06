@@ -307,14 +307,14 @@ useEffect(() => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [isOpen, codAvailable]);
 
-// Wallet balance can only be applied to the COD "pay at the door" amount —
-// turn it off automatically if the customer switches to full online payment.
+// Wallet balance is prepaid-only: applying it switches the order to online
+// payment and Cash on Delivery is hidden until it is unchecked.
 useEffect(() => {
-  if (paymentMethod !== "cod" && useWallet) {
-    setUseWallet(false);
+  if (useWallet && paymentMethod === "cod") {
+    setPaymentMethod("online");
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [paymentMethod]);
+}, [useWallet, paymentMethod]);
 
   if (!isOpen) return null;
 
@@ -327,26 +327,27 @@ useEffect(() => {
 // cashback once the order is delivered (see the coupon-cashback-row below).
 const couponDiscount = discountAmount;
   const totalPayable = orderSubtotal + deliveryFee;
-  const payableNow =
-  paymentMethod === "cod"
-    ? deliveryFee
-    : totalPayable;
 
 const remainingCod =
   paymentMethod === "cod"
     ? totalPayable - deliveryFee
     : 0;
 
-// Wallet balance only ever offsets the "pay at the door" COD amount, never
-// the online delivery-charge prepay — same rule the backend enforces. It
-// also only kicks in once the cart itself is worth at least ₹100.
+// Wallet balance only offsets the online (prepaid) amount — same rule the
+// backend enforces, and using it hides Cash on Delivery. At least ₹1 stays
+// payable so the payment gateway always has an amount to charge. It also
+// only kicks in once the cart itself is worth at least ₹100.
 const WALLET_MIN_SUBTOTAL = 100;
 const walletEligible = orderSubtotal >= WALLET_MIN_SUBTOTAL;
 const walletDeduction =
-  useWallet && paymentMethod === "cod" && walletEligible
-    ? Math.min(walletBalance, Math.max(0, remainingCod))
+  useWallet && walletEligible && paymentMethod !== "cod"
+    ? Math.min(walletBalance, Math.max(0, totalPayable - 1))
     : 0;
-const finalRemainingCod = Math.max(0, remainingCod - walletDeduction);
+const payableNow =
+  paymentMethod === "cod"
+    ? deliveryFee
+    : Math.max(0, totalPayable - walletDeduction);
+const finalRemainingCod = Math.max(0, remainingCod);
 
   const removeCoupon = () => {
     setAppliedCoupon("");
@@ -1072,7 +1073,15 @@ const razorpayCheckout = new window.Razorpay({
                 </p>
               )}
 
-              {codAvailable && (
+              {codAvailable && useWallet && (
+                <p className="checkout-account-note">
+                  Wallet balance applied — this order is prepaid only, so Cash
+                  on Delivery is unavailable. Uncheck wallet balance to pay at
+                  the door instead.
+                </p>
+              )}
+
+              {codAvailable && !useWallet && (
               <label
                 className={`choice-card ${
                   paymentMethod === "cod" ? "selected" : ""
@@ -1337,9 +1346,8 @@ const razorpayCheckout = new window.Razorpay({
               </div>
             )}
 
-            {paymentMethod === "cod" &&
-              walletBalance > 0 &&
-              remainingCod > 0 &&
+            {walletBalance > 0 &&
+              totalPayable > 1 &&
               (walletEligible ? (
                 <label className="checkout-item wallet-toggle-row" style={{ cursor: "pointer" }}>
                   <span>
@@ -1351,6 +1359,9 @@ const razorpayCheckout = new window.Razorpay({
                       style={{ marginRight: 8 }}
                     />
                     Use wallet balance (₹{walletBalance} available)
+                    <small style={{ display: "block", color: "#6b7280", marginLeft: 20 }}>
+                      Prepaid only — using it hides Cash on Delivery.
+                    </small>
                   </span>
                 </label>
               ) : (
@@ -1401,7 +1412,7 @@ const razorpayCheckout = new window.Razorpay({
                   ? "Opening secure payment..."
                   : "Placing order..."
                 : paymentMethod === "online"
-                ? `Pay ₹${totalPayable} securely`
+                ? `Pay ₹${payableNow} securely`
                 : `Pay ₹${payableNow} & Confirm COD`}
             </button>
 
