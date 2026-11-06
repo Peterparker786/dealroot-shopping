@@ -3994,3 +3994,42 @@ img { max-width: 100%; display: block; }
   font-size: 12.5px;
   line-height: 1.5;
 }
+
+/* Fallback screen shown when a render error would otherwise blank the page. */
+.app-crash-fallback {
+  min-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 20px;
+  text-align: center;
+  font-family: inherit;
+}
+
+.app-crash-fallback h1 {
+  margin: 0;
+  font-size: 22px;
+  color: #111827;
+}
+
+.app-crash-fallback p {
+  margin: 0;
+  max-width: 420px;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.app-crash-fallback button {
+  margin-top: 8px;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 26px;
+  background: #e21c48;
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}

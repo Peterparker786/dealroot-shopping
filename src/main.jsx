@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import "./index.css";
 import App from "./App";
+import AppErrorBoundary from "./components/AppErrorBoundary";
 import InstallPrompt from "./components/InstallPrompt";
 import { initAnalytics } from "./utils/analytics";
 
@@ -15,7 +16,9 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
       <InstallPrompt />
-      <App />
+      <AppErrorBoundary>
+        <App />
+      </AppErrorBoundary>
       <SpeedInsights />
     </BrowserRouter>
   </StrictMode>

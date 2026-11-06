@@ -1132,7 +1132,11 @@ function App() {
       userToken={userToken}
     />
   }
-/>  
+/>
+
+{/* Unknown or stale URLs would otherwise render nothing at all under
+    <Routes>, which is a blank page. Send those visitors to the storefront. */}
+<Route path="*" element={<Navigate to="/" replace />} />
 </Routes>
 </Suspense>
 <Suspense fallback={null}>
