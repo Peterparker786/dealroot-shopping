@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  FiEdit2,
   FiExternalLink,
   FiLink,
   FiRefreshCw,
@@ -76,6 +77,8 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
   const [syncing, setSyncing] = useState(false);
   // id of the row currently re-checking its source price (per-row Sync button).
   const [syncingId, setSyncingId] = useState("");
+  // id of the dropship record loaded into the form for editing; empty = add mode.
+  const [editingId, setEditingId] = useState("");
   const [lastResult, setLastResult] = useState(null);
 
   // Extractors — identical states/markup to the regular Products form.
@@ -440,6 +443,63 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
     }));
   };
 
+  // Load an existing dropship product into the form. The source link is kept
+  // as-is; the backend only re-reads the live price when that link changes.
+  const startEdit = (entry) => {
+    const catalog = entry.catalog || {};
+
+    setEditingId(entry._id);
+    setForm({
+      title: entry.title || catalog.title || "",
+      brand: catalog.brand || "",
+      category: catalog.category || "",
+      platform: entry.platform || "Amazon",
+      sourceUrl: entry.sourceUrl || "",
+      stock: String(
+        entry.stockWhenAvailable ?? catalog.stock ?? 20
+      ),
+      mrp: catalog.mrp ? String(catalog.mrp) : "",
+      rating: catalog.rating != null ? String(catalog.rating) : "4.5",
+      reviews: catalog.reviews != null ? String(catalog.reviews) : "0",
+      description: catalog.description || "",
+      specifications: (catalog.specifications || []).map((spec) => ({
+        label: spec?.label || "",
+        value: spec?.value || "",
+      })),
+      highlights: [...(catalog.highlights || [])],
+      images: [...(catalog.images || [])],
+    });
+    setMarginType(entry.marginType === "flat" ? "flat" : "percentage");
+    setMarginValue(String(entry.marginValue ?? 100));
+    setSourcePrice(Number(entry.sourcePrice) || 0);
+    setSourceInStock(entry.inStock !== false);
+    setExtractPreview(null);
+    setPreviewDraft(null);
+    setExtractWarnings([]);
+    setLinkBlocked(null);
+    setLastResult(null);
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    showToast(`Editing "${entry.title}" — changes tabhi lagenge jab Update dabayenge`);
+  };
+
+  const resetForm = (category) => {
+    setForm({ ...emptyForm, category });
+    setEditingId("");
+    setSourcePrice(0);
+    setSourceInStock(null);
+    setExtractPreview(null);
+    setPreviewDraft(null);
+    setExtractWarnings([]);
+    setLinkBlocked(null);
+    setScreenshotFile(null);
+  };
+
+  const cancelEdit = () => {
+    resetForm(form.category);
+    showToast("Edit cancelled — kuch change nahi hua");
+  };
+
   const submit = async (event) => {
     event.preventDefault();
 
@@ -470,28 +530,36 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
       return;
     }
 
+    const isEditing = Boolean(editingId);
+
     try {
       setSaving(true);
       setLastResult(null);
 
-      const data = await request(`${apiUrl}/api/admin/dropship-products`, {
-        method: "POST",
-        timeoutMs: 90000,
-        body: JSON.stringify({
-          ...form,
-          marginType,
-          marginValue: margin,
-          stock: Number(form.stock) || 20,
-          mrp: form.mrp === "" ? undefined : Number(form.mrp),
-          rating: Number(form.rating) || 0,
-          reviews: Number(form.reviews) || 0,
-          multiplier: undefined,
-        }),
-      });
+      const data = await request(
+        isEditing
+          ? `${apiUrl}/api/admin/dropship-products/${editingId}`
+          : `${apiUrl}/api/admin/dropship-products`,
+        {
+          method: isEditing ? "PUT" : "POST",
+          timeoutMs: 90000,
+          body: JSON.stringify({
+            ...form,
+            marginType,
+            marginValue: margin,
+            stock: Number(form.stock) || 20,
+            mrp: form.mrp === "" ? undefined : Number(form.mrp),
+            rating: Number(form.rating) || 0,
+            reviews: Number(form.reviews) || 0,
+            multiplier: undefined,
+          }),
+        }
+      );
 
       setSourcePrice(Number(data.dropship?.sourcePrice) || sourcePrice);
       setLastResult({
         title: data.product?.title || form.title,
+        updated: isEditing,
         sourcePrice: data.dropship?.sourcePrice || 0,
         sellingPrice: data.dropship?.sellingPrice || data.product?.price || 0,
         marginType,
@@ -499,14 +567,12 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
         inStock: data.dropship?.inStock !== false,
       });
 
-      showToast(data.message || "Dropship product added");
+      showToast(
+        data.message ||
+          (isEditing ? "Dropship product updated" : "Dropship product added")
+      );
 
-      setForm((current) => ({
-        ...emptyForm,
-        category: current.category,
-      }));
-      setSourceInStock(null);
-
+      resetForm(form.category);
       loadEntries();
     } catch (error) {
       showToast(error.message);
@@ -597,9 +663,23 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
       <section className="admin-form-card admin-product-form-card">
         <div className="admin-section-title">
           <div>
-            <p>NEW DROPSHIP PRODUCT</p>
-            <h2>Add a product from Amazon / Flipkart / Meesho / DigiHaat</h2>
+            <p>{editingId ? "EDITING DROPSHIP PRODUCT" : "NEW DROPSHIP PRODUCT"}</p>
+            <h2>
+              {editingId
+                ? "Update this dropship product"
+                : "Add a product from Amazon / Flipkart / Meesho / DigiHaat"}
+            </h2>
           </div>
+
+          {editingId && (
+            <button
+              type="button"
+              className="admin-secondary-btn"
+              onClick={cancelEdit}
+            >
+              Cancel edit
+            </button>
+          )}
         </div>
 
         <form className="product-form" onSubmit={submit}>
@@ -1212,14 +1292,33 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
           <div className="product-form-actions">
             <button className="save-product" disabled={saving}>
               <FiTruck />{" "}
-              {saving ? "Fetching live price..." : "Add dropship product"}
+              {saving
+                ? editingId
+                  ? "Saving changes..."
+                  : "Fetching live price..."
+                : editingId
+                  ? "Update dropship product"
+                  : "Add dropship product"}
             </button>
+
+            {editingId && (
+              <button
+                type="button"
+                className="admin-secondary-btn"
+                onClick={cancelEdit}
+                disabled={saving}
+              >
+                Cancel
+              </button>
+            )}
           </div>
         </form>
 
         {lastResult && (
           <div className="dropship-live-result">
-            <b>✅ {lastResult.title} added</b>
+            <b>
+              ✅ {lastResult.title} {lastResult.updated ? "updated" : "added"}
+            </b>
             <span>
               Source price ₹{lastResult.sourcePrice}{" "}
               {lastResult.marginType === "flat"
@@ -1322,6 +1421,14 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
                               syncingId === entry._id ? "spin-icon" : undefined
                             }
                           />
+                        </button>
+                        <button
+                          type="button"
+                          className="admin-icon-btn"
+                          onClick={() => startEdit(entry)}
+                          title="Edit this dropship product"
+                        >
+                          <FiEdit2 />
                         </button>
                         <a
                           className="admin-icon-btn"
