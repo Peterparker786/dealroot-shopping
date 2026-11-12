@@ -1263,6 +1263,28 @@
   cursor: wait;
 }
 
+/* Manual cashback credit — nothing is credited automatically anymore. */
+.add-cashback-btn {
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: #f0e9ff;
+  color: #5b21b6;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.add-cashback-btn:hover {
+  background: #e4d8ff;
+}
+
+.add-cashback-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
 /* Tracking link input */
 .tracking-input-row {
   display: flex;

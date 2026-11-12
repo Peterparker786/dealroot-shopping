@@ -1753,6 +1753,35 @@ function AdminPanel({
     }
   };
 
+  const creditCashbackOrder = async (order) => {
+    const confirmed = window.confirm(
+      `Add \u20b9${order.discountAmount} cashback to this customer's wallet for ${order.orderNumber}?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setUpdatingOrderId(order._id);
+
+      const data = await request(
+        `${apiUrl}/api/admin/orders/${order._id}/cashback`,
+        { method: "POST" }
+      );
+
+      setOrders((currentOrders) =>
+        currentOrders.map((currentOrder) =>
+          currentOrder._id === order._id ? data.order : currentOrder
+        )
+      );
+
+      showToast(data.message || "Cashback added to the customer's wallet");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setUpdatingOrderId("");
+    }
+  };
+
   const saveTrackingLink = async (orderId) => {
     try {
       setUpdatingOrderId(orderId);
@@ -4436,9 +4465,7 @@ function AdminPanel({
                                     ? ""
                                     : order.cashbackCredited
                                     ? " · ✓ Credited"
-                                    : order.orderStatus === "delivered"
-                                    ? " · ↩ Reversed (returned)"
-                                    : " · ⏳ Pending (on delivery)"}
+                                    : " · ⏳ Not credited yet"}
                                 </small>
                               )}
                             </td>
@@ -4536,6 +4563,26 @@ function AdminPanel({
                                       🔗 View tracking link
                                     </a>
                                   )}
+
+                                  {/* Cashback is never credited automatically —
+                                      the admin adds it here when they choose to. */}
+                                  {Number(order.discountAmount) > 0 &&
+                                    !order.cashbackCredited && (
+                                      <button
+                                        type="button"
+                                        className="add-cashback-btn"
+                                        disabled={
+                                          updatingOrderId === order._id
+                                        }
+                                        onClick={() =>
+                                          creditCashbackOrder(order)
+                                        }
+                                      >
+                                        {updatingOrderId === order._id
+                                          ? "..."
+                                          : `\ud83d\udcb0 Add cashback \u20b9${order.discountAmount}`}
+                                      </button>
+                                    )}
                                 </div>
                               )}
                             </td>
@@ -6651,9 +6698,9 @@ function AdminPanel({
 
                 <p className="admin-hint">
                   Coupons no longer give an instant discount — the customer
-                  pays full price, and the cashback above is automatically
-                  added to their wallet once the order is delivered (it's
-                  clawed back if they later return it).
+                  pays full price, and the cashback above stays pending until
+                  you add it from the Orders tab (it's clawed back if they
+                  later return the order).
                 </p>
 
                 {couponForm.assignedUserEmail && (
