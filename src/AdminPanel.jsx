@@ -337,6 +337,9 @@ function AdminPanel({
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [salesStatsLoading, setSalesStatsLoading] = useState(false);
   const [salesStatsData, setSalesStatsData] = useState({});
+  // What the courier company charges per delivered order (global rate).
+  const [courierCostDraft, setCourierCostDraft] = useState("");
+  const [courierCostSaving, setCourierCostSaving] = useState(false);
   const [salesRange, setSalesRange] = useState("all");
   // Manual book-keeping: offline sales (money in) and extra expenses (out).
   const [salesEntries, setSalesEntries] = useState([]);
@@ -913,11 +916,39 @@ function AdminPanel({
         request(`${apiUrl}/api/admin/sales-entries?range=${range}`),
       ]);
       setSalesStatsData(statsData.stats || {});
+      setCourierCostDraft(
+        String(statsData.stats?.courierCostPerOrder ?? "")
+      );
       setSalesEntries(entriesData.entries || []);
     } catch (error) {
       showToast(error.message);
     } finally {
       setSalesStatsLoading(false);
+    }
+  };
+
+  const saveCourierCost = async (event) => {
+    event.preventDefault();
+
+    const value = Number(courierCostDraft);
+
+    if (!Number.isInteger(value) || value < 0 || value > 1000) {
+      showToast("Courier cost must be a whole number between ₹0 and ₹1000");
+      return;
+    }
+
+    try {
+      setCourierCostSaving(true);
+      const data = await request(`${apiUrl}/api/admin/courier-cost`, {
+        method: "PUT",
+        body: JSON.stringify({ courierCostPerOrder: value }),
+      });
+      showToast(data.message || "Courier cost updated");
+      loadSalesStats();
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setCourierCostSaving(false);
     }
   };
 
@@ -4590,8 +4621,8 @@ function AdminPanel({
                                       placeholder={
                                         order.deliveryCost === null ||
                                         order.deliveryCost === undefined
-                                          ? `Courier cost (₹${order.deliveryFee || 0})`
-                                          : `Courier cost ₹${order.deliveryCost}`
+                                          ? "Courier cost override (optional)"
+                                          : `Courier cost ₹${order.deliveryCost} (override)`
                                       }
                                       value={
                                         deliveryCostInputs[order._id] ?? ""
@@ -7507,6 +7538,11 @@ function AdminPanel({
                           <div className="sales-stat-card">
                             <div className="sales-stat-label">Delivery Cost</div>
                             <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.totalDeliveryFees) || 0).toLocaleString("en-IN")}</div>
+                            <div className="sales-stat-sub">
+                              {Math.round(Number(salesStatsData.totalOrders) || 0)} orders × ₹
+                              {Math.round(Number(salesStatsData.courierCostPerOrder) || 0).toLocaleString("en-IN")}{" "}
+                              courier rate
+                            </div>
                           </div>
                           <div className="sales-stat-card">
                             <div className="sales-stat-label">
@@ -7529,11 +7565,39 @@ function AdminPanel({
                             <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.totalRazorpayFees ?? (salesStatsData.totalSales || 0) * 0.02) || 0).toLocaleString("en-IN")}</div>
                           </div>
                         </div>
+                        <form
+                          className="courier-cost-editor"
+                          onSubmit={saveCourierCost}
+                        >
+                          <label htmlFor="courier-cost-input">
+                            Courier company charges per order
+                          </label>
+                          <input
+                            id="courier-cost-input"
+                            type="number"
+                            min="0"
+                            max="1000"
+                            step="1"
+                            value={courierCostDraft}
+                            onChange={(event) =>
+                              setCourierCostDraft(event.target.value)
+                            }
+                            disabled={courierCostSaving}
+                          />
+                          <button type="submit" disabled={courierCostSaving}>
+                            {courierCostSaving ? "Saving..." : "Save"}
+                          </button>
+                          <small>
+                            Har delivered order par itna paisa courier ko gaya
+                            maana jayega (total upar Delivery Cost me).
+                          </small>
+                        </form>
+
                         <div className="sales-stats-footer">
                           <small>
                             ₹{Math.round(Number(salesStatsData.totalSales) || 0).toLocaleString("en-IN")} sales − ₹{Math.round(Number(salesStatsData.totalCashbackGiven) || 0).toLocaleString("en-IN")} wallet cashback used − ₹{Math.round(Number(salesStatsData.totalDeliveryFees) || 0).toLocaleString("en-IN")} delivery − ₹{Math.round(Number(salesStatsData.totalRazorpayFees) || 0).toLocaleString("en-IN")} Razorpay + ₹{Math.round(Number(salesStatsData.totalCashbackRecovered) || 0).toLocaleString("en-IN")} cashback recovered = ₹{Math.round(Number(salesStatsData.totalProfit) || 0).toLocaleString("en-IN")} profit
                           </small>
-                          <small>Delivery cost is what the courier actually charged — set it per order in the Orders tab and it is used here (otherwise the delivery fee charged to the customer). Cashback only reduces profit when a customer spends it — adding it to a wallet costs nothing, and deducting it back from a wallet returns it to profit (up to the cashback still unspent in wallets). Net Profit = ordered profit + offline sales − extra expenses. Based on delivered/completed orders.</small>
+                          <small>Delivery cost = courier company's rate per order × delivered orders (set the rate above), with any per-order courier cost entered in the Orders tab taking precedence — what the customer paid for delivery is never used here. Cashback only reduces profit when a customer spends it — adding it to a wallet costs nothing, and deducting it back from a wallet returns it to profit (up to the cashback still unspent in wallets). Net Profit = ordered profit + offline sales − extra expenses. Based on delivered/completed orders.</small>
                         </div>
                       </>
                     )}

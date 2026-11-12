@@ -3411,6 +3411,71 @@
   color: #2d1b69;
 }
 
+.sales-stat-sub {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #8a7fa8;
+}
+
+/* Courier company rate that Delivery Cost is calculated from. */
+.courier-cost-editor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid #e7dffb;
+  border-radius: 12px;
+  background: #faf8ff;
+}
+
+.courier-cost-editor label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #6d5a9c;
+}
+
+.courier-cost-editor input {
+  width: 96px;
+  padding: 7px 10px;
+  border: 1px solid #d7cff0;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.courier-cost-editor input:focus {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.15);
+}
+
+.courier-cost-editor button {
+  padding: 7px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #7c3aed;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.courier-cost-editor button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.courier-cost-editor small {
+  flex-basis: 100%;
+  font-size: 11px;
+  color: #8a7fa8;
+}
+
 .sales-stats-footer {
   margin-top: 14px;
   color: #7a7391;
