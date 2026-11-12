@@ -6873,10 +6873,11 @@ function AdminPanel({
               </section>
 
               <p className="admin-hint">
-                Adding or deducting wallet balance does not change your profit.
-                Cashback is only counted as an expense when the customer
-                actually spends it on an order, and that order's profit counts
-                just the money they paid — not the wallet part.
+                Adding cashback to a wallet does not change your profit. It is
+                counted as an expense only when the customer spends it on an
+                order (that order's profit counts just the money they paid,
+                not the wallet part), and deducting cashback back from a
+                wallet adds it back to profit.
               </p>
 
               <section className="admin-products-card">
@@ -7422,6 +7423,12 @@ function AdminPanel({
                             <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.totalCashbackGiven) || 0).toLocaleString("en-IN")}</div>
                           </div>
                           <div className="sales-stat-card">
+                            <div className="sales-stat-label">
+                              Cashback Recovered
+                            </div>
+                            <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.totalCashbackRecovered) || 0).toLocaleString("en-IN")}</div>
+                          </div>
+                          <div className="sales-stat-card">
                             <div className="sales-stat-label">Avg Order Value</div>
                             <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.avgOrderValue) || 0).toLocaleString("en-IN")}</div>
                           </div>
@@ -7431,7 +7438,7 @@ function AdminPanel({
                           </div>
                         </div>
                         <div className="sales-stats-footer">
-                          <small>Profit = money actually received (order total − wallet cashback used) − delivery charge − Razorpay fee (2% of online-paid amount). Cashback only reduces profit when a customer spends it on an order — adding it to a wallet costs nothing. Net Profit = ordered profit + offline sales − extra expenses. Based on delivered/completed orders.</small>
+                          <small>Profit = money actually received (order total − wallet cashback used) − delivery charge − Razorpay fee (2% of online-paid amount) + cashback you took back from wallets. Cashback only reduces profit when a customer spends it — adding it to a wallet costs nothing, and deducting it back from a wallet returns it to profit (up to the cashback still unspent in wallets). Net Profit = ordered profit + offline sales − extra expenses. Based on delivered/completed orders.</small>
                         </div>
                       </>
                     )}
