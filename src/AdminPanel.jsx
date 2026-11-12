@@ -6872,6 +6872,13 @@ function AdminPanel({
                 </button>
               </section>
 
+              <p className="admin-hint">
+                Adding or deducting wallet balance does not change your profit.
+                Cashback is only counted as an expense when the customer
+                actually spends it on an order, and that order's profit counts
+                just the money they paid — not the wallet part.
+              </p>
+
               <section className="admin-products-card">
                 <div className="admin-section-title">
                   <div>
@@ -7409,7 +7416,9 @@ function AdminPanel({
                             <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.totalDeliveryFees) || 0).toLocaleString("en-IN")}</div>
                           </div>
                           <div className="sales-stat-card">
-                            <div className="sales-stat-label">Cashback Given</div>
+                            <div className="sales-stat-label">
+                              Wallet Cashback Used
+                            </div>
                             <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.totalCashbackGiven) || 0).toLocaleString("en-IN")}</div>
                           </div>
                           <div className="sales-stat-card">
@@ -7422,7 +7431,7 @@ function AdminPanel({
                           </div>
                         </div>
                         <div className="sales-stats-footer">
-                          <small>Profit = sales − delivery charge − Razorpay fee (2% of online-paid amount) − cashback. Net Profit = ordered profit + offline sales − extra expenses. Based on delivered/completed orders.</small>
+                          <small>Profit = money actually received (order total − wallet cashback used) − delivery charge − Razorpay fee (2% of online-paid amount). Cashback only reduces profit when a customer spends it on an order — adding it to a wallet costs nothing. Net Profit = ordered profit + offline sales − extra expenses. Based on delivered/completed orders.</small>
                         </div>
                       </>
                     )}
