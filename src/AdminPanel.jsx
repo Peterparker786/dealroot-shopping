@@ -353,6 +353,9 @@ function AdminPanel({
   const [uploadingImages, setUploadingImages] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [trackingInputs, setTrackingInputs] = useState({});
+  // What the courier actually charged per order — editable per order because
+  // the rate changes; profit subtracts this instead of the delivery fee.
+  const [deliveryCostInputs, setDeliveryCostInputs] = useState({});
   const [search, setSearch] = useState("");
 
   const [extractingInfo, setExtractingInfo] = useState(false);
@@ -1814,6 +1817,39 @@ function AdminPanel({
       );
       setTrackingInputs((prev) => ({ ...prev, [orderId]: "" }));
       showToast(data.message || "Tracking link saved");
+    } catch (error) {
+      showToast(error.message);
+    } finally {
+      setUpdatingOrderId("");
+    }
+  };
+
+  const saveDeliveryCost = async (orderId) => {
+    const raw = String(deliveryCostInputs[orderId] ?? "").trim();
+    const value = raw === "" ? null : Number(raw);
+
+    if (value !== null && (!Number.isFinite(value) || value < 0)) {
+      showToast("Delivery cost must be 0 or more");
+      return;
+    }
+
+    try {
+      setUpdatingOrderId(orderId);
+
+      const data = await request(
+        `${apiUrl}/api/orders/${orderId}/delivery-cost`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({ deliveryCost: value }),
+        }
+      );
+
+      setOrders((current) =>
+        current.map((order) => (order._id === orderId ? data.order : order))
+      );
+      setDeliveryCostInputs((current) => ({ ...current, [orderId]: "" }));
+      showToast(data.message || "Delivery cost saved");
+      loadSalesStats();
     } catch (error) {
       showToast(error.message);
     } finally {
@@ -4468,6 +4504,12 @@ function AdminPanel({
                               {Number(order.deliveryFee) > 0 && (
                                 <small>Delivery: ₹{order.deliveryFee}</small>
                               )}
+                              {order.deliveryCost !== null &&
+                                order.deliveryCost !== undefined && (
+                                  <small style={{ color: "#5b21b6" }}>
+                                    Courier cost: ₹{order.deliveryCost}
+                                  </small>
+                                )}
 
                               {Number(order.discountAmount) > 0 && (
                                 <small style={{ color: "#7c3aed", fontWeight: 600 }}>
@@ -4537,6 +4579,44 @@ function AdminPanel({
                                         : "Cancel + restore stock"}
                                     </button>
                                   )}
+
+                                  {/* Actual courier cost — profit subtracts this
+                                      instead of the delivery fee charged. */}
+                                  <div className="tracking-input-row">
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      placeholder={
+                                        order.deliveryCost === null ||
+                                        order.deliveryCost === undefined
+                                          ? `Courier cost (₹${order.deliveryFee || 0})`
+                                          : `Courier cost ₹${order.deliveryCost}`
+                                      }
+                                      value={
+                                        deliveryCostInputs[order._id] ?? ""
+                                      }
+                                      onChange={(e) =>
+                                        setDeliveryCostInputs((prev) => ({
+                                          ...prev,
+                                          [order._id]: e.target.value,
+                                        }))
+                                      }
+                                      disabled={updatingOrderId === order._id}
+                                    />
+                                    <button
+                                      type="button"
+                                      className="save-tracking-btn"
+                                      disabled={updatingOrderId === order._id}
+                                      onClick={() =>
+                                        saveDeliveryCost(order._id)
+                                      }
+                                    >
+                                      {updatingOrderId === order._id
+                                        ? "..."
+                                        : "Save cost"}
+                                    </button>
+                                  </div>
 
                                   {/* Tracking link input */}
                                   <div className="tracking-input-row">
@@ -7425,7 +7505,7 @@ function AdminPanel({
                             <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.extraExpenses) || 0).toLocaleString("en-IN")}</div>
                           </div>
                           <div className="sales-stat-card">
-                            <div className="sales-stat-label">Delivery Fees</div>
+                            <div className="sales-stat-label">Delivery Cost</div>
                             <div className="sales-stat-value">₹{Math.round(Number(salesStatsData.totalDeliveryFees) || 0).toLocaleString("en-IN")}</div>
                           </div>
                           <div className="sales-stat-card">
@@ -7453,7 +7533,7 @@ function AdminPanel({
                           <small>
                             ₹{Math.round(Number(salesStatsData.totalSales) || 0).toLocaleString("en-IN")} sales − ₹{Math.round(Number(salesStatsData.totalCashbackGiven) || 0).toLocaleString("en-IN")} wallet cashback used − ₹{Math.round(Number(salesStatsData.totalDeliveryFees) || 0).toLocaleString("en-IN")} delivery − ₹{Math.round(Number(salesStatsData.totalRazorpayFees) || 0).toLocaleString("en-IN")} Razorpay + ₹{Math.round(Number(salesStatsData.totalCashbackRecovered) || 0).toLocaleString("en-IN")} cashback recovered = ₹{Math.round(Number(salesStatsData.totalProfit) || 0).toLocaleString("en-IN")} profit
                           </small>
-                          <small>Cashback only reduces profit when a customer spends it — adding it to a wallet costs nothing, and deducting it back from a wallet returns it to profit (up to the cashback still unspent in wallets). Net Profit = ordered profit + offline sales − extra expenses. Based on delivered/completed orders.</small>
+                          <small>Delivery cost is what the courier actually charged — set it per order in the Orders tab and it is used here (otherwise the delivery fee charged to the customer). Cashback only reduces profit when a customer spends it — adding it to a wallet costs nothing, and deducting it back from a wallet returns it to profit (up to the cashback still unspent in wallets). Net Profit = ordered profit + offline sales − extra expenses. Based on delivered/completed orders.</small>
                         </div>
                       </>
                     )}
