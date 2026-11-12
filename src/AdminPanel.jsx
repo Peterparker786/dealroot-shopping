@@ -570,6 +570,9 @@ function AdminPanel({
       setWalletAmountInputs((prev) => ({ ...prev, [userId]: "" }));
       setWalletNoteInputs((prev) => ({ ...prev, [userId]: "" }));
       loadUsers();
+      // A deduction counts as recovered cashback, so the Sales tab's profit
+      // must be recalculated right away instead of showing a stale figure.
+      loadSalesStats();
 
       if (expandedUserId === userId) {
         loadUserDetail(userId);
@@ -1092,6 +1095,7 @@ function AdminPanel({
       loadCoupons(),
       loadBanners(),
       loadReturns(),
+      loadSalesStats(),
       loadApplications(),
       checkEmailStatus(),
     ]);
@@ -1102,6 +1106,12 @@ function AdminPanel({
 
   const switchTab = (nextTab, options = {}) => {
     setTab(nextTab);
+
+    // Recalculate profit whenever the Sales tab is opened, so it always
+    // reflects cashback added / taken back in the meantime.
+    if (nextTab === "sales") {
+      loadSalesStats();
+    }
 
     if (options.showForm) {
       setShowProductForm(true);
@@ -1775,6 +1785,7 @@ function AdminPanel({
       );
 
       showToast(data.message || "Cashback added to the customer's wallet");
+      loadSalesStats();
     } catch (error) {
       showToast(error.message);
     } finally {
@@ -1897,6 +1908,7 @@ function AdminPanel({
 
       setReviewReturnId(null);
       showToast("Return approved — refund email sent to the customer");
+      loadSalesStats();
     } catch (error) {
       showToast(error.message);
     } finally {
@@ -7438,7 +7450,10 @@ function AdminPanel({
                           </div>
                         </div>
                         <div className="sales-stats-footer">
-                          <small>Profit = money actually received (order total − wallet cashback used) − delivery charge − Razorpay fee (2% of online-paid amount) + cashback you took back from wallets. Cashback only reduces profit when a customer spends it — adding it to a wallet costs nothing, and deducting it back from a wallet returns it to profit (up to the cashback still unspent in wallets). Net Profit = ordered profit + offline sales − extra expenses. Based on delivered/completed orders.</small>
+                          <small>
+                            ₹{Math.round(Number(salesStatsData.totalSales) || 0).toLocaleString("en-IN")} sales − ₹{Math.round(Number(salesStatsData.totalCashbackGiven) || 0).toLocaleString("en-IN")} wallet cashback used − ₹{Math.round(Number(salesStatsData.totalDeliveryFees) || 0).toLocaleString("en-IN")} delivery − ₹{Math.round(Number(salesStatsData.totalRazorpayFees) || 0).toLocaleString("en-IN")} Razorpay + ₹{Math.round(Number(salesStatsData.totalCashbackRecovered) || 0).toLocaleString("en-IN")} cashback recovered = ₹{Math.round(Number(salesStatsData.totalProfit) || 0).toLocaleString("en-IN")} profit
+                          </small>
+                          <small>Cashback only reduces profit when a customer spends it — adding it to a wallet costs nothing, and deducting it back from a wallet returns it to profit (up to the cashback still unspent in wallets). Net Profit = ordered profit + offline sales − extra expenses. Based on delivered/completed orders.</small>
                         </div>
                       </>
                     )}

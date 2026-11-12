@@ -3416,6 +3416,20 @@
   color: #7a7391;
 }
 
+.sales-stats-footer small {
+  display: block;
+  line-height: 1.6;
+}
+
+.sales-stats-footer small + small {
+  margin-top: 6px;
+}
+
+.sales-stats-footer small:first-child {
+  color: #4b3f6b;
+  font-weight: 600;
+}
+
 .sales-stats-loading {
   padding: 18px 0;
   color: #7a7391;
