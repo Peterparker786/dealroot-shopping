@@ -273,6 +273,16 @@ useEffect(() => {
 // the full price, and this amount is instead credited to their wallet as
 // cashback once the order is delivered (see the coupon-cashback-row below).
 const couponDiscount = discountAmount;
+
+// Orders of ₹500+ earn 10% cashback automatically, with no coupon needed.
+// Coupon orders show their own cashback instead (the backend credits one or
+// the other, never both).
+const AUTO_CASHBACK_MIN = 500;
+const AUTO_CASHBACK_PERCENT = 10;
+const autoCashback =
+  !appliedCoupon && orderSubtotal >= AUTO_CASHBACK_MIN
+    ? Math.round((orderSubtotal * AUTO_CASHBACK_PERCENT) / 100)
+    : 0;
   const totalPayable = orderSubtotal + deliveryFee;
 
 const remainingCod =
@@ -762,10 +772,10 @@ const razorpayCheckout = new window.Razorpay({
             </p>
           )}
 
-          {(placedOrder.discountAmount || couponDiscount) > 0 && (
+          {(placedOrder.discountAmount || couponDiscount || autoCashback) > 0 && (
             <p style={{ color: "#7c3aed", fontWeight: 600 }}>
-              🎉 ₹{placedOrder.discountAmount || couponDiscount} cashback will be
-              added to your wallet once this order is delivered.
+              🎉 ₹{placedOrder.discountAmount || couponDiscount || autoCashback}{" "}
+              cashback will be added to your wallet once this order is delivered.
             </p>
           )}
 
@@ -1221,6 +1231,13 @@ const razorpayCheckout = new window.Razorpay({
               <div className="checkout-item coupon-discount-row">
                 <span>🎉 {appliedCoupon} cashback (after delivery)</span>
                 <b>+₹{couponDiscount}</b>
+              </div>
+            )}
+
+            {autoCashback > 0 && (
+              <div className="checkout-item coupon-discount-row">
+                <span>🎉 10% cashback (after delivery)</span>
+                <b>+₹{autoCashback}</b>
               </div>
             )}
 

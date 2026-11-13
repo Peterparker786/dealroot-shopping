@@ -170,6 +170,16 @@ function CartDrawer({
   <strong>₹{subtotal}</strong>
 
 </div>
+              {subtotal > 0 && (
+                <div
+                  className={`cart-cashback-nudge${subtotal >= 500 ? " unlocked" : ""}`}
+                >
+                  {subtotal >= 500
+                    ? "🎉 10% cashback unlocked — delivery ke baad wallet me milega."
+                    : `Add ₹${500 - subtotal} more to get 10% cashback on your order.`}
+                </div>
+              )}
+
               <button className="primary-button checkout-button" onClick={checkout}>
                 Proceed to checkout
               </button>
