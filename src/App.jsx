@@ -166,8 +166,6 @@ function App() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountTab, setAccountTab] = useState("profile");
   const [checkoutMounted, setCheckoutMounted] = useState(false);
-  // Free-gift offer: one product (max ₹99) chosen when cart hits ₹499+.
-  const [giftProductId, setGiftProductId] = useState("");
   const [accountMounted, setAccountMounted] = useState(false);
   const [userToken, setUserToken] = useState(() =>
     localStorage.getItem("dealroot_user_token") || ""
@@ -862,19 +860,6 @@ function App() {
       : storeSettings.deliveryFee;
   const cartTotal = cartSubtotal + cartDelivery;
 
-  // Free gift stays valid only while the cart stays above ₹499 and the
-  // chosen product still exists in the catalogue.
-  const giftProduct = useMemo(
-    () => products.find((p) => p.id === giftProductId) || null,
-    [products, giftProductId]
-  );
-
-  useEffect(() => {
-    if (giftProductId && (cartSubtotal < 499 || !giftProduct)) {
-      setGiftProductId("");
-    }
-  }, [cartSubtotal, giftProduct, giftProductId]);
-
   if (isAdminPage) {
     return (
       <>
@@ -962,9 +947,6 @@ function App() {
             apiUrl={API_URL}
             user={user}
             userToken={userToken}
-            giftProduct={giftProduct}
-            giftProducts={products}
-            onClearGift={() => setGiftProductId("")}
             onProfileUpdated={setUser}
             onOrderPlaced={(order) => {
               captureEvent("order_placed", {
@@ -974,7 +956,6 @@ function App() {
                 currency: "INR",
               });
               setCart([]);
-              setGiftProductId("");
               loadProducts();
             }}
             deliveryLocation={deliveryLocation}

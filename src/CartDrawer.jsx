@@ -153,15 +153,6 @@ function CartDrawer({
               )}
             </div>
 
-            {subtotal >= 499 && !cart.some((item) => item.isFreeGift) && (
-              <div className="cart-gift-box unlocked">
-                <p>
-                  🎁 Your order qualifies for a <b>FREE gift</b> — pick it at
-                  checkout.
-                </p>
-              </div>
-            )}
-
             <div className="cart-summary">
               <div>
                 <span>Subtotal</span>
