@@ -4831,10 +4831,7 @@ function AdminPanel({
                                             step="1"
                                             value={
                                               refundShippingFees[form._id] ??
-                                              (form.orderAmount >=
-                                              storeFreeDeliveryThreshold
-                                                ? 0
-                                                : storeDeliveryFee)
+                                              storeDeliveryFee
                                             }
                                             onChange={(event) =>
                                               setRefundShippingFees((current) => ({
@@ -4857,10 +4854,7 @@ function AdminPanel({
                                                 (refundShippingFees[
                                                   form._id
                                                 ] ??
-                                                  (form.orderAmount >=
-                                                  storeFreeDeliveryThreshold
-                                                    ? 0
-                                                    : storeDeliveryFee))
+                                                storeDeliveryFee)
                                             ).toLocaleString("en-IN")}
                                           </b>
                                         </div>

@@ -218,7 +218,7 @@ export default function Hero({ banners, banner, fallbackImage }) {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
         >
-          <span className="trust-item">🚚 Free Delivery ₹499+</span>
+          <span className="trust-item">🚚 Fast Delivery</span>
           <span className="trust-sep">|</span>
           <span className="trust-item">💳 COD Available</span>
           <span className="trust-sep">|</span>

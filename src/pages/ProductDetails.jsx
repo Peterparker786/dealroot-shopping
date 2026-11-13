@@ -410,7 +410,7 @@ export default function ProductDetails({
             <div className="delivery-card">
               <div className="delivery-icon"><FiTruck size={20} /></div>
               <div>
-                <div className="delivery-label">🚚 FREE Delivery</div>
+                <div className="delivery-label">🚚 Delivery charges apply</div>
                 <div className="delivery-estimate">
                   Estimated Delivery: <strong>{product.deliveryDate}</strong>
                 </div>

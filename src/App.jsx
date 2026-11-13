@@ -854,10 +854,9 @@ function App() {
     (total, item) => total + item.price * item.quantity,
     0
   );
+  // Delivery is charged on every order; there is no free-delivery threshold.
   const cartDelivery =
-    cartSubtotal === 0 || cartSubtotal >= storeSettings.freeDeliveryThreshold
-      ? 0
-      : storeSettings.deliveryFee;
+    cartSubtotal === 0 ? 0 : storeSettings.deliveryFee;
   const cartTotal = cartSubtotal + cartDelivery;
 
   if (isAdminPage) {

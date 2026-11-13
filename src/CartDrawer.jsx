@@ -163,12 +163,6 @@ function CartDrawer({
   <b>Calculated at checkout</b>
 </div>
 
-<p>
-  {subtotal < 499
-    ? `Add ₹${499 - subtotal} more for free delivery`
-    : "You unlocked free delivery"}
-</p>
-
 <div className="cart-total">
 
   <span>Total ({cart.length} Items)</span>

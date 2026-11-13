@@ -266,9 +266,8 @@ useEffect(() => {
 
   if (!isOpen) return null;
 
-  const hasFreeDelivery =
-    orderSubtotal === 0 || orderSubtotal >= 499;
-  const deliveryFee = hasFreeDelivery ? 0 : storeDeliveryFee;
+  // Delivery is charged on every order; there is no free-delivery threshold.
+  const deliveryFee = orderSubtotal === 0 ? 0 : storeDeliveryFee;
   const deliveryLabel = deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`;
 // Coupons no longer take money off at checkout — the customer always pays
 // the full price, and this amount is instead credited to their wallet as

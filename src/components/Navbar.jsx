@@ -149,7 +149,7 @@ export default function Navbar({
     <>
       {/* Announcement Bar */}
       <div className="announcement-bar">
-        <span>🚚 FREE DELIVERY on orders above ₹499</span>
+        <span>🚚 Fast delivery across India</span>
         <span>🎁 USE CODE: BEAUTY10 - Get 10% OFF on orders above ₹999</span>
         <div className="ann-right">
           <button

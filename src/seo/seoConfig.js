@@ -14,7 +14,7 @@ export const SITE_TAGLINE = "Premium Beauty, Skincare & Makeup";
 export const DEFAULT_TITLE = "DEALROOT — Premium Beauty, Skincare & Makeup";
 
 export const DEFAULT_DESCRIPTION =
-  "Shop 100% original skincare, makeup, haircare & fragrance at unbeatable prices. Up to 50% OFF, free delivery above ₹499 and easy 7-day returns.";
+  "Shop 100% original skincare, makeup, haircare & fragrance at unbeatable prices. Up to 50% OFF, fast delivery and easy 7-day returns.";
 
 export const DEFAULT_KEYWORDS =
   "beauty, skincare, makeup, fragrance, haircare, premium cosmetics, buy cosmetics online india, dealroot";

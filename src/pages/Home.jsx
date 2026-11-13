@@ -573,8 +573,8 @@ export default function Home({
           </div>
           <div className="why-card why-card--green">
             <div className="why-icon why-icon--green"><FiTruck size={22} /></div>
-            <h4>Free Delivery</h4>
-            <p>Free shipping on orders above ₹499. COD available across India for your convenience.</p>
+            <h4>Fast Delivery</h4>
+            <p>Quick shipping across India. COD available for your convenience.</p>
           </div>
           <div className="why-card why-card--orange">
             <div className="why-icon why-icon--orange"><FiRefreshCw size={22} /></div>
