@@ -356,9 +356,6 @@ function AdminPanel({
   const [uploadingImages, setUploadingImages] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [trackingInputs, setTrackingInputs] = useState({});
-  // What the courier actually charged per order — editable per order because
-  // the rate changes; profit subtracts this instead of the delivery fee.
-  const [deliveryCostInputs, setDeliveryCostInputs] = useState({});
   const [search, setSearch] = useState("");
 
   const [extractingInfo, setExtractingInfo] = useState(false);
@@ -1848,39 +1845,6 @@ function AdminPanel({
       );
       setTrackingInputs((prev) => ({ ...prev, [orderId]: "" }));
       showToast(data.message || "Tracking link saved");
-    } catch (error) {
-      showToast(error.message);
-    } finally {
-      setUpdatingOrderId("");
-    }
-  };
-
-  const saveDeliveryCost = async (orderId) => {
-    const raw = String(deliveryCostInputs[orderId] ?? "").trim();
-    const value = raw === "" ? null : Number(raw);
-
-    if (value !== null && (!Number.isFinite(value) || value < 0)) {
-      showToast("Delivery cost must be 0 or more");
-      return;
-    }
-
-    try {
-      setUpdatingOrderId(orderId);
-
-      const data = await request(
-        `${apiUrl}/api/orders/${orderId}/delivery-cost`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({ deliveryCost: value }),
-        }
-      );
-
-      setOrders((current) =>
-        current.map((order) => (order._id === orderId ? data.order : order))
-      );
-      setDeliveryCostInputs((current) => ({ ...current, [orderId]: "" }));
-      showToast(data.message || "Delivery cost saved");
-      loadSalesStats();
     } catch (error) {
       showToast(error.message);
     } finally {
@@ -4535,13 +4499,6 @@ function AdminPanel({
                               {Number(order.deliveryFee) > 0 && (
                                 <small>Delivery: ₹{order.deliveryFee}</small>
                               )}
-                              {order.deliveryCost !== null &&
-                                order.deliveryCost !== undefined && (
-                                  <small style={{ color: "#5b21b6" }}>
-                                    Courier cost: ₹{order.deliveryCost}
-                                  </small>
-                                )}
-
                               {Number(order.discountAmount) > 0 && (
                                 <small style={{ color: "#7c3aed", fontWeight: 600 }}>
                                   Code: {order.couponCode || "—"} · Cashback ₹
@@ -4610,44 +4567,6 @@ function AdminPanel({
                                         : "Cancel + restore stock"}
                                     </button>
                                   )}
-
-                                  {/* Actual courier cost — profit subtracts this
-                                      instead of the delivery fee charged. */}
-                                  <div className="tracking-input-row">
-                                    <input
-                                      type="number"
-                                      min="0"
-                                      step="1"
-                                      placeholder={
-                                        order.deliveryCost === null ||
-                                        order.deliveryCost === undefined
-                                          ? "Courier cost override (optional)"
-                                          : `Courier cost ₹${order.deliveryCost} (override)`
-                                      }
-                                      value={
-                                        deliveryCostInputs[order._id] ?? ""
-                                      }
-                                      onChange={(e) =>
-                                        setDeliveryCostInputs((prev) => ({
-                                          ...prev,
-                                          [order._id]: e.target.value,
-                                        }))
-                                      }
-                                      disabled={updatingOrderId === order._id}
-                                    />
-                                    <button
-                                      type="button"
-                                      className="save-tracking-btn"
-                                      disabled={updatingOrderId === order._id}
-                                      onClick={() =>
-                                        saveDeliveryCost(order._id)
-                                      }
-                                    >
-                                      {updatingOrderId === order._id
-                                        ? "..."
-                                        : "Save cost"}
-                                    </button>
-                                  </div>
 
                                   {/* Tracking link input */}
                                   <div className="tracking-input-row">
