@@ -400,7 +400,8 @@ export default function Home({
         {!loadingProducts && !productsError && (
           <div className="product-grid">
             {shopProducts.map((product) => {
-              const isWishlisted = wishlist.some((w) => w.id === product.id);
+              if (!product) return null;
+              const isWishlisted = Array.isArray(wishlist) && wishlist.some((w) => w && w.id === product.id);
               const discount = product.originalPrice > product.price
                 ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
                 : 0;
@@ -524,7 +525,8 @@ export default function Home({
             <h2>Recently Viewed</h2>
             <div className="product-grid">
               {recentProducts.map((product) => {
-                const isWishlisted = wishlist.some((w) => w.id === product.id);
+                if (!product) return null;
+                const isWishlisted = Array.isArray(wishlist) && wishlist.some((w) => w && w.id === product.id);
                 const discount = product.originalPrice > product.price
                   ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
                   : 0;

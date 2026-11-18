@@ -520,12 +520,12 @@ export default function ProductDetails({
             </motion.button>
 
             <motion.button
-              className={`wishlist-btn ${wishlist.some((w) => w.id === product.id) ? "wishlisted" : ""}`}
+              className={`wishlist-btn ${Array.isArray(wishlist) && wishlist.some((w) => w && w.id === product.id) ? "wishlisted" : ""}`}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => toggleWishlist(product)}
             >
-              {wishlist.some((w) => w.id === product.id) ? "❤️ Wishlisted" : "🤍 Add To Wishlist"}
+              {Array.isArray(wishlist) && wishlist.some((w) => w && w.id === product.id) ? "❤️ Wishlisted" : "🤍 Add To Wishlist"}
             </motion.button>
 
             <motion.button
