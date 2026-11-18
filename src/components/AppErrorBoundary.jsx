@@ -7,7 +7,7 @@ import { Component } from "react";
 // single reload; anything else gets a visible page with a reload button.
 
 const CHUNK_ERROR =
-  /dynamically imported module|Loading chunk|Importing a module script failed|Failed to fetch/i;
+  /dynamically imported module|Loading chunk|Importing a module script failed|Failed to fetch|Failed to load module script|error loading dynamically imported module|Unexpected token '<'|MIME type of "text\/html"|is not a valid JavaScript|Unable to preload CSS/i;
 
 class AppErrorBoundary extends Component {
   constructor(props) {
@@ -20,9 +20,28 @@ class AppErrorBoundary extends Component {
     return { failed: true };
   }
 
+  componentDidMount() {
+    window.addEventListener("popstate", this.handlePopState);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("popstate", this.handlePopState);
+  }
+
+  handlePopState = () => {
+    // When the visitor navigates back or forward via browser history, clear
+    // the failure state so the previous route can render fresh rather than
+    // staying locked on the crash screen.
+    if (this.state.failed) {
+      this.setState({ failed: false });
+    }
+  };
+
   componentDidCatch(error) {
     const message = String(error?.message || "");
 
+    // If it's a chunk/asset load error (e.g. after a new deployment or network hiccup),
+    // immediately reload the page so the browser fetches the latest bundle.
     if (!CHUNK_ERROR.test(message)) return;
 
     try {

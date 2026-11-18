@@ -57,7 +57,7 @@ export default function Home({
   // even for approved members. They live only in the Tryout dashboard/pages,
   // so the public sections (Flash Deals, Deal of the Day, product grid) all
   // read from this filtered list.
-  const storefrontProducts = filteredProducts.filter((p) => !p.tryoutOnly);
+  const storefrontProducts = (filteredProducts || []).filter((p) => p && !p.tryoutOnly);
   const shopProducts = storefrontProducts;
 
   useEffect(() => {
@@ -98,15 +98,15 @@ export default function Home({
 
   // Flash Deals shows the same products as the ₹99 collection — only items
   // priced at ₹99 or less, or explicitly marked as a ₹99 deal.
-  const flashProducts = storefrontProducts
-    .filter((p) => p.dealType === "99" || Number(p.price) <= 99)
+  const flashProducts = (storefrontProducts || [])
+    .filter((p) => p && (p.dealType === "99" || Number(p.price) <= 99))
     .slice(0, 5);
 
   // Deal of the Day: only products priced at ₹199 or under, or explicitly
   // marked as a ₹199 deal — anything above ₹199 never appears here.
   const dealProducts = useMemo(() => {
-    const pool = products && products.length ? products : filteredProducts;
-    const shopPool = pool.filter((p) => !p.tryoutOnly);
+    const pool = Array.isArray(products) && products.length ? products : (filteredProducts || []);
+    const shopPool = pool.filter((p) => p && !p.tryoutOnly);
 
     return [...shopPool]
       .filter(
@@ -149,7 +149,7 @@ export default function Home({
       <section className="section" id="categories">
         <div className="section-header">
           <h2>Shop by Category</h2>
-          <a href="#" onClick={(e) => { e.preventDefault(); showAllProducts(); }}>View all <FiArrowRight size={14} style={{ display: 'inline' }} /></a>
+          <a href="#categories" onClick={(e) => { e.preventDefault(); showAllProducts(); }}>View all <FiArrowRight size={14} style={{ display: 'inline' }} /></a>
         </div>
 
         <div className="categories-row">
@@ -180,7 +180,7 @@ export default function Home({
           <div className="flash-timer">
             <FiClock size={14} /> Ends in {formatTime(timeLeft.h)} : {formatTime(timeLeft.m)} : {formatTime(timeLeft.s)}
           </div>
-          <a href="#" className="flash-view-all" onClick={(e) => { e.preventDefault(); showAllProducts(); }}>
+          <a href="#price-deals" className="flash-view-all" onClick={(e) => { e.preventDefault(); showAllProducts(); }}>
             View all deals <FiArrowRight size={14} style={{ display: 'inline' }} />
           </a>
         </div>
@@ -367,7 +367,7 @@ export default function Home({
               ? "The ₹199 Collection"
               : "Our Favourites"}
           </h2>
-          <a href="#" onClick={(e) => { e.preventDefault(); showAllProducts(); }}>
+          <a href="#products" onClick={(e) => { e.preventDefault(); showAllProducts(); }}>
             See all <FiArrowRight size={14} style={{ display: 'inline' }} />
           </a>
         </div>
@@ -505,9 +505,15 @@ export default function Home({
         let recentProducts = [];
         try {
           const raw = localStorage.getItem("dealroot_recently_viewed") || "[]";
-          const ids = JSON.parse(raw).map((r) => r.id).slice(0, 6);
+          const parsed = JSON.parse(raw);
+          const ids = Array.isArray(parsed)
+            ? parsed
+                .map((r) => (r && typeof r === "object" ? r.id : r))
+                .filter(Boolean)
+                .slice(0, 6)
+            : [];
           recentProducts = ids
-            .map((rid) => products.find((p) => p.id === rid))
+            .map((rid) => (products || []).find((p) => p && p.id === rid))
             .filter(Boolean);
         } catch { /* ignore */ }
 

@@ -65,11 +65,12 @@ export default function ProductDetails({
 
   // Auto-rotate images
   useEffect(() => {
-    if (!product?.images?.length) return;
+    const len = product?.images?.length || 0;
+    if (len <= 1) return;
 
     const interval = setInterval(() => {
       setActiveImageIndex((prev) =>
-        prev === product.images.length - 1 ? 0 : prev + 1
+        prev >= len - 1 ? 0 : prev + 1
       );
     }, 4000);
 
@@ -79,9 +80,9 @@ export default function ProductDetails({
   // Sync selectedImage with active index
   useEffect(() => {
     if (product?.images?.length) {
-      setSelectedImage(product.images[activeImageIndex]);
+      setSelectedImage(product.images[activeImageIndex] || fallbackImage);
     }
-  }, [activeImageIndex, product]);
+  }, [activeImageIndex, product, fallbackImage]);
 
   // Intersection observer for sticky bar
   useEffect(() => {
@@ -98,7 +99,7 @@ export default function ProductDetails({
     }
 
     return () => {
-      if (sentinel) observer.unobserve(sentinel);
+      observer.disconnect();
     };
   }, [loading]);
 

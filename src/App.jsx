@@ -31,12 +31,35 @@ import {
   useState,
 } from "react";
 
+// Self-healing lazy loader: if a chunk fails to load (e.g. after a new deployment purges
+// old hashed chunks while a user was browsing, or during a browser back navigation),
+// automatically reloads once so the browser fetches the latest code without crashing.
+function lazyWithRetry(componentImport) {
+  return lazy(() =>
+    componentImport().catch((error) => {
+      try {
+        const key = "dealroot_chunk_reload_at";
+        const last = Number(window.sessionStorage.getItem(key) || 0);
+        if (Date.now() - last > 10000) {
+          window.sessionStorage.setItem(key, String(Date.now()));
+          window.location.reload();
+          return new Promise(() => {});
+        }
+      } catch {
+        window.location.reload();
+        return new Promise(() => {});
+      }
+      throw error;
+    })
+  );
+}
+
 // Lazy-load heavy page/component chunks so the initial JS payload shrinks.
-const Navbar = lazy(() => import("./components/Navbar"));
-const Home = lazy(() => import("./pages/Home"));
-const Footer = lazy(() => import("./components/Footer"));
-const CartDrawer = lazy(() => import("./CartDrawer"));
-const WishlistDrawer = lazy(() => import("./WishlistDrawer"));
+const Navbar = lazyWithRetry(() => import("./components/Navbar"));
+const Home = lazyWithRetry(() => import("./pages/Home"));
+const Footer = lazyWithRetry(() => import("./components/Footer"));
+const CartDrawer = lazyWithRetry(() => import("./CartDrawer"));
+const WishlistDrawer = lazyWithRetry(() => import("./WishlistDrawer"));
 import "./index.css";
 import {
   getStoredCategories,
@@ -56,21 +79,22 @@ import {
 } from "./seo/seoManager";
 
 // Code-split heavy pages & modals so the initial bundle stays small.
-const Contact = lazy(() => import("./pages/Contact"));
-const BecomeSeller = lazy(() => import("./pages/BecomeSeller"));
-const About = lazy(() => import("./pages/About"));
-const Brands = lazy(() => import("./pages/Brands"));
-const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
-const Terms = lazy(() => import("./pages/Terms"));  const ShippingPolicy = lazy(() => import("./pages/ShippingPolicy"));
-  const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
-  const TryoutPolicy = lazy(() => import("./pages/TryoutPolicy"));
-  const Tryouts = lazy(() => import("./pages/Tryouts"));
-  const TryoutDashboard = lazy(() => import("./pages/TryoutDashboard"));
-  const TryoutOffers = lazy(() => import("./pages/TryoutOffers"));
-const ProductDetails = lazy(() => import("./pages/ProductDetails"));
-const CheckoutModal = lazy(() => import("./CheckoutModal"));
-const AdminPanel = lazy(() => import("./AdminPanel"));
-const AccountModal = lazy(() => import("./AccountModal"));
+const Contact = lazyWithRetry(() => import("./pages/Contact"));
+const BecomeSeller = lazyWithRetry(() => import("./pages/BecomeSeller"));
+const About = lazyWithRetry(() => import("./pages/About"));
+const Brands = lazyWithRetry(() => import("./pages/Brands"));
+const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
+const Terms = lazyWithRetry(() => import("./pages/Terms"));
+const ShippingPolicy = lazyWithRetry(() => import("./pages/ShippingPolicy"));
+const RefundPolicy = lazyWithRetry(() => import("./pages/RefundPolicy"));
+const TryoutPolicy = lazyWithRetry(() => import("./pages/TryoutPolicy"));
+const Tryouts = lazyWithRetry(() => import("./pages/Tryouts"));
+const TryoutDashboard = lazyWithRetry(() => import("./pages/TryoutDashboard"));
+const TryoutOffers = lazyWithRetry(() => import("./pages/TryoutOffers"));
+const ProductDetails = lazyWithRetry(() => import("./pages/ProductDetails"));
+const CheckoutModal = lazyWithRetry(() => import("./CheckoutModal"));
+const AdminPanel = lazyWithRetry(() => import("./AdminPanel"));
+const AccountModal = lazyWithRetry(() => import("./AccountModal"));
 
 function PageLoader() {
   return (
@@ -136,6 +160,14 @@ function App() {
   const [isAdminPage, setIsAdminPage] = useState(
     window.location.hash === "#admin"
   );
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setIsAdminPage(window.location.hash === "#admin");
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
 
   const [activeCategory, setActiveCategory] = useState("All");
   const [activeDeal, setActiveDeal] = useState("none");
@@ -265,7 +297,17 @@ function App() {
   };
 
   const closeAdmin = () => {
-    window.location.hash = "";
+    try {
+      if (window.location.hash === "#admin") {
+        window.history.replaceState(
+          null,
+          "",
+          window.location.pathname + window.location.search
+        );
+      }
+    } catch {
+      window.location.hash = "";
+    }
     setIsAdminPage(false);
   };
 

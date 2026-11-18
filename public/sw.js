@@ -1,7 +1,7 @@
 /* DEALROOT PWA service worker */
 // Bump this whenever you ship a new deploy so the old cache generation is
 // purged on activate instead of accumulating stale hashed assets forever.
-const CACHE_VERSION = "v3";
+const CACHE_VERSION = "v4";
 const CACHE_NAME = `dealroot-${CACHE_VERSION}`;
 const CORE_ASSETS = ["/", "/index.html", "/manifest.webmanifest"];
 

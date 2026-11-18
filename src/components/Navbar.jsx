@@ -425,7 +425,21 @@ export default function Navbar({
           New Arrivals
         </a>
         <Link to="/brands">Brands</Link>
-        <a href="#price-deals">
+        <a
+          href="#price-deals"
+          onClick={(e) => {
+            e.preventDefault();
+            const el = document.getElementById("price-deals");
+            if (el) {
+              el.scrollIntoView({ behavior: "smooth" });
+            } else {
+              navigate("/");
+              window.setTimeout(() => {
+                document.getElementById("price-deals")?.scrollIntoView({ behavior: "smooth" });
+              }, 200);
+            }
+          }}
+        >
           Offers <span className="hot-badge">Hot</span>
         </a>
       </nav>
