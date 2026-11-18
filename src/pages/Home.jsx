@@ -222,6 +222,9 @@ export default function Home({
                   <div className="flash-card-body">
                     <div className="flash-card-brand">{product.brand}</div>
                     <div className="flash-card-title">{product.name}</div>
+                    {!product.isDropship && (
+                      <span className="wallet-redeem-badge">Wallet Redeem Product</span>
+                    )}
                     <div className="flash-card-rating">
                       ★ <b>{product.rating}</b> ({Number(product.reviews) > 0 ? product.reviews : DEFAULT_REVIEW_COUNT})
                     </div>
@@ -330,6 +333,9 @@ export default function Home({
                     <h3>
                       <Link to={`/product/${product.id}`}>{product.name}</Link>
                     </h3>
+                    {!product.isDropship && (
+                      <span className="wallet-redeem-badge">Wallet Redeem Product</span>
+                    )}
                     <div className="deal-day-price">
                       <strong>₹{product.price}</strong>
                       {product.originalPrice > product.price && (
@@ -432,6 +438,9 @@ export default function Home({
                   <div className="product-info">
                     <p className="brand-name">{product.brand}</p>
                     <h3><Link to={`/product/${product.id}`}>{product.name}</Link></h3>
+                    {!product.isDropship && (
+                      <span className="wallet-redeem-badge">Wallet Redeem Product</span>
+                    )}
                     <div className="rating">
                       <span className="stars-filled">{'★'.repeat(Math.round(Number(product.rating) || 0))}</span><span className="stars-empty">{'☆'.repeat(5 - Math.round(Number(product.rating) || 0))}</span>
                       <span className="rating-count"> ({Number(product.reviews) > 0 ? product.reviews : DEFAULT_REVIEW_COUNT})</span>
@@ -538,6 +547,9 @@ export default function Home({
                       <h3 className="product-title">
                         <Link to={`/product/${product.id}`}>{product.name}</Link>
                       </h3>
+                      {!product.isDropship && (
+                        <span className="wallet-redeem-badge">Wallet Redeem Product</span>
+                      )}
                       <div className="product-price">
                         <strong>₹{product.price}</strong>
                         {product.originalPrice > product.price && (

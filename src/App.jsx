@@ -468,6 +468,7 @@ function App() {
         badge: product.badge || "",
         dealType: product.dealType || "none",
         tryoutOnly: Boolean(product.tryoutOnly),
+        isDropship: Boolean(product.isDropship),
         image: product.images?.[0] || product.image || fallbackImage,
         stock: product.stock,
         createdAt: product.createdAt || "",
@@ -940,6 +941,7 @@ function App() {
             onClose={() => setCheckoutOpen(false)}
             cart={cart}
             setCart={setCart}
+            products={products}
             total={cartTotal}
             storeDeliveryFee={storeSettings.deliveryFee}
             showToast={showToast}

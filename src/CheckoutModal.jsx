@@ -78,10 +78,12 @@ function CheckoutModal({
   userToken,
   onProfileUpdated,
   deliveryLocation,
+  products = [],
 }) {
   const [paymentMethod, setPaymentMethod] = useState("cod");
   const [placedOrder, setPlacedOrder] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReferralCode, setIsReferralCode] = useState(false);
 
   // UPI payments confirm asynchronously: Razorpay can report an attempt as
   // failed while the bank has already debited the customer and the
@@ -154,6 +156,36 @@ const orderSubtotal = useMemo(
   [cart]
 );
 const codAvailable = orderSubtotal < 499;
+
+// Helper to determine if a cart item is a dropship item, checking both the
+// item itself and cross-referencing the catalog products list.
+const isDropshipItem = (item) => {
+  if (item?.isDropship === true) return true;
+  if (item?.isDropship === false) return false;
+  const match = products.find(
+    (p) => String(p.id || p._id) === String(item?.id || item?._id || item?.productId)
+  );
+  return Boolean(match?.isDropship);
+};
+
+// Non-dropship subtotal: wallet can ONLY be applied to these items,
+// never to dropship products and never to shipping charges.
+const nonDropshipSubtotal = useMemo(
+  () =>
+    cart
+      .filter((item) => !item.isFreeGift && !isDropshipItem(item))
+      .reduce(
+        (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+        0
+      ),
+  [cart, products]
+);
+
+// Whether the cart contains any dropship products (for info message).
+const hasDropshipItems = useMemo(
+  () => cart.some((item) => !item.isFreeGift && isDropshipItem(item)),
+  [cart, products]
+);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -290,20 +322,22 @@ const remainingCod =
     ? totalPayable - deliveryFee
     : 0;
 
-// Wallet balance only offsets the online (prepaid) amount — same rule the
-// backend enforces, and using it hides Cash on Delivery. At least ₹1 stays
-// payable so the payment gateway always has an amount to charge. It also
-// only kicks in once the cart itself is worth at least ₹100.
-const WALLET_MIN_SUBTOTAL = 100;
-const walletEligible = orderSubtotal >= WALLET_MIN_SUBTOTAL;
+// Wallet rules:
+// 1. Only applies on prepaid (non-COD) orders.
+// 2. Wallet can ONLY cover the non-dropship (high-margin) product subtotal —
+//    it must NEVER cover dropship items or shipping charges.
+// 3. No minimum order value: wallet applies to any non-dropship subtotal > 0.
+// 4. Applying any wallet balance disables COD for this order.
+// 5. Shipping is always paid online regardless of wallet usage.
+const walletEligible = nonDropshipSubtotal > 0;
 const walletDeduction =
   useWallet && walletEligible && paymentMethod !== "cod"
-    ? Math.min(walletBalance, Math.max(0, totalPayable - 1))
+    ? Math.min(walletBalance, nonDropshipSubtotal)
     : 0;
 const payableNow =
   paymentMethod === "cod"
     ? deliveryFee
-    : Math.max(0, totalPayable - walletDeduction);
+    : Math.max(deliveryFee, totalPayable - walletDeduction);
 const finalRemainingCod = Math.max(0, remainingCod);
 
   const removeCoupon = () => {
@@ -1084,7 +1118,14 @@ const razorpayCheckout = new window.Razorpay({
                 </div>
               ) : (
               <div className="checkout-item" key={item._id || item.id}>
-                <span>{item.name || item.title}</span>
+                <span>
+                  {item.name || item.title}
+                  {!isDropshipItem(item) && (
+                    <small style={{ display: "block", color: "#059669", fontSize: "11px", fontWeight: "600" }}>
+                      Wallet Redeem Product
+                    </small>
+                  )}
+                </span>
                 <b>
                   {item.quantity} × ₹{item.price}
                 </b>
@@ -1241,9 +1282,9 @@ const razorpayCheckout = new window.Razorpay({
               </div>
             )}
 
-            {walletBalance > 0 &&
-              totalPayable > 1 &&
-              (walletEligible ? (
+            {/* Wallet section */}
+            {walletBalance > 0 && totalPayable > 1 && (
+              walletEligible ? (
                 <label className="checkout-item wallet-toggle-row" style={{ cursor: "pointer" }}>
                   <span>
                     <input
@@ -1255,18 +1296,25 @@ const razorpayCheckout = new window.Razorpay({
                     />
                     Use wallet balance (₹{walletBalance} available)
                     <small style={{ display: "block", color: "#6b7280", marginLeft: 20 }}>
-                      Prepaid only — using it hides Cash on Delivery.
+                      Applies to eligible products only. Prepaid — using it disables Cash on Delivery.
                     </small>
                   </span>
                 </label>
               ) : (
                 <div className="checkout-item wallet-toggle-row" style={{ color: "#999" }}>
                   <span>
-                    Wallet balance can be used on carts of ₹{WALLET_MIN_SUBTOTAL}
-                    + only
+                    Wallet balance is not applicable — no eligible (non-dropship) products in cart.
                   </span>
                 </div>
-              ))}
+              )
+            )}
+
+            {/* Wallet info helper text — shown below wallet toggle section (especially when dropship products are in the cart or wallet is applied) */}
+            {(hasDropshipItems || useWallet || walletBalance > 0) && (
+              <div className="wallet-eligible-info">
+                <span>Wallet cash can be applied on eligible products.</span>
+              </div>
+            )}
 
             {walletDeduction > 0 && (
               <div className="checkout-item wallet-discount-row">

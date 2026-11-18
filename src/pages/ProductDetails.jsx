@@ -181,6 +181,7 @@ export default function ProductDetails({
         description: data.product.description || "",
         deliveryDate: getEstimatedDelivery(),
         marketplaceLinks: data.product.marketplaceLinks || [],
+        isDropship: Boolean(data.product.isDropship),
         specifications:
           Array.isArray(data.product.specifications)
             ? data.product.specifications.filter(
@@ -439,6 +440,12 @@ export default function ProductDetails({
 
           <h1 className="product-title">{product.name}</h1>
           <div className="brand-name">{product.brand}</div>
+
+          {!product.isDropship && (
+            <div className="wallet-redeem-badge wallet-redeem-badge--detail">
+              Wallet Redeem Product
+            </div>
+          )}
 
           <div className="rating-box">
             <div className="stars">⭐ {ratingShown.toFixed(1)}</div>

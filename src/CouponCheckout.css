@@ -224,6 +224,22 @@
   color: #7c3aed;
 }
 
+/* Info helper text below the wallet toggle — always visible when wallet is active
+   or dropship products are in the cart. */
+.wallet-eligible-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #059669;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 4px 0 8px;
+  font-weight: 500;
+}
+
 @media (max-width: 420px) {
   .checkout-coupon {
     padding: 13px;

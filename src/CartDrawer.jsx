@@ -118,6 +118,11 @@ function CartDrawer({
                   <div className="cart-item-info">
                     <p>{item.brand}</p>
                     <h3>{item.name}</h3>
+                    {!item.isDropship && !item.isFreeGift && (
+                      <span className="wallet-redeem-badge" style={{ fontSize: "9px", padding: "1px 7px", marginBottom: "4px" }}>
+                        Wallet Redeem Product
+                      </span>
+                    )}
                     <strong>₹{item.price}</strong>
 
                     <div className="quantity-row">
