@@ -356,8 +356,27 @@ function App() {
   };
 
   useEffect(() => {
-    if (checkoutOpen) setCheckoutMounted(true);
+    if (checkoutOpen) {
+      setCheckoutMounted(true);
+      if (window.history.state?.dealrootModal !== "checkout") {
+        window.history.pushState({ dealrootModal: "checkout" }, "");
+      }
+      const onPopState = () => {
+        setCheckoutOpen(false);
+      };
+      window.addEventListener("popstate", onPopState);
+      return () => {
+        window.removeEventListener("popstate", onPopState);
+      };
+    }
   }, [checkoutOpen]);
+
+  const closeCheckout = () => {
+    setCheckoutOpen(false);
+    if (window.history.state?.dealrootModal === "checkout") {
+      window.history.back();
+    }
+  };
 
   useEffect(() => {
     if (accountOpen) setAccountMounted(true);
@@ -980,7 +999,7 @@ function App() {
         <Suspense fallback={<PageLoader />}>
           <CheckoutModal
             isOpen={checkoutOpen}
-            onClose={() => setCheckoutOpen(false)}
+            onClose={closeCheckout}
             cart={cart}
             setCart={setCart}
             products={products}
@@ -999,6 +1018,7 @@ function App() {
                 currency: "INR",
               });
               setCart([]);
+              closeCheckout();
               loadProducts();
             }}
             deliveryLocation={deliveryLocation}

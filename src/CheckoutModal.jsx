@@ -160,10 +160,11 @@ const codAvailable = orderSubtotal < 499;
 // Helper to determine if a cart item is a dropship item, checking both the
 // item itself and cross-referencing the catalog products list.
 const isDropshipItem = (item) => {
-  if (item?.isDropship === true) return true;
-  if (item?.isDropship === false) return false;
-  const match = products.find(
-    (p) => String(p.id || p._id) === String(item?.id || item?._id || item?.productId)
+  if (!item) return false;
+  if (item.isDropship === true) return true;
+  if (item.isDropship === false) return false;
+  const match = (Array.isArray(products) ? products : []).find(
+    (p) => p && String(p.id || p._id) === String(item.id || item._id || item.productId)
   );
   return Boolean(match?.isDropship);
 };
@@ -295,8 +296,6 @@ useEffect(() => {
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [useWallet, paymentMethod]);
-
-  if (!isOpen) return null;
 
   // Delivery is charged on every order; there is no free-delivery threshold.
   const deliveryFee = orderSubtotal === 0 ? 0 : storeDeliveryFee;
@@ -768,6 +767,8 @@ const razorpayCheckout = new window.Razorpay({
     setPlacedTotal(null);
     onClose();
   };
+
+  if (!isOpen) return null;
 
   if (placedOrder) {
     const isOnlineOrder = placedOrder.paymentMethod === "razorpay";

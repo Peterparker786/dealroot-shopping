@@ -22,14 +22,16 @@ class AppErrorBoundary extends Component {
 
   componentDidMount() {
     window.addEventListener("popstate", this.handlePopState);
+    window.addEventListener("hashchange", this.handlePopState);
   }
 
   componentWillUnmount() {
     window.removeEventListener("popstate", this.handlePopState);
+    window.removeEventListener("hashchange", this.handlePopState);
   }
 
   handlePopState = () => {
-    // When the visitor navigates back or forward via browser history, clear
+    // When the visitor navigates back or forward via browser history or hash, clear
     // the failure state so the previous route can render fresh rather than
     // staying locked on the crash screen.
     if (this.state.failed) {
@@ -37,7 +39,8 @@ class AppErrorBoundary extends Component {
     }
   };
 
-  componentDidCatch(error) {
+  componentDidCatch(error, errorInfo) {
+    console.error("AppErrorBoundary caught error:", error, errorInfo);
     const message = String(error?.message || "");
 
     // If it's a chunk/asset load error (e.g. after a new deployment or network hiccup),

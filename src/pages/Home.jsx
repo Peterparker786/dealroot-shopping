@@ -202,6 +202,7 @@ export default function Home({
         ) : (
           <div className="products-row">
             {flashProducts.map((product) => {
+              if (!product) return null;
               const discount = product.originalPrice > product.price
                 ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
                 : 0;
@@ -311,6 +312,7 @@ export default function Home({
         ) : (
           <div className="deal-day-track">
             {dealProducts.map((product) => {
+              if (!product) return null;
               const discount = product.originalPrice > product.price
                 ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
                 : 0;
