@@ -80,7 +80,7 @@ function CheckoutModal({
   deliveryLocation,
   products = [],
 }) {
-  const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [paymentMethod, setPaymentMethod] = useState("online");
   const [placedOrder, setPlacedOrder] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReferralCode, setIsReferralCode] = useState(false);
@@ -190,7 +190,7 @@ const hasDropshipItems = useMemo(
   useEffect(() => {
     if (!isOpen) return;
 
-    setPaymentMethod(codAvailable ? "cod" : "online");
+    setPaymentMethod("online");
     setIsSubmitting(false);
     setCouponInput("");
     setAppliedCoupon("");
@@ -1059,13 +1059,23 @@ const razorpayCheckout = new window.Razorpay({
                 </p>
               )}
 
-              {codAvailable && useWallet && (
-                <p className="checkout-account-note">
-                  Wallet balance applied — this order is prepaid only, so Cash
-                  on Delivery is unavailable. Uncheck wallet balance to pay at
-                  the door instead.
-                </p>
-              )}
+              <label
+                className={`choice-card ${
+                  paymentMethod === "online" ? "selected" : ""
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  checked={paymentMethod === "online"}
+                  onChange={() => setPaymentMethod("online")}
+                />
+                <span>
+                  <b>Pay online</b>
+                  <small>UPI, debit/credit card and net banking</small>
+                </span>
+                <strong>SECURE</strong>
+              </label>
 
               {codAvailable && !useWallet && (
               <label
@@ -1087,23 +1097,13 @@ const razorpayCheckout = new window.Razorpay({
               </label>
               )}
 
-              <label
-                className={`choice-card ${
-                  paymentMethod === "online" ? "selected" : ""
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="payment"
-                  checked={paymentMethod === "online"}
-                  onChange={() => setPaymentMethod("online")}
-                />
-                <span>
-                  <b>Pay online</b>
-                  <small>UPI, debit/credit card and net banking</small>
-                </span>
-                <strong>SECURE</strong>
-              </label>
+              {codAvailable && useWallet && (
+                <p className="checkout-account-note">
+                  Wallet balance applied — this order is prepaid only, so Cash
+                  on Delivery is unavailable. Uncheck wallet balance to pay at
+                  the door instead.
+                </p>
+              )}
             </section>
           </div>
 
