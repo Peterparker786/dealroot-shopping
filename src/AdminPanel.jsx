@@ -39,6 +39,8 @@ const orderStatuses = [
   "packed",
   "shipped",
   "delivered",
+  "returned",
+  "not_delivered",
 ];
 
 const emptyForm = {
@@ -356,6 +358,14 @@ function AdminPanel({
   const [uploadingImages, setUploadingImages] = useState(false);
   const [updatingOrderId, setUpdatingOrderId] = useState("");
   const [trackingInputs, setTrackingInputs] = useState({});
+  const [returnModal, setReturnModal] = useState({
+    isOpen: false,
+    order: null,
+    status: "not_delivered",
+    reason: "",
+    restock: true,
+    saving: false,
+  });
   const [search, setSearch] = useState("");
 
   const [extractingInfo, setExtractingInfo] = useState(false);
@@ -1765,9 +1775,15 @@ function AdminPanel({
     }
   };
 
-  const updateOrderStatus = async (orderId, orderStatus) => {
+  const updateOrderStatus = async (orderId, orderStatus, extra = {}) => {
     try {
       setUpdatingOrderId(orderId);
+
+      const bodyPayload = {
+        orderStatus,
+        adminNote: extra.adminNote || "",
+        restock: extra.restock !== undefined ? extra.restock : true,
+      };
 
       const data = await request(
         `${apiUrl}/api/orders/${orderId}/status`,
@@ -1776,7 +1792,7 @@ function AdminPanel({
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ orderStatus }),
+          body: JSON.stringify(bodyPayload),
         }
       );
 
@@ -1787,10 +1803,53 @@ function AdminPanel({
       );
 
       showToast(data.message || "Order status updated");
+      return data.order;
     } catch (error) {
       showToast(error.message);
+      throw error;
     } finally {
       setUpdatingOrderId("");
+    }
+  };
+
+  const openReturnModal = (order, preferredStatus = "not_delivered") => {
+    setReturnModal({
+      isOpen: true,
+      order,
+      status: preferredStatus,
+      reason: order.adminNote || "",
+      restock: true,
+      saving: false,
+    });
+  };
+
+  const closeReturnModal = () => {
+    setReturnModal({
+      isOpen: false,
+      order: null,
+      status: "not_delivered",
+      reason: "",
+      restock: true,
+      saving: false,
+    });
+  };
+
+  const submitReturnModal = async () => {
+    if (!returnModal.order) return;
+    const orderId = returnModal.order._id;
+    const targetStatus = returnModal.status;
+    const note = (returnModal.reason || "").trim();
+    const restock = returnModal.restock;
+
+    try {
+      setReturnModal((prev) => ({ ...prev, saving: true }));
+      await updateOrderStatus(orderId, targetStatus, {
+        adminNote: note,
+        restock,
+      });
+      closeReturnModal();
+    } catch {
+      setReturnModal((prev) => ({ ...prev, saving: false }));
     }
   };
 
@@ -2665,7 +2724,10 @@ function AdminPanel({
   );
 
   const pendingOrders = orders.filter(
-    (order) => !["delivered", "cancelled"].includes(order.orderStatus)
+    (order) =>
+      !["delivered", "cancelled", "returned", "not_delivered"].includes(
+        order.orderStatus
+      )
   ).length;
 
   const pendingReturns = returns.filter(
@@ -2801,6 +2863,8 @@ function AdminPanel({
       shipped: "status-shipped",
       delivered: "status-delivered",
       cancelled: "status-cancelled",
+      returned: "status-returned",
+      not_delivered: "status-not_delivered",
     };
 
     return map[status] || "status-placed";
@@ -4539,21 +4603,111 @@ function AdminPanel({
                                   <select
                                     value={order.orderStatus}
                                     disabled={updatingOrderId === order._id}
-                                    onChange={(event) =>
-                                      updateOrderStatus(
-                                        order._id,
-                                        event.target.value
-                                      )
-                                    }
+                                    onChange={(event) => {
+                                      const val = event.target.value;
+                                      if (
+                                        val === "not_delivered" ||
+                                        val === "returned"
+                                      ) {
+                                        openReturnModal(order, val);
+                                      } else {
+                                        updateOrderStatus(order._id, val);
+                                      }
+                                    }}
                                   >
                                     {orderStatuses.map((status) => (
                                       <option key={status} value={status}>
-                                        {status[0].toUpperCase() + status.slice(1)}
+                                        {status === "not_delivered"
+                                          ? "📦❌ Not Delivered"
+                                          : status === "returned"
+                                          ? "↩️ Returned"
+                                          : status[0].toUpperCase() +
+                                            status.slice(1)}
                                       </option>
                                     ))}
                                   </select>
 
-                                  {!["shipped", "delivered"].includes(
+                                  {/* Return / Not Delivered indicators or quick buttons */}
+                                  {order.orderStatus === "not_delivered" && (
+                                    <div className="status-note-badge not-delivered-note">
+                                      <span>
+                                        📦❌ Not Delivered
+                                        {order.stockRestored
+                                          ? " · Stock restored"
+                                          : ""}
+                                      </span>
+                                      {order.adminNote && (
+                                        <small title={order.adminNote}>
+                                          Reason: {order.adminNote}
+                                        </small>
+                                      )}
+                                      <button
+                                        type="button"
+                                        className="edit-reason-link"
+                                        onClick={() =>
+                                          openReturnModal(order, "not_delivered")
+                                        }
+                                      >
+                                        Edit reason / Resend email
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {order.orderStatus === "returned" && (
+                                    <div className="status-note-badge returned-note">
+                                      <span>
+                                        ↩️ Returned
+                                        {order.stockRestored
+                                          ? " · Stock restored"
+                                          : ""}
+                                      </span>
+                                      {order.adminNote && (
+                                        <small title={order.adminNote}>
+                                          Reason: {order.adminNote}
+                                        </small>
+                                      )}
+                                      <button
+                                        type="button"
+                                        className="edit-reason-link"
+                                        onClick={() =>
+                                          openReturnModal(order, "returned")
+                                        }
+                                      >
+                                        Edit reason / Resend email
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {!["returned", "not_delivered"].includes(
+                                    order.orderStatus
+                                  ) && (
+                                    <div className="return-quick-actions">
+                                      <button
+                                        type="button"
+                                        className="quick-action-btn not-delivered-btn"
+                                        disabled={updatingOrderId === order._id}
+                                        onClick={() =>
+                                          openReturnModal(order, "not_delivered")
+                                        }
+                                        title="Customer didn't pick up / Parcel returned to origin"
+                                      >
+                                        📦❌ Not Delivered
+                                      </button>
+                                      <button
+                                        type="button"
+                                        className="quick-action-btn returned-btn"
+                                        disabled={updatingOrderId === order._id}
+                                        onClick={() =>
+                                          openReturnModal(order, "returned")
+                                        }
+                                        title="Customer returned parcel"
+                                      >
+                                        ↩️ Returned
+                                      </button>
+                                    </div>
+                                  )}
+
+                                  {!["shipped", "delivered", "returned", "not_delivered"].includes(
                                     order.orderStatus
                                   ) && (
                                     <button
@@ -7818,6 +7972,181 @@ function AdminPanel({
                 src={tryoutImagePreview.url}
                 alt={tryoutImagePreview.name}
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ===================== RETURN / NOT DELIVERED MODAL ===================== */}
+      {returnModal.isOpen && returnModal.order && (
+        <div className="admin-modal-overlay" onClick={closeReturnModal}>
+          <div
+            className="admin-modal-card return-reason-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="admin-modal-header">
+              <div>
+                <h3>
+                  {returnModal.status === "not_delivered"
+                    ? "📦❌ Mark as Not Delivered (RTO)"
+                    : "↩️ Mark as Returned"}
+                </h3>
+                <p>
+                  Order #{returnModal.order.orderNumber} · Customer:{" "}
+                  <b>{returnModal.order.customer?.name}</b> (
+                  {returnModal.order.customer?.phone || "No phone"})
+                </p>
+              </div>
+              <button
+                type="button"
+                className="admin-modal-close"
+                onClick={closeReturnModal}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="admin-modal-body">
+              {/* Status toggle buttons */}
+              <div className="return-type-selector">
+                <button
+                  type="button"
+                  className={`return-type-pill ${
+                    returnModal.status === "not_delivered"
+                      ? "active not-delivered"
+                      : ""
+                  }`}
+                  onClick={() =>
+                    setReturnModal((prev) => ({
+                      ...prev,
+                      status: "not_delivered",
+                      restock: true,
+                    }))
+                  }
+                >
+                  📦❌ Not Delivered (Phone unreachable / RTO)
+                </button>
+                <button
+                  type="button"
+                  className={`return-type-pill ${
+                    returnModal.status === "returned" ? "active returned" : ""
+                  }`}
+                  onClick={() =>
+                    setReturnModal((prev) => ({
+                      ...prev,
+                      status: "returned",
+                    }))
+                  }
+                >
+                  ↩️ Returned (Parcel received back)
+                </button>
+              </div>
+
+              {/* Quick reason suggestions */}
+              <div className="reason-chips-section">
+                <label>Quick Select Reason / Reason Chunein:</label>
+                <div className="reason-chips">
+                  {[
+                    "Customer didn't answer calls / Phone unreachable after multiple attempts",
+                    "Customer refused delivery at doorstep",
+                    "Address incorrect or incomplete / Pincode mismatch",
+                    "Customer was unavailable / Door was locked",
+                    "Customer requested cancellation / Rescheduled multiple times",
+                  ].map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      className="reason-chip-btn"
+                      onClick={() =>
+                        setReturnModal((prev) => ({
+                          ...prev,
+                          reason: chip,
+                        }))
+                      }
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reason textarea */}
+              <div className="return-textarea-group">
+                <label htmlFor="adminReturnReason">
+                  Message / Reason for Customer (Email me send hoga) *
+                </label>
+                <textarea
+                  id="adminReturnReason"
+                  rows={4}
+                  placeholder="Reason type karein jo customer ki email pe jaega (e.g. Delivery partner attempted delivery but phone was unreachable. Parcel returned to warehouse.)..."
+                  value={returnModal.reason}
+                  onChange={(e) =>
+                    setReturnModal((prev) => ({
+                      ...prev,
+                      reason: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              {/* Restock notice / checkbox */}
+              <div className="return-restock-box">
+                <label className="restock-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={returnModal.restock}
+                    disabled={returnModal.order.stockRestored}
+                    onChange={(e) =>
+                      setReturnModal((prev) => ({
+                        ...prev,
+                        restock: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span>
+                    <strong>
+                      {returnModal.order.stockRestored
+                        ? "Stock pehle hi restore ho chuka hai (Already Restored)"
+                        : returnModal.status === "not_delivered"
+                        ? "✅ Automatic Restock Products (Products wapas stock me add ho jayenge)"
+                        : "✅ Restock Products (Inventory me stock restore karein)"}
+                    </strong>
+                  </span>
+                </label>
+                {!returnModal.order.stockRestored &&
+                  returnModal.order.items?.length > 0 && (
+                    <div className="restock-items-preview">
+                      Restock items:{" "}
+                      {returnModal.order.items
+                        .map(
+                          (i) =>
+                            `${i.title || "Product"} (${i.quantity || 1} qty)`
+                        )
+                        .join(", ")}
+                    </div>
+                  )}
+              </div>
+            </div>
+
+            <div className="admin-modal-footer">
+              <button
+                type="button"
+                className="btn-modal-cancel"
+                onClick={closeReturnModal}
+                disabled={returnModal.saving}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="btn-modal-save"
+                onClick={submitReturnModal}
+                disabled={returnModal.saving}
+              >
+                {returnModal.saving
+                  ? "Saving & Sending Email..."
+                  : "Save & Send Email to Customer"}
+              </button>
             </div>
           </div>
         </div>

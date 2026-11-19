@@ -108,6 +108,28 @@ function orderTimelineSteps(order) {
       date: cancelEntry?.at || order?.cancelledAt || "",
       cancelled: true,
     });
+  } else if (status === "not_delivered") {
+    const undeliveredEntry = history.find(
+      (item) => item.status === "not_delivered"
+    );
+
+    steps.push({
+      key: "not_delivered",
+      label: "Not Delivered",
+      done: false,
+      date: undeliveredEntry?.at || order?.updatedAt || "",
+      cancelled: true,
+    });
+  } else if (status === "returned") {
+    const returnedEntry = history.find((item) => item.status === "returned");
+
+    steps.push({
+      key: "returned",
+      label: "Returned",
+      done: false,
+      date: returnedEntry?.at || order?.updatedAt || "",
+      cancelled: true,
+    });
   }
 
   return steps;
@@ -1357,8 +1379,11 @@ export default function AccountModal({
     showToast?.("Logged out successfully");
   };
 
-  const statusLabel = (status = "placed") =>
-    status.charAt(0).toUpperCase() + status.slice(1);
+  const statusLabel = (status = "placed") => {
+    if (status === "not_delivered") return "Not Delivered";
+    if (status === "returned") return "Returned";
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
 
   const handleCopyTilt = (event) => {
     const el = event.currentTarget;
@@ -2677,6 +2702,19 @@ export default function AccountModal({
 
                           <OrderTimeline order={order} />
 
+                          {(order.orderStatus === "not_delivered" ||
+                            order.orderStatus === "returned") &&
+                            order.adminNote && (
+                              <div className="order-delivery-notice">
+                                <b>
+                                  {order.orderStatus === "not_delivered"
+                                    ? "📦 Delivery Update (Not Delivered)"
+                                    : "↩️ Return Update"}
+                                </b>
+                                <p>{order.adminNote}</p>
+                              </div>
+                            )}
+
                           {order.trackingLink && (
                             <a
                               className="order-tracking-btn"
@@ -2738,6 +2776,19 @@ export default function AccountModal({
                                         returnInfo.refundAmount || 0
                                       } will be sent to your UPI`
                                     : "❌ Return request was not approved"}
+                                </div>
+                              );
+                            }
+
+                            if (
+                              order.orderStatus === "returned" ||
+                              order.orderStatus === "not_delivered"
+                            ) {
+                              return (
+                                <div className="return-status return-expired">
+                                  {order.orderStatus === "not_delivered"
+                                    ? "📦 Order could not be delivered — returned to origin"
+                                    : "↩️ Order was returned to warehouse"}
                                 </div>
                               );
                             }

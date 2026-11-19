@@ -482,6 +482,41 @@
   color: #bd3c4d;
 }
 
+.status-returned {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.status-not_delivered {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.order-delivery-notice {
+  margin: 12px 16px 4px;
+  padding: 10px 14px;
+  background: #fff8e6;
+  border-left: 3px solid #f59e0b;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.order-delivery-notice b {
+  display: block;
+  font-size: 12px;
+  color: #b45309;
+  margin-bottom: 3px;
+  letter-spacing: 0.2px;
+}
+
+.order-delivery-notice p {
+  margin: 0;
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.45;
+  font-weight: 500;
+}
+
 .history-items {
   display: grid;
   gap: 10px;
