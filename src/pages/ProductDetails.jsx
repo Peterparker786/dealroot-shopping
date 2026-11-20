@@ -628,25 +628,6 @@ export default function ProductDetails({
             </AmazonAccordion>
           )}
 
-          {product.marketplaceLinks.length > 0 && (
-            <div className="marketplace-links">
-              <span className="marketplace-label">Compare prices</span>
-              <div className="marketplace-grid">
-                {product.marketplaceLinks.map((link) => (
-                  <a
-                    key={link.platform}
-                    href={link.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="marketplace-btn"
-                  >
-                    <span>{link.platform}</span>
-                    <span>↗</span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
         </motion.div>
 
         {/* Customer Reviews */}
