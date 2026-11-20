@@ -7378,7 +7378,7 @@ function AdminPanel({
                                             </div>
                                           </div>
                                           <small style={{ display: "block", color: "#999", marginTop: 6 }}>
-                                            Whoever this account is linked to ("Referred by") automatically earns 50% of every order this account places as wallet cashback once delivered — this account itself earns nothing from the link. The link is permanent once the customer applies a code from their profile, but admin can assign or clear it here.
+                                            Whoever this account is linked to ("Referred by") automatically earns 10% of every order this account places as wallet cashback once delivered — this account itself earns nothing from the link. The link is permanent once the customer applies a code from their profile, but admin can assign or clear it here.
                                           </small>
                                         </div>
 

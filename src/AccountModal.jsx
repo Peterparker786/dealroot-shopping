@@ -816,7 +816,7 @@ export default function AccountModal({
 
   // Personal referral program — apply a friend's code once, permanently
   // linking this account to them (see /api/auth/apply-referral). After this,
-  // every order placed automatically earns the friend 50% cashback on
+  // every order placed automatically earns the friend 10% cashback on
   // delivery; this account itself earns nothing from the link (only from
   // applying an actual coupon code at checkout, a separate feature).
   const applyReferralCode = async () => {
@@ -2200,7 +2200,7 @@ export default function AccountModal({
                   </h3>
                   <p style={{ fontSize: 13, color: "#555", lineHeight: 1.6, margin: "0 0 14px" }}>
                     Share your code with a friend. Once they apply it below (a
-                    one-time, permanent link), you'll automatically earn 50%
+                    one-time, permanent link), you'll automatically earn 10%
                     of every order they place as wallet cashback, as soon as
                     it's delivered — no action needed from you after that.
                   </p>
@@ -2240,7 +2240,7 @@ export default function AccountModal({
                       <p style={{ fontSize: 13, color: "#333", margin: 0 }}>
                         ✓ Your account is linked to referral code{" "}
                         <strong style={{ color: "#7c3aed" }}>{user.referredByCode}</strong>.
-                        That friend earns 50% cashback on every order you place, once delivered.
+                        That friend earns 10% cashback on every order you place, once delivered.
                       </p>
                     ) : (
                       <>
