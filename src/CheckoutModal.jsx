@@ -389,6 +389,9 @@ const finalRemainingCod = Math.max(0, remainingCod);
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        // The token lets the backend check this customer's own usage limit
+        // now, instead of failing later at Place Order.
+        ...(userToken ? { Authorization: `Bearer ${userToken}` } : {}),
       },
       body: JSON.stringify({
         code,
