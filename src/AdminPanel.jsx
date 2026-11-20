@@ -58,6 +58,7 @@ const emptyForm = {
   badge: "",
   stock: "10",
   isFeatured: false,
+  freeDelivery: false,
   dealType: "none",
   amazonLink: "",
   flipkartLink: "",
@@ -1416,6 +1417,7 @@ function AdminPanel({
       badge: product.badge || "",
       stock: String(product.stock ?? 0),
       isFeatured: Boolean(product.isFeatured),
+      freeDelivery: Boolean(product.freeDelivery),
       dealType: product.dealType || "none",
 
       amazonLink:
@@ -3570,6 +3572,17 @@ function AdminPanel({
                         onChange={updateForm}
                       />
                       Show as featured product
+                    </label>
+
+                    <label className="featured-check">
+                      <input
+                        name="freeDelivery"
+                        type="checkbox"
+                        checked={form.freeDelivery}
+                        onChange={updateForm}
+                      />
+                      Free delivery on this product (no delivery charge when
+                      the cart has only free-delivery items)
                     </label>
 
                     <label className="full-field">

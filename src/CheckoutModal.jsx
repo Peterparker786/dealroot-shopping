@@ -298,7 +298,14 @@ useEffect(() => {
 }, [useWallet, paymentMethod]);
 
   // Delivery is charged on every order; there is no free-delivery threshold.
-  const deliveryFee = orderSubtotal === 0 ? 0 : storeDeliveryFee;
+  // A cart made up only of free-delivery products ships free; a mixed cart is
+  // still charged the store-wide fee once.
+  const paidCartItems = cart.filter((item) => !item.isFreeGift);
+  const cartShipsFree =
+    paidCartItems.length > 0 &&
+    paidCartItems.every((item) => item.freeDelivery === true);
+  const deliveryFee =
+    orderSubtotal === 0 || cartShipsFree ? 0 : storeDeliveryFee;
   const deliveryLabel = deliveryFee === 0 ? "FREE" : `₹${deliveryFee}`;
 // Coupons no longer take money off at checkout — the customer always pays
 // the full price, and this amount is instead credited to their wallet as

@@ -529,6 +529,7 @@ function App() {
         badge: product.badge || "",
         dealType: product.dealType || "none",
         tryoutOnly: Boolean(product.tryoutOnly),
+        freeDelivery: Boolean(product.freeDelivery),
         isDropship: Boolean(product.isDropship),
         image: product.images?.[0] || product.image || fallbackImage,
         stock: product.stock,
