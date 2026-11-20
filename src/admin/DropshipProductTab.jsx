@@ -11,7 +11,7 @@ import { optimizeImage } from "../utils/cloudinary";
 
 // Marketplace choices for the source link. Kept in one place so the dropdown,
 // the badge and the backend enum always agree.
-const PLATFORMS = ["Amazon", "Flipkart", "Meesho", "DigiHaat"];
+const PLATFORMS = ["Amazon", "Flipkart", "Shopsy", "Meesho", "DigiHaat"];
 
 // Mirrors the backend's own URL -> platform mapping so the dropdown picks the
 // same marketplace the scraper will actually use for this link.
@@ -34,6 +34,8 @@ const platformForUrl = (url) => {
     return "Amazon";
   }
   if (host.includes("flipkart") || /(^|\.)fkrt\.it$/.test(host)) return "Flipkart";
+  // Shopsy is Flipkart's value marketplace on its own domain.
+  if (host.includes("shopsy")) return "Shopsy";
   if (host.includes("meesho")) return "Meesho";
   if (host.includes("digihaat") || host.includes("digihat")) return "DigiHaat";
   return "";
@@ -349,7 +351,9 @@ function DropshipProductTab({ apiUrl, token, request, showToast, categories }) {
     }
 
     if (!platformForUrl(url)) {
-      showToast("Sirf Amazon / Flipkart / Meesho / DigiHaat link support hota hai");
+      showToast(
+        "Sirf Amazon / Flipkart / Shopsy / Meesho / DigiHaat link support hota hai"
+      );
       return;
     }
 
