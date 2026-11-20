@@ -894,8 +894,11 @@ function App() {
       .then((data) => {
         if (!active || !data?.success) return;
 
+        const nextDeliveryFee = Number(data.deliveryFee);
+
         setStoreSettings({
-          deliveryFee: Number(data.deliveryFee) || 59,
+          // ₹0 is a real value (free delivery is on) — `|| 59` would undo it.
+          deliveryFee: Number.isFinite(nextDeliveryFee) ? nextDeliveryFee : 59,
           freeDeliveryThreshold: Number(data.freeDeliveryThreshold) || 499,
         });
       })

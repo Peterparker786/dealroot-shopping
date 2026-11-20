@@ -658,6 +658,15 @@ const orderPayload = {
         );
       }
 
+      // Free delivery + Cash on Delivery leaves nothing to pay online, so the
+      // backend creates the order directly and returns it — no Razorpay window.
+      if (createData.order) {
+        completeOrder(createData.order);
+        setIsSubmitting(false);
+        showToast?.("Order placed! Pay the balance at delivery.");
+        return;
+      }
+
       let paymentHandled = false;
 
 const razorpayCheckout = new window.Razorpay({
@@ -1332,7 +1341,9 @@ const razorpayCheckout = new window.Razorpay({
 {paymentMethod === "cod" && (
   <div className="checkout-item cod-info">
     <span>
-      ₹{payableNow} delivery charge paid now online.
+      {payableNow > 0
+        ? `₹${payableNow} delivery charge paid now online.`
+        : "Free delivery on this order — nothing to pay now."}
       ₹{finalRemainingCod} collected at doorstep.
       {walletDeduction > 0 && ` (₹${walletDeduction} wallet balance applied)`}
     </span>
@@ -1357,7 +1368,9 @@ const razorpayCheckout = new window.Razorpay({
                   : "Placing order..."
                 : paymentMethod === "online"
                 ? `Pay ₹${payableNow} securely`
-                : `Pay ₹${payableNow} & Confirm COD`}
+                : payableNow > 0
+                ? `Pay ₹${payableNow} & Confirm COD`
+                : `Confirm COD — pay ₹${finalRemainingCod} at delivery`}
             </button>
 
             <small>

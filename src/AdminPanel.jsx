@@ -385,6 +385,7 @@ function AdminPanel({
   // an admin is signed in so the Settings form and the tryout refund default
   // both show what the backend actually charges.
   const [storeDeliveryFee, setStoreDeliveryFee] = useState(59);
+  const [storeFreeDelivery, setStoreFreeDelivery] = useState(false);
   const [storeFreeDeliveryThreshold, setStoreFreeDeliveryThreshold] =
     useState(499);
   const [deliveryFeeDraft, setDeliveryFeeDraft] = useState("");
@@ -470,6 +471,7 @@ function AdminPanel({
         if (!active || !data.success) return;
 
         setStoreDeliveryFee(data.deliveryFee);
+        setStoreFreeDelivery(Boolean(data.freeDelivery));
         setStoreFreeDeliveryThreshold(data.freeDeliveryThreshold || 499);
         setDeliveryFeeDraft(String(data.deliveryFee));
       } catch {
@@ -487,8 +489,13 @@ function AdminPanel({
 
     const value = Number(deliveryFeeDraft);
 
-    if (!Number.isInteger(value) || value < 1 || value > 1000) {
-      showToast("Delivery charge must be a whole number between ₹1 and ₹1000");
+    if (
+      !storeFreeDelivery &&
+      (!Number.isInteger(value) || value < 1 || value > 1000)
+    ) {
+      showToast(
+        "Delivery charge must be a whole number between ₹1 and ₹1000, or tick free delivery"
+      );
       return;
     }
 
@@ -497,10 +504,13 @@ function AdminPanel({
 
       const data = await request(`${apiUrl}/api/admin/store-settings`, {
         method: "PUT",
-        body: JSON.stringify({ deliveryFee: value }),
+        body: JSON.stringify(
+          storeFreeDelivery ? { freeDelivery: true } : { deliveryFee: value }
+        ),
       });
 
       setStoreDeliveryFee(data.deliveryFee);
+      setStoreFreeDelivery(Boolean(data.freeDelivery));
       setStoreFreeDeliveryThreshold(data.freeDeliveryThreshold || 499);
       setDeliveryFeeDraft(String(data.deliveryFee));
       showToast(data.message || "Delivery charge updated");
@@ -7004,6 +7014,19 @@ function AdminPanel({
 
               <section className="admin-form-card">
                 <form className="admin-mini-form" onSubmit={saveDeliveryFee}>
+                  <label
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={storeFreeDelivery}
+                      onChange={(event) =>
+                        setStoreFreeDelivery(event.target.checked)
+                      }
+                    />
+                    Free delivery — charge ₹0 on every order
+                  </label>
+
                   <label>
                     Delivery charge (₹)
                     <input
@@ -7012,6 +7035,7 @@ function AdminPanel({
                       max="1000"
                       step="1"
                       value={deliveryFeeDraft}
+                      disabled={storeFreeDelivery}
                       onChange={(event) =>
                         setDeliveryFeeDraft(event.target.value)
                       }
@@ -7019,13 +7043,20 @@ function AdminPanel({
                   </label>
 
                   <div className="coupon-mode-hint">
-                    Currently charging <b>₹{storeDeliveryFee}</b> on every
-                    order below ₹{storeFreeDeliveryThreshold} — applied
-                    automatically at online checkout, on the COD
-                    delivery-charge payment and on orders created from this
-                    panel. Orders of ₹{storeFreeDeliveryThreshold} or more
-                    always ship free (and Cash on Delivery stops being offered
-                    at that amount).
+                    {storeFreeDelivery ? (
+                      <>
+                        <b>Free delivery is ON.</b> No delivery charge is added
+                        to any order, and Cash on Delivery orders need no online
+                        payment at all.
+                      </>
+                    ) : (
+                      <>
+                        Currently charging <b>₹{storeDeliveryFee}</b> on every
+                        order — applied automatically at online checkout, on the
+                        COD delivery-charge payment and on orders created from
+                        this panel.
+                      </>
+                    )}
                   </div>
 
                   <div className="coupon-form-actions">
