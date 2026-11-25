@@ -1812,21 +1812,21 @@ export default function AccountModal({
                 </div>
               </div>
 
-              {user.walletBalance > 0 && (
-                <div
-                  className="account-user-card"
-                  style={{ background: "#f5f3ff", marginTop: 8 }}
-                >
-                  <div>
-                    <small style={{ color: "#7c3aed", fontWeight: 600 }}>
-                      WALLET BALANCE
-                    </small>
-                    <b style={{ color: "#7c3aed", fontSize: 18 }}>
-                      ₹{user.walletBalance.toLocaleString("en-IN")}
-                    </b>
-                  </div>
+              {/* Always visible: a ₹0 balance is still the customer's wallet,
+                  and hiding it made people think the wallet didn't exist. */}
+              <div
+                className="account-user-card"
+                style={{ background: "#f5f3ff", marginTop: 8 }}
+              >
+                <div>
+                  <small style={{ color: "#7c3aed", fontWeight: 600 }}>
+                    WALLET BALANCE
+                  </small>
+                  <b style={{ color: "#7c3aed", fontSize: 18 }}>
+                    ₹{Number(user.walletBalance || 0).toLocaleString("en-IN")}
+                  </b>
                 </div>
-              )}
+              </div>
 
               <button
                 type="button"
