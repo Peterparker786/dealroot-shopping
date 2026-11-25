@@ -47,54 +47,10 @@ export default function Home({
 
   const formatTime = (n) => String(n).padStart(2, "0");
 
-  // ---------- Dealroot Tryouts ----------
-  // Status: loading | none | pending | approved | rejected | disqualified
-  const [tryoutStatus, setTryoutStatus] = useState("loading");
-
-  const tryoutApproved = tryoutStatus === "approved";
-
-  // Tryout-exclusive products never appear on the storefront home page — not
-  // even for approved members. They live only in the Tryout dashboard/pages,
-  // so the public sections (Flash Deals, Deal of the Day, product grid) all
-  // read from this filtered list.
-  const storefrontProducts = (filteredProducts || []).filter((p) => p && !p.tryoutOnly);
+  // The Tryout program is discontinued — the storefront shows the full
+  // catalogue.
+  const storefrontProducts = (filteredProducts || []).filter(Boolean);
   const shopProducts = storefrontProducts;
-
-  useEffect(() => {
-    if (!user || !userToken) {
-      setTryoutStatus("none");
-      return undefined;
-    }
-
-    let requestCancelled = false;
-
-    const loadTryoutStatus = async () => {
-      try {
-        const response = await fetch(`${apiUrl}/api/tryouts/my`, {
-          headers: {
-            Authorization: `Bearer ${userToken}`,
-          },
-        });
-        const data = await response.json();
-
-        if (!requestCancelled) {
-          setTryoutStatus(
-            data.application ? data.application.status : "none"
-          );
-        }
-      } catch {
-        if (!requestCancelled) {
-          setTryoutStatus("none");
-        }
-      }
-    };
-
-    loadTryoutStatus();
-
-    return () => {
-      requestCancelled = true;
-    };
-  }, [apiUrl, user, userToken]);
 
   // Flash Deals shows the same products as the ₹99 collection — only items
   // priced at ₹99 or less, or explicitly marked as a ₹99 deal.
@@ -106,7 +62,7 @@ export default function Home({
   // marked as a ₹199 deal — anything above ₹199 never appears here.
   const dealProducts = useMemo(() => {
     const pool = Array.isArray(products) && products.length ? products : (filteredProducts || []);
-    const shopPool = pool.filter((p) => p && !p.tryoutOnly);
+    const shopPool = pool.filter(Boolean);
 
     return [...shopPool]
       .filter(
@@ -477,30 +433,6 @@ export default function Home({
             No products found. Try another search or category.
           </div>
         )}
-      </section>
-
-      {/* Dealroot Tryouts — teaser */}
-      <section className="section tryout-section tryout-teaser-section" id="tryouts">
-        <div className="tryout-pills">
-          <span className="tryout-pill">✦ WELCOME TO</span>
-          <span className="tryout-pill tryout-pill-main">DEALROOT TESTERS COMMUNITY</span>
-          <span className="tryout-pill">Products Free or Upto 90% Off</span>
-        </div>
-
-        <Link to="/tryouts" className="tryout-teaser">
-          <span className="tryout-teaser-emoji">🛍️</span>
-          <div className="tryout-teaser-copy">
-            <b>Tryout deals</b>
-            <p>
-              {tryoutApproved
-                ? "Your deals are unlocked — shop below!"
-                : "New exclusive member products will appear here shortly."}
-            </p>
-          </div>
-          <span className="tryout-teaser-cta">
-            {tryoutApproved ? "View your deals →" : "Explore Tryout deals →"}
-          </span>
-        </Link>
       </section>
 
       {/* Recently Viewed */}

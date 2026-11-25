@@ -119,10 +119,6 @@ const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
 const Terms = lazyWithRetry(() => import("./pages/Terms"));
 const ShippingPolicy = lazyWithRetry(() => import("./pages/ShippingPolicy"));
 const RefundPolicy = lazyWithRetry(() => import("./pages/RefundPolicy"));
-const TryoutPolicy = lazyWithRetry(() => import("./pages/TryoutPolicy"));
-const Tryouts = lazyWithRetry(() => import("./pages/Tryouts"));
-const TryoutDashboard = lazyWithRetry(() => import("./pages/TryoutDashboard"));
-const TryoutOffers = lazyWithRetry(() => import("./pages/TryoutOffers"));
 const ProductDetails = lazyWithRetry(() => import("./pages/ProductDetails"));
 const CheckoutModal = lazyWithRetry(() => import("./CheckoutModal"));
 const AdminPanel = lazyWithRetry(() => import("./AdminPanel"));
@@ -508,8 +504,7 @@ function App() {
       }
 
       const query = params.toString();
-      // Keep signed-in and guest results in separate cache buckets so a member
-      // never gets the guest list (which has no Tryout products) from cache.
+      // Keep signed-in and guest results in separate cache buckets.
       const cacheKey = `dealroot_products_${userToken ? "member" : "guest"}_${query || "all"}`;
       const cachedRaw = localStorage.getItem(cacheKey);
 
@@ -534,8 +529,7 @@ function App() {
         `${API_URL}/api/products${query ? `?${query}` : ""}`,
         {
           // Signed-in members must bypass the browser HTTP cache: the guest
-          // response is cached as "public", so reusing it after login would
-          // hide Tryout-exclusive products.
+          // response is cached as "public".
           cache: userToken ? "no-store" : "default",
           headers: userToken
             ? { Authorization: `Bearer ${userToken}` }
@@ -549,7 +543,11 @@ function App() {
         throw new Error(data.message || "Products could not be loaded");
       }
 
-      const mapped = (data.products || []).map((product) => ({
+      // The Tryout program is discontinued — hide any leftover Tryout-only
+      // products so they can never reappear in the storefront catalogue.
+      const mapped = (data.products || [])
+        .filter((product) => !product.tryoutOnly)
+        .map((product) => ({
         id: product._id,
         brand: product.brand,
         name: product.title,
@@ -560,7 +558,6 @@ function App() {
         reviews: Number(product.reviews || 0).toLocaleString("en-IN"),
         badge: product.badge || "",
         dealType: product.dealType || "none",
-        tryoutOnly: Boolean(product.tryoutOnly),
         freeDelivery: Boolean(product.freeDelivery),
         isDropship: Boolean(product.isDropship),
         image: product.images?.[0] || product.image || fallbackImage,
@@ -1154,51 +1151,6 @@ function App() {
   <Route path="/terms" element={<Terms />} />
   <Route path="/shipping" element={<ShippingPolicy />} />
   <Route path="/refund" element={<RefundPolicy />} />
-  <Route path="/tryout-policy" element={<TryoutPolicy />} />
-  <Route
-    path="/tryouts"
-    element={
-      <Tryouts
-        fallbackImage={fallbackImage}
-        filteredProducts={filteredProducts}
-        products={products}
-        addToCart={addToCart}
-        user={user}
-        userToken={userToken}
-        apiUrl={API_URL}
-        setAccountOpen={setAccountOpen}
-      />
-    }
-  />
-  <Route
-    path="/tryouts/dashboard"
-    element={
-      <TryoutDashboard
-        products={products}
-        filteredProducts={filteredProducts}
-        user={user}
-        userToken={userToken}
-        apiUrl={API_URL}
-        setAccountOpen={setAccountOpen}
-        showToast={showToast}
-      />
-    }
-  />
-  <Route
-    path="/tryouts/offers"
-    element={
-      <TryoutOffers
-        fallbackImage={fallbackImage}
-        filteredProducts={filteredProducts}
-        products={products}
-        addToCart={addToCart}
-        user={user}
-        userToken={userToken}
-        apiUrl={API_URL}
-        setAccountOpen={setAccountOpen}
-      />
-    }
-  />
   <Route
   path="/product/:id"
   element={
