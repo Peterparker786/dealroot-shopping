@@ -1180,6 +1180,7 @@ function App() {
         userToken={userToken}
         apiUrl={API_URL}
         setAccountOpen={setAccountOpen}
+        showToast={showToast}
       />
     }
   />

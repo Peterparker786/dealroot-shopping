@@ -456,14 +456,6 @@ export default function AccountModal({
       setSecSubmitting(false);
       setSecError("");
       setSecFieldErrors({});
-      setReturnOrderId(null);
-      setReturnReason("");
-      setReturnDescription("");
-      setReturnImages([]);
-      setReturnVideo(null);
-      setReturnUpi("");
-      setReturnErrors({});
-      setReturnConfirm(false);
       return undefined;
     }
 

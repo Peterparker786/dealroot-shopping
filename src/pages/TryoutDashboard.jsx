@@ -17,6 +17,7 @@ export default function TryoutDashboard({
   products,
   filteredProducts,
   setAccountOpen,
+  showToast,
 }) {
   const navigate = useNavigate();
   const [tryoutStatus, setTryoutStatus] = useState("loading");
