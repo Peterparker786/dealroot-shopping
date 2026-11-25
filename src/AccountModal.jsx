@@ -1707,10 +1707,23 @@ export default function AccountModal({
               </div>
 
               {/* Always visible: a ₹0 balance is still the customer's wallet,
-                  and hiding it made people think the wallet didn't exist. */}
-              <div
-                className="account-user-card"
-                style={{ background: "#f5f3ff", marginTop: 8 }}
+                  and hiding it made people think the wallet didn't exist. It
+                  opens the wallet tab so the history is one tap away. */}
+              <button
+                type="button"
+                className="account-user-card account-wallet-card"
+                style={{
+                  background: tab === "wallet" ? "#ede9fe" : "#f5f3ff",
+                  marginTop: 8,
+                  width: "100%",
+                  border: "none",
+                  cursor: "pointer",
+                  textAlign: "left",
+                  font: "inherit",
+                  color: "inherit",
+                }}
+                onClick={() => setTab("wallet")}
+                aria-label="Open wallet balance and history"
               >
                 <div>
                   <small style={{ color: "#7c3aed", fontWeight: 600 }}>
@@ -1719,8 +1732,19 @@ export default function AccountModal({
                   <b style={{ color: "#7c3aed", fontSize: 18 }}>
                     ₹{Number(user.walletBalance || 0).toLocaleString("en-IN")}
                   </b>
+                  <small
+                    style={{
+                      display: "block",
+                      marginTop: 2,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      color: "#7c3aed",
+                    }}
+                  >
+                    View history →
+                  </small>
                 </div>
-              </div>
+              </button>
 
               <button
                 type="button"
