@@ -4583,9 +4583,24 @@ function AdminPanel({
 
                             <td data-label="Amount">
                               <b>₹{order.totalAmount}</b>
-                              {Number(order.deliveryFee) > 0 && (
-                                <small>Delivery: ₹{order.deliveryFee}</small>
+                              <small>
+                                Delivery: ₹{Number(order.deliveryFee) || 0}
+                              </small>
+                              {Number(order.walletUsed) > 0 && (
+                                <small
+                                  style={{ color: "#7c3aed", fontWeight: 600 }}
+                                >
+                                  🪙 Wallet applied: ₹{order.walletUsed}
+                                  {order.customer?.name
+                                    ? ` — ${order.customer.name}`
+                                    : ""}
+                                </small>
                               )}
+                              <small
+                                style={{ color: "#b45309", fontWeight: 600 }}
+                              >
+                                Balance due: ₹{Number(order.codAmount) || 0}
+                              </small>
                               {Number(order.discountAmount) > 0 && (
                                 <small style={{ color: "#7c3aed", fontWeight: 600 }}>
                                   Code: {order.couponCode || "—"} · Cashback ₹
