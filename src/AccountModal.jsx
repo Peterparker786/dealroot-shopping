@@ -419,7 +419,11 @@ export default function AccountModal({
 
     // Sync the address book. Seed it from the legacy flat address the first
     // time (users who saved a single address before this feature existed).
-    const list = Array.isArray(user.addresses) ? user.addresses : [];
+    // Entries can be null in older account records; rendering one used to
+    // crash the whole modal, so they are dropped instead.
+    const list = Array.isArray(user.addresses)
+      ? user.addresses.filter((item) => item && typeof item === "object")
+      : [];
     if (list.length === 0 && user.address) {
       setAddresses([
         {
