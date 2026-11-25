@@ -360,6 +360,13 @@ export default function AccountModal({
   const [referralApplying, setReferralApplying] = useState(false);
   const [referralMessage, setReferralMessage] = useState({ type: "", text: "" });
 
+  // Wallet ledger — balance plus every credit/debit behind it.
+  const [walletLedger, setWalletLedger] = useState({
+    balance: null,
+    transactions: [],
+    loading: false,
+  });
+
   // Login & Security (Amazon-style) editor state.
   const [securityEdit, setSecurityEdit] = useState(null); // name | email | phone | password
   const [secForm, setSecForm] = useState({
@@ -487,6 +494,48 @@ export default function AccountModal({
     };
 
     loadOrders();
+
+    return () => {
+      requestCancelled = true;
+    };
+  }, [apiUrl, isOpen, showToast, tab, token, user]);
+
+  useEffect(() => {
+    if (!isOpen || !user || !token || tab !== "wallet") {
+      return undefined;
+    }
+
+    let requestCancelled = false;
+
+    const loadWallet = async () => {
+      try {
+        setWalletLedger((current) => ({ ...current, loading: true }));
+
+        const response = await fetch(`${apiUrl}/api/auth/wallet`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Could not load your wallet");
+        }
+
+        if (!requestCancelled) {
+          setWalletLedger({
+            balance: Number(data.balance) || 0,
+            transactions: data.transactions || [],
+            loading: false,
+          });
+        }
+      } catch (error) {
+        if (!requestCancelled) {
+          setWalletLedger((current) => ({ ...current, loading: false }));
+          showToast?.(error.message);
+        }
+      }
+    };
+
+    loadWallet();
 
     return () => {
       requestCancelled = true;
@@ -1691,6 +1740,14 @@ export default function AccountModal({
 
               <button
                 type="button"
+                className={tab === "wallet" ? "active" : ""}
+                onClick={() => setTab("wallet")}
+              >
+                My wallet
+              </button>
+
+              <button
+                type="button"
                 className={tab === "security" ? "active" : ""}
                 onClick={() => setTab("security")}
               >
@@ -2129,6 +2186,155 @@ export default function AccountModal({
                   </div>
                 </section>
                 </>
+              ) : tab === "wallet" ? (
+                <section className="security-panel">
+                  <div>
+                    <span className="eyebrow blue">MY WALLET</span>
+                    <h3>Wallet &amp; cashback history</h3>
+                    <p>
+                      Cashback from delivered orders and approved referral
+                      rewards land here, and every credit or deduction is
+                      listed below with its source.
+                    </p>
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 16,
+                      padding: "18px 20px",
+                      borderRadius: 14,
+                      background: "#f5f3ff",
+                      border: "1px solid #ddd6fe",
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      gap: 12,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <div>
+                      <span
+                        style={{
+                          fontSize: 12,
+                          color: "#7c3aed",
+                          fontWeight: 700,
+                          letterSpacing: 0.5,
+                        }}
+                      >
+                        AVAILABLE BALANCE
+                      </span>
+                      <b
+                        style={{
+                          display: "block",
+                          fontSize: 26,
+                          color: "#5b21b6",
+                        }}
+                      >
+                        ₹
+                        {Number(
+                          walletLedger.balance ?? user.walletBalance ?? 0
+                        ).toLocaleString("en-IN")}
+                      </b>
+                    </div>
+                    <small
+                      style={{ color: "#6b7280", maxWidth: 320, lineHeight: 1.5 }}
+                    >
+                      Spend it at checkout on eligible products (wallet orders
+                      are paid online, COD nahi).
+                    </small>
+                  </div>
+
+                  {walletLedger.loading ? (
+                    <p style={{ marginTop: 16 }}>Loading your wallet…</p>
+                  ) : walletLedger.transactions.length === 0 ? (
+                    <p style={{ marginTop: 16, color: "#6b7280" }}>
+                      No wallet activity yet. Order cashback (credited once an
+                      order is delivered) and approved referral rewards will
+                      show up here.
+                    </p>
+                  ) : (
+                    <div style={{ marginTop: 16, display: "grid", gap: 10 }}>
+                      {walletLedger.transactions.map((txn) => {
+                        const amount = Number(txn.amount) || 0;
+                        const credit = amount > 0;
+                        const label =
+                          txn.type === "referral"
+                            ? "Referral reward"
+                            : txn.type === "cashback"
+                            ? "Order cashback"
+                            : credit
+                            ? "Added by store"
+                            : "Adjusted by store";
+                        const statusText =
+                          txn.status === "pending"
+                            ? "Pending approval"
+                            : txn.status === "rejected"
+                            ? "Not approved"
+                            : "";
+
+                        return (
+                          <div
+                            key={txn._id}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: 12,
+                              padding: "12px 14px",
+                              border: "1px solid #ece9f7",
+                              borderRadius: 12,
+                              background: "#fff",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            <div>
+                              <b style={{ fontSize: 14 }}>{label}</b>
+                              <small
+                                style={{
+                                  display: "block",
+                                  color: "#6b7280",
+                                  fontSize: 12,
+                                  marginTop: 2,
+                                }}
+                              >
+                                {new Date(txn.createdAt).toLocaleDateString(
+                                  "en-IN",
+                                  {
+                                    day: "2-digit",
+                                    month: "short",
+                                    year: "numeric",
+                                  }
+                                )}
+                                {txn.orderNumber ? ` · ${txn.orderNumber}` : ""}
+                                {statusText ? ` · ${statusText}` : ""}
+                              </small>
+                              {txn.note && (
+                                <small
+                                  style={{
+                                    display: "block",
+                                    color: "#6b7280",
+                                    fontSize: 12,
+                                  }}
+                                >
+                                  {txn.note}
+                                </small>
+                              )}
+                            </div>
+                            <b
+                              style={{
+                                fontSize: 15,
+                                color: credit ? "#16a34a" : "#dc2626",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {credit ? "+" : "−"}₹
+                              {Math.abs(amount).toLocaleString("en-IN")}
+                            </b>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section>
               ) : tab === "security" ? (
                 <section className="security-panel">
                   <div>
