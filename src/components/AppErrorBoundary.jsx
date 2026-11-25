@@ -13,11 +13,13 @@ class AppErrorBoundary extends Component {
   constructor(props) {
     super(props);
 
-    this.state = { failed: false };
+    this.state = { failed: false, message: "" };
   }
 
-  static getDerivedStateFromError() {
-    return { failed: true };
+  static getDerivedStateFromError(error) {
+    // The message is shown on the fallback so a support report carries the
+    // real cause instead of only "something went wrong".
+    return { failed: true, message: String(error?.message || "Unknown error") };
   }
 
   componentDidMount() {
@@ -35,7 +37,7 @@ class AppErrorBoundary extends Component {
     // the failure state so the previous route can render fresh rather than
     // staying locked on the crash screen.
     if (this.state.failed) {
-      this.setState({ failed: false });
+      this.setState({ failed: false, message: "" });
     }
   };
 
@@ -96,6 +98,19 @@ class AppErrorBoundary extends Component {
           Page load nahi ho paya. Neeche wale button se dobara koshish karein —
           aapka cart aur login safe rahega.
         </p>
+        {this.state.message && (
+          <p
+            style={{
+              marginTop: 12,
+              fontSize: 12,
+              color: "#6b7280",
+              wordBreak: "break-word",
+              maxWidth: 520,
+            }}
+          >
+            {this.state.message}
+          </p>
+        )}
         <button
           type="button"
           onClick={() => {

@@ -1717,7 +1717,7 @@ export default function AccountModal({
             <aside className="account-menu">
               <div className="account-user-card">
                 <span>
-                  {user.name?.charAt(0).toUpperCase() || "D"}
+                  {String(user.name || "").charAt(0).toUpperCase() || "D"}
                 </span>
 
                 <div>

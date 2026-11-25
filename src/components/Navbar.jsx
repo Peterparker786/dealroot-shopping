@@ -343,7 +343,9 @@ export default function Navbar({
             }}
           >
             <FiUser />
-            <span className="h-label">{user ? user.name.split(" ")[0] : "Account"}</span>
+            <span className="h-label">
+              {user ? String(user.name || "").split(" ")[0] || "Account" : "Account"}
+            </span>
             <span className="h-sub">{user ? "Profile" : "Sign in"}</span>
           </button>
         </nav>
