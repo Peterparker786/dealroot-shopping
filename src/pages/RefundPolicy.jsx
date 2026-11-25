@@ -15,8 +15,10 @@ export default function RefundPolicy() {
           deductions (e.g. for damaged packaging) if applicable.
         </li>
         <li>
-          Return requests can be filed within <strong>7 days</strong> of
-          placing your order from your account (My Orders → Return / Refund).
+          <strong>Returns are not accepted after delivery.</strong> Orders that
+          could not be delivered (customer unavailable, wrong address, refused
+          delivery) come back to us and are settled by our team under the
+          points above.
         </li>
       </ul>
 
