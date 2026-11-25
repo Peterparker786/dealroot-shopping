@@ -31,27 +31,59 @@ import {
   useState,
 } from "react";
 
-// Self-healing lazy loader: if a chunk fails to load (e.g. after a new deployment purges
-// old hashed chunks while a user was browsing, or during a browser back navigation),
-// automatically reloads once so the browser fetches the latest code without crashing.
-function lazyWithRetry(componentImport) {
-  return lazy(() =>
-    componentImport().catch((error) => {
-      try {
-        const key = "dealroot_chunk_reload_at";
-        const last = Number(window.sessionStorage.getItem(key) || 0);
-        if (Date.now() - last > 10000) {
-          window.sessionStorage.setItem(key, String(Date.now()));
-          window.location.reload();
-          return new Promise(() => {});
-        }
-      } catch {
-        window.location.reload();
-        return new Promise(() => {});
+// Self-healing lazy loader. A chunk can fail for two very different reasons:
+//   1. a new deploy purged the old hashed file (permanent — needs a reload)
+//   2. the network/DNS blipped for a second (temporary — just try again)
+// Retrying first keeps a flaky connection from nuking the whole app with the
+// crash page, which used to happen when e.g. the Account modal chunk could not
+// be fetched on a poor mobile connection.
+const CHUNK_LOAD_ERROR =
+  /dynamically imported module|Importing a module script failed|Failed to fetch|NetworkError|Load failed|error loading dynamically imported module/i;
+
+const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function importWithRetry(componentImport, attempts = 3) {
+  let lastError = null;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await componentImport();
+    } catch (error) {
+      lastError = error;
+
+      const message = String(error?.message || "");
+
+      // Anything that is not a load failure is a real bug in the chunk —
+      // retrying would only hide it.
+      if (!CHUNK_LOAD_ERROR.test(message)) throw error;
+
+      if (attempt < attempts - 1) {
+        await wait(400 * (attempt + 1));
       }
-      throw error;
-    })
-  );
+    }
+  }
+
+  // Still failing after the retries: assume the deployed file is gone and
+  // reload once (guarded so a genuinely broken build cannot loop).
+  try {
+    const key = "dealroot_chunk_reload_at";
+    const last = Number(window.sessionStorage.getItem(key) || 0);
+
+    if (Date.now() - last > 10000) {
+      window.sessionStorage.setItem(key, String(Date.now()));
+      window.location.reload();
+      return new Promise(() => {});
+    }
+  } catch {
+    window.location.reload();
+    return new Promise(() => {});
+  }
+
+  throw lastError;
+}
+
+function lazyWithRetry(componentImport) {
+  return lazy(() => importWithRetry(componentImport));
 }
 
 // Lazy-load heavy page/component chunks so the initial JS payload shrinks.
