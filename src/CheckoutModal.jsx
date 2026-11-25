@@ -107,14 +107,17 @@ const [selectedCity, setSelectedCity] = useState(null);
     text: "",
   });
   const [discountAmount, setDiscountAmount] = useState(0);
+  const [appliedCouponModes, setAppliedCouponModes] = useState(["cod", "prepaid"]);
   const [availableCoupons] = useState([]);
 
   // Which payment methods a coupon accepts. The backend now returns
   // `paymentModes` on the coupon, and treats anything missing (coupons
   // created before this field existed) as "both".
-  const couponModes = (coupon) => {
-    const modes = Array.isArray(coupon?.paymentModes)
-      ? coupon.paymentModes
+  const couponModes = (couponOrModes) => {
+    const modes = Array.isArray(couponOrModes)
+      ? couponOrModes
+      : Array.isArray(couponOrModes?.paymentModes)
+      ? couponOrModes.paymentModes
       : [];
 
     return modes.length ? modes : ["cod", "prepaid"];
@@ -187,6 +190,8 @@ const hasDropshipItems = useMemo(
   () => cart.some((item) => !item.isFreeGift && isDropshipItem(item)),
   [cart, products]
 );
+const walletEligible = nonDropshipSubtotal > 0;
+const walletActive = useWallet && walletEligible && walletBalance > 0;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -195,6 +200,11 @@ const hasDropshipItems = useMemo(
     setIsSubmitting(false);
     setCouponInput("");
     setAppliedCoupon("");
+    setDiscountAmount(0);
+    setIsReferralCode(false);
+    setAppliedCouponModes(["cod", "prepaid"]);
+    setUseWallet(false);
+    setPaymentNotice("");
     setCouponMessage({ type: "", text: "" });
 
     if (!user) {
@@ -291,11 +301,15 @@ useEffect(() => {
 // Wallet balance is prepaid-only: applying it switches the order to online
 // payment and Cash on Delivery is hidden until it is unchecked.
 useEffect(() => {
-  if (useWallet && paymentMethod === "cod") {
+  if (!walletEligible && useWallet) {
+    setUseWallet(false);
+    return;
+  }
+  if (walletActive && paymentMethod === "cod") {
     setPaymentMethod("online");
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [useWallet, paymentMethod]);
+}, [walletActive, walletEligible, useWallet, paymentMethod]);
 
   // Delivery is charged on every order; there is no free-delivery threshold.
   // A cart made up only of free-delivery products ships free; a mixed cart is
@@ -335,9 +349,8 @@ const remainingCod =
 // 3. No minimum order value: wallet applies to any non-dropship subtotal > 0.
 // 4. Applying any wallet balance disables COD for this order.
 // 5. Shipping is always paid online regardless of wallet usage.
-const walletEligible = nonDropshipSubtotal > 0;
 const walletDeduction =
-  useWallet && walletEligible && paymentMethod !== "cod"
+  walletActive && paymentMethod !== "cod"
     ? Math.min(walletBalance, nonDropshipSubtotal)
     : 0;
 const payableNow =
@@ -350,6 +363,7 @@ const finalRemainingCod = Math.max(0, remainingCod);
     setAppliedCoupon("");
     setDiscountAmount(0);
     setIsReferralCode(false);
+    setAppliedCouponModes(["cod", "prepaid"]);
     setCouponMessage({ type: "", text: "" });
   };
 
@@ -360,12 +374,13 @@ const finalRemainingCod = Math.max(0, remainingCod);
   useEffect(() => {
     if (!appliedCoupon) return;
 
-    const modes = couponModes(appliedCoupon);
+    const modes = couponModes(appliedCouponModes);
 
     if (!modes.includes(paymentMethod === "cod" ? "cod" : "prepaid")) {
       setAppliedCoupon("");
       setDiscountAmount(0);
       setIsReferralCode(false);
+      setAppliedCouponModes(["cod", "prepaid"]);
       setCouponMessage({
         type: "error",
         text:
@@ -375,13 +390,14 @@ const finalRemainingCod = Math.max(0, remainingCod);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [paymentMethod, appliedCoupon]);
+  }, [paymentMethod, appliedCoupon, appliedCouponModes]);
 
   const applyCoupon = async () => {
   const code = couponInput.trim().toUpperCase();
   if (!code) {
     setAppliedCoupon("");
     setDiscountAmount(0);
+    setAppliedCouponModes(["cod", "prepaid"]);
 
     setCouponMessage({
       type: "error",
@@ -416,7 +432,16 @@ const finalRemainingCod = Math.max(0, remainingCod);
       throw new Error(data.message);
     }
 
+    const nextModes =
+      Array.isArray(data.paymentModes) && data.paymentModes.length
+        ? data.paymentModes
+        : Array.isArray(data.coupon?.paymentModes) &&
+          data.coupon.paymentModes.length
+        ? data.coupon.paymentModes
+        : ["cod", "prepaid"];
+
     setAppliedCoupon(code);
+    setAppliedCouponModes(nextModes);
     setDiscountAmount(data.discount);
 
     setCouponMessage({
@@ -631,10 +656,14 @@ const orderPayload = {
           ...user,
           name: form.name.trim(),
           phone,
-  state: form.state,
-  address: form.address.trim(),
+          state: form.state,
+          address: form.address.trim(),
           city: form.city.trim(),
           pincode,
+          walletBalance: Math.max(
+            0,
+            Number(user.walletBalance || 0) - Number(order?.walletUsed || 0)
+          ),
         });
       }
 
@@ -646,10 +675,6 @@ const orderPayload = {
       paymentFailedRef.current = false;
       setPaymentNotice("");
       setIsSubmitting(true);
-
-      // Both COD and online go through Razorpay: COD collects only the
-      // delivery charge now, the rest is collected at the door.
-      await loadRazorpayCheckout();
 
       const createResponse = await fetch(
         `${apiUrl}/api/payments/razorpay/create-order`,
@@ -668,14 +693,21 @@ const orderPayload = {
         );
       }
 
-      // Free delivery + Cash on Delivery leaves nothing to pay online, so the
-      // backend creates the order directly and returns it — no Razorpay window.
+      // Free delivery + COD, or a wallet-only online order with free delivery,
+      // leaves ₹0 to charge now so the backend creates the order directly.
       if (createData.order) {
         completeOrder(createData.order);
         setIsSubmitting(false);
-        showToast?.("Order placed! Pay the balance at delivery.");
+        showToast?.(
+          createData.order.paymentMethod === "razorpay"
+            ? "Order placed! Paid using wallet balance."
+            : "Order placed! Pay the balance at delivery."
+        );
         return;
       }
+
+      // Both prepaid and partial-COD orders collect the online amount via Razorpay.
+      await loadRazorpayCheckout();
 
       let paymentHandled = false;
 
@@ -1097,7 +1129,7 @@ const razorpayCheckout = new window.Razorpay({
                 <strong>SECURE</strong>
               </label>
 
-              {codAvailable && !useWallet && (
+              {codAvailable && !walletActive && (
               <label
                 className={`choice-card ${
                   paymentMethod === "cod" ? "selected" : ""
@@ -1117,7 +1149,7 @@ const razorpayCheckout = new window.Razorpay({
               </label>
               )}
 
-              {codAvailable && useWallet && (
+              {codAvailable && walletActive && (
                 <p className="checkout-account-note">
                   Wallet balance applied — this order is prepaid only, so Cash
                   on Delivery is unavailable. Uncheck wallet balance to pay at
@@ -1250,6 +1282,7 @@ const razorpayCheckout = new window.Razorpay({
                       setCouponMessage({ type: "", text: "" });
                       setDiscountAmount(0);
                       setIsReferralCode(false);
+                      setAppliedCouponModes(["cod", "prepaid"]);
                     }
                   }}
                   placeholder="Enter coupon code"
@@ -1377,7 +1410,9 @@ const razorpayCheckout = new window.Razorpay({
                   ? "Opening secure payment..."
                   : "Placing order..."
                 : paymentMethod === "online"
-                ? `Pay ₹${payableNow} securely`
+                ? payableNow > 0
+                  ? `Pay ₹${payableNow} securely`
+                  : "Place order using wallet"
                 : payableNow > 0
                 ? `Pay ₹${payableNow} & Confirm COD`
                 : `Confirm COD — pay ₹${finalRemainingCod} at delivery`}

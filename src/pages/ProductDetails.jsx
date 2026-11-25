@@ -182,6 +182,7 @@ export default function ProductDetails({
         description: data.product.description || "",
         deliveryDate: getEstimatedDelivery(),
         marketplaceLinks: data.product.marketplaceLinks || [],
+        freeDelivery: Boolean(data.product.freeDelivery),
         isDropship: Boolean(data.product.isDropship),
         specifications:
           Array.isArray(data.product.specifications)
@@ -488,7 +489,12 @@ export default function ProductDetails({
               </motion.strong>
               <motion.button
                 whileTap={{ scale: 0.9 }}
-                onClick={() => setQuantity((q) => q + 1)}
+                disabled={product.stock <= 0 || quantity >= Math.max(1, Number(product.stock) || 1)}
+                onClick={() =>
+                  setQuantity((q) =>
+                    Math.min(Math.max(1, Number(product.stock) || 1), q + 1)
+                  )
+                }
               >
                 +
               </motion.button>
@@ -700,4 +706,4 @@ export default function ProductDetails({
       </section>
     </>
   );
-}
+}

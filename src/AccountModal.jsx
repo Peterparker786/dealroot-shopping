@@ -2302,6 +2302,8 @@ export default function AccountModal({
                             ? "Referral reward"
                             : txn.type === "cashback"
                             ? "Order cashback"
+                            : txn.type === "spend"
+                            ? "Paid using wallet"
                             : credit
                             ? "Added by store"
                             : "Adjusted by store";
@@ -2857,4 +2859,4 @@ export default function AccountModal({
       </section>
     </div>
   );
-}
+}

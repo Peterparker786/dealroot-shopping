@@ -1739,6 +1739,17 @@ function AdminPanel({
         )
       );
 
+      if (
+        data.order?.stockRestored ||
+        orderStatus === "not_delivered" ||
+        orderStatus === "returned"
+      ) {
+        loadProducts();
+      }
+      if (["delivered", "returned", "not_delivered"].includes(orderStatus)) {
+        loadSalesStats();
+      }
+
       showToast(data.message || "Order status updated");
       return data.order;
     } catch (error) {
@@ -3982,16 +3993,22 @@ function AdminPanel({
                                     : ""}
                                 </small>
                               )}
-                              <small
-                                style={{ color: "#b45309", fontWeight: 600 }}
-                              >
-                                Balance due: ₹{Number(order.codAmount) || 0}
-                              </small>
+                              {(order.paymentMethod === "cod" ||
+                                Number(order.codAmount) > 0) &&
+                                order.orderStatus !== "cancelled" && (
+                                  <small
+                                    style={{ color: "#b45309", fontWeight: 600 }}
+                                  >
+                                    Balance due: ₹{Number(order.codAmount) || 0}
+                                  </small>
+                                )}
                               {Number(order.discountAmount) > 0 && (
                                 <small style={{ color: "#7c3aed", fontWeight: 600 }}>
                                   Code: {order.couponCode || "—"} · Cashback ₹
                                   {order.discountAmount}
-                                  {order.orderStatus === "cancelled"
+                                  {["cancelled", "returned", "not_delivered"].includes(
+                                    order.orderStatus
+                                  )
                                     ? ""
                                     : order.cashbackCredited
                                     ? " · ✓ Credited"
@@ -4187,7 +4204,10 @@ function AdminPanel({
                                   {/* Cashback is never credited automatically —
                                       the admin adds it here when they choose to. */}
                                   {Number(order.discountAmount) > 0 &&
-                                    !order.cashbackCredited && (
+                                    !order.cashbackCredited &&
+                                    !["cancelled", "returned", "not_delivered"].includes(
+                                      order.orderStatus
+                                    ) && (
                                       <button
                                         type="button"
                                         className="add-cashback-btn"
@@ -5414,6 +5434,8 @@ function AdminPanel({
                                                         ? "Referral bonus"
                                                         : t.type === "cashback"
                                                         ? "Order cashback"
+                                                        : t.type === "spend"
+                                                        ? "Paid on order"
                                                         : "Admin adjustment"}
                                                     </td>
                                                     <td>₹{t.amount}</td>
