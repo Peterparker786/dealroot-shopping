@@ -17,15 +17,37 @@ initAnalytics();
 // the latest assets smoothly instead of crashing with a blank/error screen.
 window.addEventListener("vite:preloadError", (event) => {
   event?.preventDefault?.();
+
+  // A stale service worker can keep serving the old index.html (and therefore
+  // the deleted chunk names), which turns one failed import into a crash loop.
+  // Drop it before reloading so the reload actually fetches the new build.
+  const reloadFresh = () => {
+    try {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .getRegistrations()
+          .then((registrations) =>
+            Promise.all(registrations.map((item) => item.unregister()))
+          )
+          .finally(() => window.location.reload());
+        return;
+      }
+    } catch {
+      // fall through
+    }
+
+    window.location.reload();
+  };
+
   try {
     const key = "dealroot_vite_preload_retry";
     const last = Number(window.sessionStorage.getItem(key) || 0);
     if (Date.now() - last > 10000) {
       window.sessionStorage.setItem(key, String(Date.now()));
-      window.location.reload();
+      reloadFresh();
     }
   } catch {
-    window.location.reload();
+    reloadFresh();
   }
 });
 

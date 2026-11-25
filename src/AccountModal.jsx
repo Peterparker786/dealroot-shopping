@@ -73,6 +73,26 @@ const shortDate = (value) => {
   }
 };
 
+// Wallet ledger dates carry the year as well, and never throw on a missing or
+// malformed timestamp.
+const walletDate = (value) => {
+  if (!value) return "";
+
+  try {
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return "";
+
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return "";
+  }
+};
+
 // Builds the timeline steps for one order. "confirmed" counts as Placed.
 function orderTimelineSteps(order) {
   const status = order?.orderStatus || "placed";
@@ -2320,14 +2340,7 @@ export default function AccountModal({
                                   marginTop: 2,
                                 }}
                               >
-                                {new Date(txn.createdAt).toLocaleDateString(
-                                  "en-IN",
-                                  {
-                                    day: "2-digit",
-                                    month: "short",
-                                    year: "numeric",
-                                  }
-                                )}
+                                {walletDate(txn.createdAt)}
                                 {txn.orderNumber ? ` · ${txn.orderNumber}` : ""}
                                 {statusText ? ` · ${statusText}` : ""}
                               </small>

@@ -47,6 +47,30 @@ class AppErrorBoundary extends Component {
     // immediately reload the page so the browser fetches the latest bundle.
     if (!CHUNK_ERROR.test(message)) return;
 
+    // A stale service worker is the usual reason the reload keeps serving the
+    // old index.html (and therefore the old, deleted chunk names), so drop it
+    // before reloading.
+    const reloadFresh = () => {
+      const done = () => window.location.reload();
+
+      try {
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker
+            .getRegistrations()
+            .then((registrations) =>
+              Promise.all(registrations.map((item) => item.unregister()))
+            )
+            .then(done)
+            .catch(done);
+          return;
+        }
+      } catch {
+        // fall through to the plain reload
+      }
+
+      done();
+    };
+
     try {
       const key = "dealroot_chunk_reload_at";
       const last = Number(window.sessionStorage.getItem(key) || 0);
@@ -55,7 +79,7 @@ class AppErrorBoundary extends Component {
       // the visitor in a reload loop.
       if (Date.now() - last > 10000) {
         window.sessionStorage.setItem(key, String(Date.now()));
-        window.location.reload();
+        reloadFresh();
       }
     } catch {
       // sessionStorage unavailable (private mode) — the panel below still shows.
@@ -72,7 +96,28 @@ class AppErrorBoundary extends Component {
           Page load nahi ho paya. Neeche wale button se dobara koshish karein —
           aapka cart aur login safe rahega.
         </p>
-        <button type="button" onClick={() => window.location.reload()}>
+        <button
+          type="button"
+          onClick={() => {
+            // Drop a stale service worker first — otherwise the reload can
+            // serve the same old bundle and land straight back here.
+            try {
+              if ("serviceWorker" in navigator) {
+                navigator.serviceWorker
+                  .getRegistrations()
+                  .then((registrations) =>
+                    Promise.all(registrations.map((item) => item.unregister()))
+                  )
+                  .finally(() => window.location.reload());
+                return;
+              }
+            } catch {
+              // fall through
+            }
+
+            window.location.reload();
+          }}
+        >
           Reload page
         </button>
       </div>
